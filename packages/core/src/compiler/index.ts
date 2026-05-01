@@ -16,6 +16,14 @@ export { compileHtml, type MediaDurationProber } from "./htmlCompiler";
 // HTML bundler (Node.js — requires fs, linkedom, esbuild)
 export { bundleToSingleHtml, type BundleOptions } from "./htmlBundler";
 
+export {
+  RUNTIME_BOOTSTRAP_ATTR,
+  injectScriptsAtHeadStart,
+  injectScriptsIntoHtml,
+  parseHTMLContent,
+  stripEmbeddedRuntimeScripts,
+} from "./htmlDocument";
+
 // Static guard
 export {
   validateHyperframeHtmlContract,

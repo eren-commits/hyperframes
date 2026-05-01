@@ -3,3 +3,4 @@ export type { StudioApiAdapter, ResolvedProject, RenderJobState, LintResult } fr
 export { isSafePath, walkDir } from "./helpers/safePath.js";
 export { getMimeType, MIME_TYPES } from "./helpers/mime.js";
 export { buildSubCompositionHtml } from "./helpers/subComposition.js";
+export { getElementScreenshotClip, type ScreenshotClip } from "./helpers/screenshotClip.js";

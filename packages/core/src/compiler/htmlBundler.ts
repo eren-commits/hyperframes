@@ -1,24 +1,15 @@
 import { readFileSync, existsSync } from "fs";
 import { join, resolve, isAbsolute, sep } from "path";
-import { parseHTML } from "linkedom";
 import { transformSync } from "esbuild";
 import { compileHtml, type MediaDurationProber } from "./htmlCompiler";
+import {
+  RUNTIME_BOOTSTRAP_ATTR,
+  parseHTMLContent,
+  stripEmbeddedRuntimeScripts,
+} from "./htmlDocument";
 import { rewriteAssetPaths, rewriteCssAssetUrls } from "./rewriteSubCompPaths";
 import { scopeCssToComposition, wrapScopedCompositionScript } from "./compositionScoping";
 import { validateHyperframeHtmlContract } from "./staticGuard";
-
-/**
- * Parse an HTML string into a document. Fragments (without a full document
- * structure) are wrapped in `<!DOCTYPE html><html><head></head><body>…</body></html>`
- * so that linkedom places the content inside `document.body`.
- */
-function parseHTMLContent(html: string): Document {
-  const trimmed = html.trimStart().toLowerCase();
-  if (trimmed.startsWith("<!doctype") || trimmed.startsWith("<html")) {
-    return parseHTML(html).document;
-  }
-  return parseHTML(`<!DOCTYPE html><html><head></head><body>${html}</body></html>`).document;
-}
 
 /** Resolve a relative path within projectDir, rejecting traversal outside it. */
 function safePath(projectDir: string, relativePath: string): string | null {
@@ -28,39 +19,7 @@ function safePath(projectDir: string, relativePath: string): string | null {
   return resolved;
 }
 
-const RUNTIME_BOOTSTRAP_ATTR = "data-hyperframes-preview-runtime";
 const DEFAULT_RUNTIME_SCRIPT_URL = "";
-
-function stripEmbeddedRuntimeScripts(html: string): string {
-  if (!html) return html;
-  const scriptRe = /<script\b[^>]*>[\s\S]*?<\/script>/gi;
-  const runtimeSrcMarkers = [
-    "hyperframe.runtime.iife.js",
-    "hyperframe-runtime.modular-runtime.inline.js",
-    RUNTIME_BOOTSTRAP_ATTR,
-  ];
-  const runtimeInlineMarkers = [
-    "__hyperframeRuntimeBootstrapped",
-    "__hyperframeRuntime",
-    "__hyperframeRuntimeTeardown",
-    "window.__player =",
-    "window.__playerReady",
-    "window.__renderReady",
-  ];
-
-  const shouldStrip = (block: string): boolean => {
-    const lowered = block.toLowerCase();
-    for (const marker of runtimeSrcMarkers) {
-      if (lowered.includes(marker.toLowerCase())) return true;
-    }
-    for (const marker of runtimeInlineMarkers) {
-      if (block.includes(marker)) return true;
-    }
-    return false;
-  };
-
-  return html.replace(scriptRe, (block) => (shouldStrip(block) ? "" : block));
-}
 
 function getRuntimeScriptUrl(): string {
   const configured = (process.env.HYPERFRAME_RUNTIME_URL || "").trim();
@@ -366,7 +325,7 @@ export async function bundleToSingleHtml(
   }
 
   const withInterceptor = injectInterceptor(compiled);
-  const { document } = parseHTML(withInterceptor);
+  const document = parseHTMLContent(withInterceptor);
 
   // Inline local CSS
   const localCssChunks: string[] = [];

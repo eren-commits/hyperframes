@@ -1,4 +1,5 @@
 import { forwardRef, useRef, useState } from "react";
+import { isLottieAnimationLoaded } from "@hyperframes/core/runtime/lottie-readiness";
 import { useMountEffect } from "../../hooks/useMountEffect";
 // NOTE: importing "@hyperframes/player" registers a class extending HTMLElement
 // at module load, which throws under SSR. Defer the import to the mount effect
@@ -13,30 +14,6 @@ interface PlayerProps {
 
 interface HyperframesPlayerElement extends HTMLElement {
   iframeElement: HTMLIFrameElement;
-}
-
-/**
- * Readiness check for a Lottie animation instance. Duck-types both supported
- * player shapes:
- *
- * - `lottie-web` exposes a boolean `isLoaded` on `AnimationItem`.
- * - `@dotlottie/player-component` doesn't; we infer readiness from
- *   `totalFrames > 0` since that value is only populated once the animation
- *   JSON has been parsed.
- *
- * Kept in sync with the runtime adapter's own checks in
- * `@hyperframes/core/runtime/adapters/lottie.ts` — that module would be a
- * more canonical home for the helper, but importing from the core package's
- * root index pulls Node-only submodules (path, url) into this browser bundle
- * and breaks Vite. If the helper grows, split a browser-safe submodule
- * export in core and switch this to import it.
- */
-function isLottieAnimationReady(anim: unknown): boolean {
-  if (typeof anim !== "object" || anim === null) return true;
-  const maybe = anim as { isLoaded?: boolean; totalFrames?: number };
-  if (maybe.isLoaded === true) return true;
-  if (typeof maybe.totalFrames === "number" && maybe.totalFrames > 0) return true;
-  return false;
 }
 
 // Assets are considered ready when every `<video>`/`<audio>` has enough data
@@ -62,7 +39,7 @@ function hasUnloadedAssets(iframe: HTMLIFrameElement, lastResult: boolean): bool
     const lotties = win.__hfLottie;
     if (lotties?.length) {
       for (const anim of lotties) {
-        if (!isLottieAnimationReady(anim)) return true;
+        if (!isLottieAnimationLoaded(anim)) return true;
       }
     }
 
