@@ -1,0 +1,20 @@
+{
+  "$schema": "https://hyperframes.heygen.com/schema/registry-item.json",
+  "name": "canvas-dom-refractor",
+  "type": "hyperframes:block",
+  "title": "Canvas DOM Refractor",
+  "description": "Native HTML-in-canvas showcase that refracts, magnifies, slices, and curves one editable DOM source as pixels",
+  "tags": ["showcase", "canvas", "html", "refractor", "native"],
+  "dimensions": {
+    "width": 1920,
+    "height": 1080
+  },
+  "duration": 12,
+  "files": [
+    {
+      "path": "canvas-dom-refractor.html",
+      "target": "compositions/canvas-dom-refractor.html",
+      "type": "hyperframes:composition"
+    }
+  ]
+}

@@ -28,19 +28,19 @@
     "preview": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/apple-money-count.png"
   },
   {
-    "name": "canvas-screen-pip",
+    "name": "canvas-dom-refractor",
     "type": "block",
-    "title": "Canvas Screen PiP",
-    "description": "HTML-in-canvas device showcase with browser, iPhone, and picture-in-picture screen treatments",
+    "title": "Canvas DOM Refractor",
+    "description": "Native HTML-in-canvas showcase that refracts, magnifies, slices, and curves one editable DOM source as pixels",
     "tags": [
       "showcase",
       "canvas",
-      "screen",
-      "device",
-      "pip"
+      "html",
+      "refractor",
+      "native"
     ],
-    "href": "/catalog/blocks/canvas-screen-pip",
-    "preview": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/canvas-screen-pip.png"
+    "href": "/catalog/blocks/canvas-dom-refractor",
+    "preview": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/canvas-dom-refractor.png"
   },
   {
     "name": "chromatic-radial-split",
