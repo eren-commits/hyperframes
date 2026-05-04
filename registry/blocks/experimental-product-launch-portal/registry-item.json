@@ -1,0 +1,21 @@
+{
+  "$schema": "https://hyperframes.heygen.com/schema/registry-item.json",
+  "name": "experimental-product-launch-portal",
+  "type": "hyperframes:block",
+  "title": "Experimental Product Launch Portal",
+  "description": "Shader-heavy product launch block: edit one DOM product UI, then render portal warps, device panels, crop callouts, and CTA shots from the same HTML-in-canvas source",
+  "tags": ["experimental", "launch", "product", "shader", "canvas", "portal"],
+  "stability": "experimental",
+  "dimensions": {
+    "width": 1920,
+    "height": 1080
+  },
+  "duration": 18,
+  "files": [
+    {
+      "path": "experimental-product-launch-portal.html",
+      "target": "compositions/experimental-product-launch-portal.html",
+      "type": "hyperframes:composition"
+    }
+  ]
+}

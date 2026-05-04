@@ -1,0 +1,58 @@
+---
+title: "Experimental Product Launch Portal"
+description: "Shader-heavy product launch block: edit one DOM product UI, then render portal warps, device panels, crop callouts, and CTA shots from the same HTML-in-canvas source"
+---
+
+# Experimental Product Launch Portal
+
+Shader-heavy product launch block: edit one DOM product UI, then render portal warps, device panels, crop callouts, and CTA shots from the same HTML-in-canvas source
+
+`experimental` `launch` `product` `shader` `canvas` `portal`
+
+<Warning>
+This catalog item is experimental. Its native path uses Chrome's HTML-in-canvas API, which is unstable and can change or be removed. Stable Chrome keeps the fallback path. For native rendering, enable `chrome://flags/#canvas-draw-element`, restart the browser after changing the flag, or launch Chromium with `--enable-features=CanvasDrawElement`.
+</Warning>
+
+## Agent Setup
+
+When adapting this item for a user, edit the feature flag yourself when browser access is available, then tell the user to restart the browser before previewing again. If launching Chromium from automation or render scripts, include:
+
+```bash
+--enable-features=CanvasDrawElement
+```
+
+Do not assume native capture is available. Keep the fallback path intact and verify `drawElementImage` support in the target browser.
+
+<video className="w-full aspect-video rounded-xl object-cover bg-zinc-100 dark:bg-zinc-800" src="https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/experimental-product-launch-portal.mp4" poster="https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/experimental-product-launch-portal.png" autoPlay muted loop playsInline />
+
+## Install
+
+<CodeGroup>
+
+```bash Terminal
+npx hyperframes add experimental-product-launch-portal
+```
+
+</CodeGroup>
+
+## Details
+
+| Property | Value |
+| --- | --- |
+| Type | Block |
+| Dimensions | 1920×1080 |
+| Duration | 18s |
+
+## Files
+
+| File | Target | Type |
+| --- | --- | --- |
+| `experimental-product-launch-portal.html` | `compositions/experimental-product-launch-portal.html` | hyperframes:composition |
+
+## Usage
+
+After installing, add the block to your host composition:
+
+```html
+<div data-composition-id="experimental-product-launch-portal" data-composition-src="compositions/experimental-product-launch-portal.html" data-start="0" data-duration="18" data-track-index="1" data-width="1920" data-height="1080"></div>
+```

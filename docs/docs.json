@@ -142,6 +142,7 @@
             "group": "Experimental",
             "pages": [
               "catalog/blocks/canvas-dom-refractor",
+              "catalog/blocks/experimental-product-launch-portal",
               "catalog/blocks/experimental-screen-callout"
             ]
           },

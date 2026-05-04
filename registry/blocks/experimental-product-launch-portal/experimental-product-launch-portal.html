@@ -1,0 +1,1130 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>experimental-product-launch-portal</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #040407;
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+
+      #experimental-product-launch-portal {
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        color: #f6fff8;
+        background:
+          linear-gradient(115deg, rgba(3, 255, 186, 0.14), transparent 28%),
+          linear-gradient(245deg, rgba(255, 41, 117, 0.17), transparent 34%),
+          linear-gradient(180deg, #07070a 0%, #030306 62%, #080604 100%);
+      }
+
+      #experimental-product-launch-portal::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        opacity: 0.24;
+        background-image:
+          linear-gradient(rgba(135, 255, 218, 0.14) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 231, 93, 0.1) 1px, transparent 1px);
+        background-size: 54px 54px;
+        mask-image: linear-gradient(to bottom, transparent, black 16%, black 82%, transparent);
+        pointer-events: none;
+      }
+
+      #portalCanvas {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        display: none;
+        width: 1920px;
+        height: 1080px;
+      }
+
+      [data-native-canvas="true"] #portalCanvas {
+        display: block;
+      }
+
+      .fallback-stage {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+      }
+
+      [data-native-canvas="true"] .fallback-stage {
+        opacity: 0;
+      }
+
+      .copy-stack {
+        position: absolute;
+        left: 74px;
+        top: 68px;
+        z-index: 8;
+        width: 560px;
+      }
+
+      .kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 13px;
+        border: 1px solid rgba(75, 255, 203, 0.58);
+        border-radius: 999px;
+        color: #4bffcb;
+        background: rgba(5, 19, 16, 0.72);
+        font-size: 17px;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .kicker::before {
+        content: "";
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: #ffe65c;
+        box-shadow:
+          0 0 15px rgba(255, 230, 92, 0.95),
+          0 0 34px rgba(255, 41, 117, 0.58);
+      }
+
+      .copy-stack h1 {
+        margin: 24px 0 18px;
+        max-width: 560px;
+        font-size: 82px;
+        line-height: 0.94;
+        font-weight: 950;
+        letter-spacing: 0;
+      }
+
+      .copy-stack p {
+        margin: 0;
+        max-width: 500px;
+        color: rgba(246, 255, 248, 0.76);
+        font-size: 27px;
+        line-height: 1.18;
+        font-weight: 760;
+      }
+
+      .proof-row {
+        position: absolute;
+        left: 74px;
+        bottom: 70px;
+        z-index: 8;
+        display: flex;
+        gap: 12px;
+      }
+
+      .proof-card {
+        width: 158px;
+        padding: 15px 16px 14px;
+        border: 1px solid rgba(246, 255, 248, 0.2);
+        background: rgba(246, 255, 248, 0.08);
+        box-shadow: 0 18px 44px rgba(0, 0, 0, 0.28);
+      }
+
+      .proof-value {
+        color: #ffe65c;
+        font-size: 30px;
+        line-height: 1;
+        font-weight: 950;
+      }
+
+      .proof-label {
+        margin-top: 8px;
+        color: rgba(246, 255, 248, 0.58);
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .fallback-product-wrap {
+        position: absolute;
+        left: 610px;
+        top: 130px;
+        width: 1040px;
+        height: 640px;
+        z-index: 4;
+        transform: perspective(1500px) rotateY(-19deg) rotateX(8deg) rotateZ(-3deg);
+        transform-origin: center;
+        box-shadow:
+          0 60px 110px rgba(0, 0, 0, 0.42),
+          0 0 0 1px rgba(72, 255, 205, 0.26);
+      }
+
+      .fallback-product-wrap::after {
+        content: "";
+        position: absolute;
+        inset: -16px;
+        border: 1px solid rgba(72, 255, 205, 0.45);
+        pointer-events: none;
+        transform: translate(18px, 18px);
+      }
+
+      .fallback-panel {
+        position: absolute;
+        z-index: 5;
+        overflow: hidden;
+        border: 1px solid rgba(255, 230, 92, 0.42);
+        background: rgba(4, 7, 9, 0.7);
+        box-shadow: 0 30px 70px rgba(0, 0, 0, 0.36);
+      }
+
+      .fallback-panel .mini-source {
+        width: 1040px;
+        height: 640px;
+        transform-origin: left top;
+      }
+
+      .fallback-panel-a {
+        right: 96px;
+        top: 106px;
+        width: 348px;
+        height: 210px;
+        transform: perspective(900px) rotateY(-26deg) rotateX(8deg);
+      }
+
+      .fallback-panel-a .mini-source {
+        transform: translate(-380px, -70px) scale(0.58);
+      }
+
+      .fallback-panel-b {
+        left: 690px;
+        bottom: 86px;
+        width: 438px;
+        height: 160px;
+        transform: perspective(900px) rotateY(18deg) rotateX(-4deg);
+      }
+
+      .fallback-panel-b .mini-source {
+        transform: translate(-210px, -358px) scale(0.58);
+      }
+
+      .portal-ring {
+        position: absolute;
+        left: 815px;
+        top: 118px;
+        z-index: 3;
+        width: 820px;
+        height: 820px;
+        border: 2px solid rgba(255, 41, 117, 0.42);
+        border-radius: 50%;
+        opacity: 0.72;
+        box-shadow:
+          inset 0 0 54px rgba(75, 255, 203, 0.25),
+          0 0 70px rgba(255, 41, 117, 0.2);
+      }
+
+      .feature-label {
+        position: absolute;
+        z-index: 9;
+        min-width: 230px;
+        padding: 13px 15px;
+        border: 1px solid rgba(75, 255, 203, 0.56);
+        background: rgba(2, 12, 11, 0.84);
+        box-shadow: 0 24px 52px rgba(0, 0, 0, 0.32);
+      }
+
+      .feature-label strong {
+        display: block;
+        color: #4bffcb;
+        font-size: 18px;
+        line-height: 1.05;
+        font-weight: 950;
+      }
+
+      .feature-label span {
+        display: block;
+        margin-top: 7px;
+        color: rgba(246, 255, 248, 0.66);
+        font-size: 13px;
+        line-height: 1.22;
+        font-weight: 760;
+      }
+
+      .feature-label::before {
+        content: "";
+        position: absolute;
+        left: -12px;
+        top: 20px;
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: #ffe65c;
+        box-shadow: 0 0 18px rgba(255, 230, 92, 0.95);
+      }
+
+      .label-one {
+        right: 204px;
+        top: 354px;
+      }
+
+      .label-two {
+        right: 318px;
+        bottom: 250px;
+      }
+
+      .label-three {
+        right: 76px;
+        bottom: 396px;
+      }
+
+      #launchCopy {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        z-index: 12;
+        width: 740px;
+        transform: translate(-50%, -50%) scale(0.88);
+        opacity: 0;
+        text-align: center;
+        pointer-events: none;
+      }
+
+      #launchCopy .launch-product {
+        color: #4bffcb;
+        font-size: 24px;
+        font-weight: 950;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      #launchCopy h2 {
+        margin: 20px 0 16px;
+        color: #f6fff8;
+        font-size: 86px;
+        line-height: 0.9;
+        font-weight: 950;
+        letter-spacing: 0;
+      }
+
+      #launchCopy p {
+        margin: 0 auto;
+        max-width: 620px;
+        color: rgba(246, 255, 248, 0.74);
+        font-size: 26px;
+        line-height: 1.22;
+        font-weight: 760;
+      }
+
+      #launchCopy .launch-cta {
+        display: inline-flex;
+        margin-top: 28px;
+        padding: 15px 22px;
+        border: 1px solid rgba(255, 230, 92, 0.64);
+        color: #050506;
+        background: #ffe65c;
+        font-size: 20px;
+        font-weight: 950;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        box-shadow: 0 0 46px rgba(255, 230, 92, 0.28);
+      }
+
+      #productSource,
+      #productSourceNative,
+      .mini-source {
+        position: relative;
+        width: 1040px;
+        height: 640px;
+        overflow: hidden;
+        color: #07110f;
+        background:
+          linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(230, 255, 247, 0.92)), #f5fff8;
+      }
+
+      #productSource::before,
+      #productSourceNative::before,
+      .mini-source::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        opacity: 0.5;
+        background-image:
+          linear-gradient(rgba(6, 20, 17, 0.06) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(6, 20, 17, 0.06) 1px, transparent 1px);
+        background-size: 34px 34px;
+      }
+
+      .app-chrome {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        grid-template-columns: 178px 1fr 258px;
+      }
+
+      .app-sidebar {
+        position: relative;
+        padding: 25px 18px;
+        color: #f6fff8;
+        background: #09100f;
+      }
+
+      .app-logo {
+        font-size: 24px;
+        font-weight: 950;
+        letter-spacing: 0;
+      }
+
+      .app-logo span {
+        color: #4bffcb;
+      }
+
+      .app-nav {
+        display: grid;
+        gap: 8px;
+        margin-top: 34px;
+      }
+
+      .app-nav div {
+        padding: 12px 12px;
+        border: 1px solid rgba(246, 255, 248, 0.12);
+        color: rgba(246, 255, 248, 0.7);
+        font-size: 13px;
+        font-weight: 850;
+      }
+
+      .app-nav .active {
+        color: #06110f;
+        border-color: #4bffcb;
+        background: #4bffcb;
+      }
+
+      .app-main {
+        position: relative;
+        padding: 36px 32px 34px;
+      }
+
+      .source-kicker {
+        color: #0e9d7c;
+        font-size: 13px;
+        font-weight: 950;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .app-main h3 {
+        margin: 9px 0 20px;
+        max-width: 520px;
+        color: #07110f;
+        font-size: 45px;
+        line-height: 0.96;
+        font-weight: 950;
+        letter-spacing: 0;
+      }
+
+      .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 11px;
+      }
+
+      .metric-card {
+        min-height: 88px;
+        padding: 17px 16px;
+        border: 1px solid rgba(7, 17, 15, 0.1);
+        background: rgba(255, 255, 255, 0.72);
+      }
+
+      .metric-card strong {
+        display: block;
+        color: #07110f;
+        font-size: 28px;
+        line-height: 1;
+        font-weight: 950;
+      }
+
+      .metric-card span {
+        display: block;
+        margin-top: 8px;
+        color: rgba(7, 17, 15, 0.54);
+        font-size: 10px;
+        font-weight: 950;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .chart-block {
+        position: relative;
+        margin-top: 18px;
+        height: 210px;
+        border: 1px solid rgba(7, 17, 15, 0.1);
+        background: rgba(255, 255, 255, 0.6);
+      }
+
+      .chart-block svg {
+        position: absolute;
+        inset: 18px 22px;
+        width: calc(100% - 44px);
+        height: calc(100% - 36px);
+      }
+
+      .chart-beacon {
+        position: absolute;
+        right: 86px;
+        top: 73px;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #4bffcb;
+        box-shadow:
+          0 0 0 9px rgba(75, 255, 203, 0.16),
+          0 0 26px rgba(75, 255, 203, 0.8);
+      }
+
+      .activity-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-top: 14px;
+      }
+
+      .activity-card {
+        padding: 14px;
+        border: 1px solid rgba(7, 17, 15, 0.1);
+        background: rgba(255, 255, 255, 0.66);
+      }
+
+      .activity-card b {
+        display: block;
+        font-size: 14px;
+        font-weight: 950;
+      }
+
+      .activity-card small {
+        display: block;
+        margin-top: 6px;
+        color: rgba(7, 17, 15, 0.54);
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      .app-rail {
+        padding: 36px 22px;
+        background: rgba(232, 255, 248, 0.6);
+        border-left: 1px solid rgba(7, 17, 15, 0.08);
+      }
+
+      .rail-card {
+        padding: 17px 15px;
+        margin-bottom: 12px;
+        border: 1px solid rgba(7, 17, 15, 0.1);
+        background: rgba(255, 255, 255, 0.64);
+      }
+
+      .rail-card.dark {
+        color: #f6fff8;
+        border-color: #07110f;
+        background: #07110f;
+      }
+
+      .rail-card strong {
+        display: block;
+        font-size: 14px;
+        line-height: 1.1;
+        font-weight: 950;
+      }
+
+      .rail-card p {
+        margin: 9px 0 0;
+        color: inherit;
+        opacity: 0.68;
+        font-size: 11px;
+        line-height: 1.32;
+        font-weight: 760;
+      }
+
+      .rail-cta {
+        padding: 14px 15px;
+        color: #06110f;
+        background: #ffe65c;
+        font-size: 13px;
+        font-weight: 950;
+        letter-spacing: 0.05em;
+        text-align: center;
+        text-transform: uppercase;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="experimental-product-launch-portal"
+      data-composition-id="experimental-product-launch-portal"
+      data-width="1920"
+      data-height="1080"
+      data-start="0"
+      data-duration="18"
+    >
+      <!--
+        Experimental Product Launch Portal
+
+        Edit only the product UI below:
+        - #productSource: the single product screen source of truth
+        - data-hotspot: the three feature labels used by the synchronized callouts
+        - #launchCopy: the final launch card copy
+
+        Native mode requires Chrome/Brave with chrome://flags/#canvas-draw-element enabled,
+        then a browser restart. Automation/rendering should launch Chromium with:
+        --enable-features=CanvasDrawElement
+      -->
+
+      <canvas id="portalCanvas" width="1920" height="1080"></canvas>
+
+      <section class="copy-stack" aria-hidden="true">
+        <div class="kicker">HTML-in-canvas launch portal</div>
+        <h1>One product UI becomes every launch shot.</h1>
+        <p>
+          Edit the app screen once. HyperFrames turns that same DOM into warped panels, live crops,
+          shader tunnels, and a clean launch CTA.
+        </p>
+      </section>
+
+      <section class="proof-row" aria-hidden="true">
+        <div class="proof-card">
+          <div class="proof-value">1</div>
+          <div class="proof-label">DOM source</div>
+        </div>
+        <div class="proof-card">
+          <div class="proof-value">7</div>
+          <div class="proof-label">derived shots</div>
+        </div>
+        <div class="proof-card">
+          <div class="proof-value">18s</div>
+          <div class="proof-label">launch cut</div>
+        </div>
+      </section>
+
+      <section class="fallback-stage" aria-hidden="true">
+        <div class="portal-ring"></div>
+        <div class="fallback-product-wrap">
+          <div id="productSource">
+            <div class="app-chrome">
+              <aside class="app-sidebar">
+                <div class="app-logo">Pulse<span>Deck</span></div>
+                <nav class="app-nav">
+                  <div class="active">Launch</div>
+                  <div>Audience</div>
+                  <div>Revenue</div>
+                  <div>Exports</div>
+                  <div>Signals</div>
+                </nav>
+              </aside>
+              <main class="app-main">
+                <div class="source-kicker">Realtime product launch</div>
+                <h3>Turn every feature beat into a launch moment.</h3>
+                <div class="metric-grid">
+                  <div class="metric-card" data-hotspot="Launch velocity">
+                    <strong>48K</strong>
+                    <span>waitlist users</span>
+                  </div>
+                  <div class="metric-card" data-hotspot="Revenue guard">
+                    <strong>92%</strong>
+                    <span>upgrade match</span>
+                  </div>
+                  <div class="metric-card">
+                    <strong>14</strong>
+                    <span>live segments</span>
+                  </div>
+                </div>
+                <div class="chart-block" data-hotspot="Signal spike">
+                  <svg viewBox="0 0 620 210" preserveAspectRatio="none">
+                    <path
+                      d="M18 168 C84 148 128 134 178 111 C236 84 284 114 338 86 C402 52 456 82 506 58 C552 36 582 39 604 31"
+                      fill="none"
+                      stroke="#07110f"
+                      stroke-width="8"
+                      stroke-linecap="round"
+                    />
+                    <path
+                      d="M18 168 C84 148 128 134 178 111 C236 84 284 114 338 86 C402 52 456 82 506 58 C552 36 582 39 604 31"
+                      fill="none"
+                      stroke="#16d7ac"
+                      stroke-width="5"
+                      stroke-linecap="round"
+                    />
+                    <path d="M18 174 L604 38 L604 210 L18 210 Z" fill="rgba(22, 215, 172, 0.12)" />
+                  </svg>
+                  <div class="chart-beacon"></div>
+                </div>
+                <div class="activity-row">
+                  <div class="activity-card" data-hotspot="Instant export">
+                    <b>Creator cut ready</b>
+                    <small>Vertical, square, and widescreen renders are queued.</small>
+                  </div>
+                  <div class="activity-card">
+                    <b>Launch pulse</b>
+                    <small>Agents keep copy, charts, and CTA locked to source HTML.</small>
+                  </div>
+                </div>
+              </main>
+              <aside class="app-rail">
+                <div class="rail-card dark">
+                  <strong>Native canvas pass</strong>
+                  <p>The browser paints this full UI into a canvas texture for shader treatment.</p>
+                </div>
+                <div class="rail-card">
+                  <strong>One edit surface</strong>
+                  <p>Change cards, labels, charts, colors, or CTA in #productSource.</p>
+                </div>
+                <div class="rail-card">
+                  <strong>Synced shots</strong>
+                  <p>Portals, crops, device panels, and final card derive from the same DOM.</p>
+                </div>
+                <div class="rail-cta">Launch waitlist</div>
+              </aside>
+            </div>
+          </div>
+        </div>
+        <div class="fallback-panel fallback-panel-a">
+          <div class="mini-source"></div>
+        </div>
+        <div class="fallback-panel fallback-panel-b">
+          <div class="mini-source"></div>
+        </div>
+      </section>
+
+      <section class="feature-label label-one" aria-hidden="true">
+        <strong>Launch velocity</strong>
+        <span>Waitlist, CTA, and segment data stay source-true.</span>
+      </section>
+      <section class="feature-label label-two" aria-hidden="true">
+        <strong>Signal spike</strong>
+        <span>Canvas crops pull the exact chart pixels from the UI.</span>
+      </section>
+      <section class="feature-label label-three" aria-hidden="true">
+        <strong>Instant export</strong>
+        <span>One product screen becomes every launch format.</span>
+      </section>
+
+      <section id="launchCopy" aria-hidden="true">
+        <div class="launch-product">PulseDeck launches today</div>
+        <h2>Ship the launch video before the product copy drifts.</h2>
+        <p>HTML remains the source of truth. Canvas turns it into impossible launch shots.</p>
+        <div class="launch-cta">Start from this block</div>
+      </section>
+    </div>
+
+    <script>
+      (() => {
+        const COMPOSITION_ID = "experimental-product-launch-portal";
+        const DURATION = 18;
+        const SOURCE_W = 1040;
+        const SOURCE_H = 640;
+        const root = document.getElementById(COMPOSITION_ID);
+        const portalCanvas = document.getElementById("portalCanvas");
+        const productSource = document.getElementById("productSource");
+        const launchCopy = document.getElementById("launchCopy");
+        const fallbackWrap = document.querySelector(".fallback-product-wrap");
+        const portalRing = document.querySelector(".portal-ring");
+        const copyStack = document.querySelector(".copy-stack");
+        const proofRow = document.querySelector(".proof-row");
+        const labels = Array.from(document.querySelectorAll(".feature-label"));
+        const miniSources = Array.from(document.querySelectorAll(".mini-source"));
+        const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+        const mix = (a, b, t) => a + (b - a) * t;
+        const smooth = (edge0, edge1, value) => {
+          const t = clamp((value - edge0) / (edge1 - edge0), 0, 1);
+          return t * t * (3 - 2 * t);
+        };
+
+        miniSources.forEach((slot) => {
+          slot.innerHTML = productSource.innerHTML;
+        });
+
+        const supportsNativeCanvas = () => {
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+          const gl = portalCanvas.getContext("webgl", { preserveDrawingBuffer: true });
+          return Boolean(
+            canvas &&
+            "layoutSubtree" in canvas &&
+            typeof canvas.requestPaint === "function" &&
+            ctx &&
+            typeof ctx.drawElementImage === "function" &&
+            gl,
+          );
+        };
+
+        const createLayoutSource = () => {
+          const canvas = document.createElement("canvas");
+          canvas.width = SOURCE_W;
+          canvas.height = SOURCE_H;
+          canvas.layoutSubtree = true;
+          canvas.setAttribute("layoutsubtree", "");
+          canvas.style.position = "absolute";
+          canvas.style.left = "24px";
+          canvas.style.top = "24px";
+          canvas.style.width = SOURCE_W + "px";
+          canvas.style.height = SOURCE_H + "px";
+          canvas.style.opacity = "0.001";
+          canvas.style.pointerEvents = "none";
+          canvas.style.zIndex = "-1";
+          const node = productSource.cloneNode(true);
+          node.id = "productSourceNative";
+          canvas.appendChild(node);
+          document.body.appendChild(canvas);
+          return {
+            canvas,
+            node,
+            ctx: canvas.getContext("2d"),
+            width: SOURCE_W,
+            height: SOURCE_H,
+          };
+        };
+
+        const waitPaint = (source) =>
+          new Promise((resolve) => {
+            let done = false;
+            const finish = () => {
+              if (done) return;
+              done = true;
+              source.canvas.removeEventListener("paint", finish);
+              resolve();
+            };
+            source.canvas.addEventListener("paint", finish, { once: true });
+            source.canvas.requestPaint();
+            window.setTimeout(finish, 120);
+          });
+
+        const drawSource = (source) => {
+          source.ctx.setTransform(1, 0, 0, 1, 0, 0);
+          source.ctx.clearRect(0, 0, source.width, source.height);
+          source.ctx.drawElementImage(source.node, 0, 0, source.width, source.height);
+          window.__HF_EXPERIMENTAL_PRODUCT_LAUNCH_PORTAL.drawElementCalls += 1;
+        };
+
+        const createShaderRenderer = () => {
+          const gl = portalCanvas.getContext("webgl", {
+            preserveDrawingBuffer: true,
+            premultipliedAlpha: false,
+          });
+          if (!gl) return null;
+
+          const vertexSource = `
+            attribute vec2 a_position;
+            varying vec2 v_uv;
+            void main() {
+              v_uv = a_position * 0.5 + 0.5;
+              gl_Position = vec4(a_position, 0.0, 1.0);
+            }
+          `;
+
+          const fragmentSource = `
+            precision highp float;
+            uniform sampler2D u_source;
+            uniform vec2 u_resolution;
+            uniform float u_time;
+            varying vec2 v_uv;
+
+            float sat(float v) { return clamp(v, 0.0, 1.0); }
+            float ease(float a, float b, float v) {
+              float t = sat((v - a) / (b - a));
+              return t * t * (3.0 - 2.0 * t);
+            }
+            mat2 rot(float a) {
+              float s = sin(a);
+              float c = cos(a);
+              return mat2(c, -s, s, c);
+            }
+            vec4 src(vec2 uv) {
+              vec2 safeUv = clamp(uv, vec2(0.001), vec2(0.999));
+              return texture2D(u_source, safeUv);
+            }
+            float rectMask(vec2 local) {
+              vec2 e = step(vec2(0.0), local) * step(local, vec2(1.0));
+              return e.x * e.y;
+            }
+            vec4 rgbSplit(vec2 uv, float amt) {
+              float r = src(uv + vec2(amt, 0.0)).r;
+              float g = src(uv).g;
+              float b = src(uv - vec2(amt, 0.0)).b;
+              return vec4(r, g, b, 1.0);
+            }
+            vec4 panel(vec2 st, vec2 center, vec2 size, float angle, vec2 crop, vec2 scale, float intensity) {
+              vec2 local = rot(angle) * ((st - center) / size) + 0.5;
+              float mask = rectMask(local);
+              float glitch = ease(7.0, 8.2, u_time) * (1.0 - ease(12.0, 13.2, u_time));
+              vec2 wave = vec2(
+                sin(local.y * 32.0 + u_time * 2.7),
+                cos(local.x * 26.0 - u_time * 2.2)
+              ) * 0.007 * intensity * glitch;
+              float pixel = floor(glitch * 34.0);
+              vec2 pLocal = local;
+              if (pixel > 1.0) {
+                pLocal = floor(local * pixel) / pixel;
+              }
+              vec2 uv = crop + (pLocal - 0.5) * scale + wave;
+              vec4 color = rgbSplit(uv, 0.0015 + 0.014 * intensity * glitch);
+              float edge = max(
+                max(smoothstep(0.0, 0.035, local.x), smoothstep(0.0, 0.035, local.y)),
+                max(smoothstep(1.0, 0.965, local.x), smoothstep(1.0, 0.965, local.y))
+              );
+              color.rgb += vec3(0.05, 0.34, 0.26) * (1.0 - edge);
+              color.rgb += vec3(0.95, 0.1, 0.35) * 0.12 * intensity * glitch * sin((local.x + local.y) * 50.0 + u_time * 3.0);
+              return vec4(color.rgb, mask);
+            }
+            vec3 blendPanel(vec3 base, vec4 layer) {
+              return mix(base, layer.rgb, layer.a);
+            }
+
+            void main() {
+              vec2 st = gl_FragCoord.xy / u_resolution.xy;
+              st.y = 1.0 - st.y;
+              float t = u_time;
+              float boot = ease(0.0, 3.0, t);
+              float multi = ease(2.6, 6.6, t);
+              float overload = ease(7.0, 8.2, t) * (1.0 - ease(12.0, 13.2, t));
+              float callouts = ease(11.6, 13.4, t) * (1.0 - ease(16.0, 17.2, t));
+              float outro = ease(15.8, 18.0, t);
+
+              vec2 c = vec2(0.58, 0.5);
+              vec2 d = st - c;
+              float radius = length(d);
+              float angle = atan(d.y, d.x);
+              vec3 color = mix(vec3(0.014, 0.015, 0.025), vec3(0.03, 0.018, 0.035), st.y);
+              color += vec3(0.0, 0.22, 0.17) * pow(1.0 - min(radius, 1.0), 2.2);
+              color += vec3(0.22, 0.02, 0.08) * (0.5 + 0.5 * sin(angle * 5.0 + t));
+
+              float tunnel = sin(radius * 62.0 - t * 5.2 + angle * 2.0) * 0.5 + 0.5;
+              float tunnelMask = smoothstep(0.58, 0.06, radius) * boot * (1.0 - outro);
+              vec2 tunnelUv = 0.5 + vec2(cos(angle + t * 0.24), sin(angle - t * 0.18)) * (radius * 0.85);
+              tunnelUv += vec2(sin(radius * 18.0 + t), cos(radius * 16.0 - t)) * 0.03;
+              vec3 tunnelColor = rgbSplit(tunnelUv, 0.006 + overload * 0.018).rgb;
+              tunnelColor *= 0.58 + tunnel * 0.38;
+              color = mix(color, tunnelColor, tunnelMask * 0.62);
+
+              vec4 hero = panel(
+                st,
+                mix(vec2(0.61, 0.52), vec2(0.48, 0.52), outro),
+                mix(vec2(0.46, 0.52), vec2(0.31, 0.32), outro),
+                mix(-0.12, 0.0, outro),
+                vec2(0.5, 0.5),
+                vec2(1.0, 1.0),
+                boot + overload
+              );
+              hero.a *= boot * (1.0 - outro * 0.32);
+              color = blendPanel(color, hero);
+
+              vec4 device = panel(
+                st,
+                vec2(0.82, 0.47),
+                vec2(0.23, 0.58),
+                0.15,
+                vec2(0.62, 0.5),
+                vec2(0.54, 0.96),
+                0.62 + overload
+              );
+              device.a *= multi * (1.0 - outro);
+              color = blendPanel(color, device);
+
+              vec4 cropA = panel(st, vec2(0.73, 0.2), vec2(0.28, 0.19), -0.2, vec2(0.56, 0.2), vec2(0.52, 0.28), 1.0);
+              cropA.a *= callouts;
+              color = blendPanel(color, cropA);
+              vec4 cropB = panel(st, vec2(0.72, 0.76), vec2(0.31, 0.18), 0.18, vec2(0.53, 0.58), vec2(0.62, 0.25), 1.0);
+              cropB.a *= callouts;
+              color = blendPanel(color, cropB);
+              vec4 cropC = panel(st, vec2(0.37, 0.77), vec2(0.28, 0.2), -0.08, vec2(0.33, 0.78), vec2(0.48, 0.28), 1.0);
+              cropC.a *= callouts;
+              color = blendPanel(color, cropC);
+
+              float ring = abs(radius - (0.46 - boot * 0.12 + overload * 0.03));
+              color += vec3(0.22, 1.0, 0.75) * smoothstep(0.026, 0.0, ring) * (0.55 + overload);
+              color += vec3(1.0, 0.12, 0.38) * smoothstep(0.018, 0.0, abs(radius - 0.31)) * overload;
+
+              float scan = sin(st.y * u_resolution.y * 1.15 + t * 11.0) * 0.5 + 0.5;
+              color -= scan * vec3(0.018, 0.03, 0.02);
+              color += overload * vec3(
+                sin(st.y * 78.0 + t * 8.0),
+                sin(st.x * 92.0 - t * 6.0),
+                sin((st.x + st.y) * 84.0 + t * 5.0)
+              ) * 0.06;
+
+              vec2 card = abs(st - vec2(0.5, 0.5));
+              float cardMask = smoothstep(0.45, 0.25, card.x) * smoothstep(0.3, 0.17, card.y) * outro;
+              vec3 cleanCard = mix(vec3(0.025, 0.028, 0.032), vec3(0.02, 0.07, 0.058), st.y);
+              color = mix(color, cleanCard, cardMask * 0.86);
+
+              float vignette = smoothstep(0.92, 0.25, length(st - 0.5));
+              color *= 0.48 + 0.52 * vignette;
+              gl_FragColor = vec4(color, 1.0);
+            }
+          `;
+
+          const compile = (type, source) => {
+            const shader = gl.createShader(type);
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+            if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+              throw new Error(gl.getShaderInfoLog(shader) || "Failed to compile shader");
+            }
+            return shader;
+          };
+
+          const program = gl.createProgram();
+          gl.attachShader(program, compile(gl.VERTEX_SHADER, vertexSource));
+          gl.attachShader(program, compile(gl.FRAGMENT_SHADER, fragmentSource));
+          gl.linkProgram(program);
+          if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+            throw new Error(gl.getProgramInfoLog(program) || "Failed to link shader program");
+          }
+
+          const buffer = gl.createBuffer();
+          gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+          gl.bufferData(
+            gl.ARRAY_BUFFER,
+            new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]),
+            gl.STATIC_DRAW,
+          );
+
+          const texture = gl.createTexture();
+          gl.activeTexture(gl.TEXTURE0);
+          gl.bindTexture(gl.TEXTURE_2D, texture);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+          const position = gl.getAttribLocation(program, "a_position");
+          const uSource = gl.getUniformLocation(program, "u_source");
+          const uResolution = gl.getUniformLocation(program, "u_resolution");
+          const uTime = gl.getUniformLocation(program, "u_time");
+
+          return {
+            render(sourceCanvas, time) {
+              gl.viewport(0, 0, 1920, 1080);
+              gl.useProgram(program);
+              gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+              gl.enableVertexAttribArray(position);
+              gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
+              gl.activeTexture(gl.TEXTURE0);
+              gl.bindTexture(gl.TEXTURE_2D, texture);
+              gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, sourceCanvas);
+              gl.uniform1i(uSource, 0);
+              gl.uniform2f(uResolution, 1920, 1080);
+              gl.uniform1f(uTime, time);
+              gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+            },
+          };
+        };
+
+        let shaderRenderer = null;
+        let nativeSource = null;
+        const state = { time: 0 };
+
+        const updateDomFrame = (time) => {
+          const boot = smooth(0, 3, time);
+          const multi = smooth(2.5, 6.5, time);
+          const overload = smooth(7, 8.2, time) * (1 - smooth(12, 13.2, time));
+          const callouts = smooth(11.6, 13.4, time) * (1 - smooth(16, 17.1, time));
+          const outro = smooth(15.8, 18, time);
+
+          fallbackWrap.style.opacity = String(1 - outro * 0.72);
+          fallbackWrap.style.transform =
+            "perspective(1500px) rotateY(" +
+            mix(-19, -5, outro) +
+            "deg) rotateX(" +
+            mix(8, 0, outro) +
+            "deg) rotateZ(" +
+            mix(-3, 0, outro) +
+            "deg) scale(" +
+            mix(0.9, 0.68, outro) +
+            ")";
+          portalRing.style.opacity = String((0.35 + overload * 0.42) * (1 - outro));
+          portalRing.style.transform =
+            "scale(" + mix(0.82, 1.08, boot) + ") rotate(" + mix(-20, 54, time / DURATION) + "deg)";
+          copyStack.style.opacity = String(1 - smooth(5.5, 8.2, time));
+          proofRow.style.opacity = String(1 - smooth(6.2, 8.4, time));
+          labels.forEach((label, index) => {
+            const reveal = callouts * smooth(12 + index * 0.48, 13.2 + index * 0.48, time);
+            label.style.opacity = String(reveal);
+            label.style.transform =
+              "translateY(" + mix(28, 0, reveal) + "px) scale(" + mix(0.94, 1, reveal) + ")";
+          });
+          launchCopy.style.opacity = String(outro);
+          launchCopy.style.transform =
+            "translate(-50%, -50%) scale(" +
+            mix(0.88, 1, outro) +
+            ") rotate(" +
+            mix(2, 0, outro) +
+            "deg)";
+        };
+
+        const renderNative = (time) => {
+          if (!nativeSource || !shaderRenderer) return;
+          drawSource(nativeSource);
+          shaderRenderer.render(nativeSource.canvas, time);
+        };
+
+        const renderFrame = (time) => {
+          state.time = clamp(time, 0, DURATION);
+          updateDomFrame(state.time);
+          if (window.__HF_EXPERIMENTAL_PRODUCT_LAUNCH_PORTAL.native) {
+            renderNative(state.time);
+          }
+        };
+
+        window.__HF_EXPERIMENTAL_PRODUCT_LAUNCH_PORTAL = {
+          native: false,
+          ready: false,
+          drawElementCalls: 0,
+        };
+
+        window.__timelines = window.__timelines || {};
+        window.__timelines[COMPOSITION_ID] = {
+          seek(time) {
+            renderFrame(time);
+          },
+          pause() {},
+          duration() {
+            return DURATION;
+          },
+        };
+
+        renderFrame(0);
+
+        const bootNative = async () => {
+          if (!supportsNativeCanvas()) {
+            window.__HF_EXPERIMENTAL_PRODUCT_LAUNCH_PORTAL.ready = true;
+            return;
+          }
+
+          try {
+            shaderRenderer = createShaderRenderer();
+            nativeSource = createLayoutSource();
+            await waitPaint(nativeSource);
+            root.setAttribute("data-native-canvas", "true");
+            window.__HF_EXPERIMENTAL_PRODUCT_LAUNCH_PORTAL.native = true;
+            window.__HF_EXPERIMENTAL_PRODUCT_LAUNCH_PORTAL.ready = true;
+            renderFrame(state.time);
+          } catch (error) {
+            window.__HF_EXPERIMENTAL_PRODUCT_LAUNCH_PORTAL.native = false;
+            window.__HF_EXPERIMENTAL_PRODUCT_LAUNCH_PORTAL.ready = true;
+          }
+        };
+
+        bootNative();
+      })();
+    </script>
+  </body>
+</html>
