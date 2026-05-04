@@ -94,7 +94,7 @@ export const TimelineLayerPanel = memo(function TimelineLayerPanel({
   return (
     <div
       ref={panelRef}
-      className="pointer-events-auto absolute left-3 top-3 z-30 w-[280px] max-w-[calc(100%-24px)] overflow-hidden rounded-xl border border-white/10 bg-neutral-950/92 shadow-2xl shadow-black/40 backdrop-blur-md"
+      className="pointer-events-auto absolute left-3 top-3 z-[100] w-[280px] max-w-[calc(100%-24px)] overflow-hidden rounded-xl border border-white/10 bg-neutral-950/92 shadow-2xl shadow-black/40 backdrop-blur-md"
       style={{ transform: `translate3d(${position.x}px, ${position.y}px, 0)` }}
       onPointerDown={(event) => {
         event.stopPropagation();

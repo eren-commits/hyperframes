@@ -96,7 +96,9 @@ import { getStudioThumbnailService } from "./thumbnails/studioThumbnailService";
 import { hashThumbnailSource } from "./thumbnails/sourceHash";
 import {
   canInspectTimelineElement,
+  getTimelineLayerVisibilityInPreview,
   getTimelineElementKey,
+  isTimelineLayerVisibleInPreview,
   isAudioTimelineElement,
   shouldShowTimelineInspectorBounds,
 } from "./utils/timelineInspector";
@@ -133,25 +135,6 @@ function parseFiniteSeconds(value: string | null): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function isLayerVisibleInPreview(element: HTMLElement): boolean {
-  if (!element.isConnected) return false;
-  const win = element.ownerDocument.defaultView;
-  if (!win) return false;
-
-  const style = win.getComputedStyle(element);
-  if (style.display === "none" || style.visibility === "hidden") return false;
-  if (Number.parseFloat(style.opacity || "1") <= 0.01) return false;
-
-  const rect = element.getBoundingClientRect();
-  if (rect.width <= 0.5 || rect.height <= 0.5) return false;
-
-  const viewportWidth = win.innerWidth || element.ownerDocument.documentElement.clientWidth;
-  const viewportHeight = win.innerHeight || element.ownerDocument.documentElement.clientHeight;
-  return (
-    rect.right > 0 && rect.bottom > 0 && rect.left < viewportWidth && rect.top < viewportHeight
-  );
-}
-
 function resolveLayerVisibleSeekTime(
   layerElement: HTMLElement,
   timelineElement: TimelineElement | null,
@@ -184,6 +167,8 @@ function resolveLayerVisibleSeekTime(
   candidates.push(clipEnd);
 
   let lastTried = preferredTime;
+  let clearestVisibleTime: number | null = null;
+  let clearestVisibleOpacity = 0;
   const seen = new Set<string>();
   for (const candidate of candidates) {
     const time = Math.min(clipEnd, Math.max(clipStart, candidate));
@@ -192,10 +177,15 @@ function resolveLayerVisibleSeekTime(
     seen.add(key);
     lastTried = time;
     player.renderSeek(time);
-    if (isLayerVisibleInPreview(layerElement)) return time;
+    const visibility = getTimelineLayerVisibilityInPreview(layerElement);
+    if (visibility.visible && visibility.compositeOpacity > clearestVisibleOpacity) {
+      clearestVisibleTime = time;
+      clearestVisibleOpacity = visibility.compositeOpacity;
+    }
+    if (isTimelineLayerVisibleInPreview(layerElement, { minCompositeOpacity: 0.9 })) return time;
   }
 
-  return lastTried;
+  return clearestVisibleTime ?? lastTried;
 }
 
 const GENERIC_FONT_FAMILIES = new Set([
@@ -2094,6 +2084,18 @@ export function StudioApp() {
     () => (domEditSelection ? getDomEditLayerKey(domEditSelection) : null),
     [domEditSelection],
   );
+  const selectedNestedTimelineLayer = Boolean(
+    selectedTimelineLayerKey &&
+    inspectedTimelineLayers.length > 0 &&
+    selectedTimelineLayerKey !== inspectedTimelineLayers[0]?.key,
+  );
+  const showDomEditSelectionOverlay = Boolean(
+    !rightCollapsed &&
+    rightPanelTab === "design" &&
+    inspectedTimelineElementId &&
+    domEditSelection &&
+    (showInspectedTimelineBounds || selectedNestedTimelineLayer),
+  );
 
   const handleTimelineElementSelect = useCallback(
     (element: TimelineElement | null) => {
@@ -2127,7 +2129,8 @@ export function StudioApp() {
       if (inspectedTimelineElementId) {
         setSelectedTimelineElementId(inspectedTimelineElementId);
       }
-      const player = getPreviewPlayer(previewIframeRef.current?.contentWindow);
+      const currentIframe = getCurrentPreviewIframe(previewIframeRef.current, previewIframe);
+      const player = getPreviewPlayer(currentIframe?.contentWindow);
       const targetTime = resolveLayerVisibleSeekTime(
         layer.element,
         inspectedTimelineElement,
@@ -2153,6 +2156,7 @@ export function StudioApp() {
       inspectedTimelineElement,
       inspectedTimelineElementId,
       layerInspectionCompositionPath,
+      previewIframe,
       setSelectedTimelineElementId,
       showToast,
     ],
@@ -2195,7 +2199,8 @@ export function StudioApp() {
       applyDomSelection(selection);
 
       const targetTime = Math.max(0, element.start);
-      const player = getPreviewPlayer(previewIframeRef.current?.contentWindow);
+      const currentIframe = getCurrentPreviewIframe(previewIframeRef.current, previewIframe);
+      const player = getPreviewPlayer(currentIframe?.contentWindow);
       if (player) {
         player.renderSeek(targetTime);
       }
@@ -2206,6 +2211,7 @@ export function StudioApp() {
       applyDomSelection,
       buildDomSelectionForTimelineElement,
       inspectedTimelineElementId,
+      previewIframe,
       setSelectedTimelineElementId,
       showToast,
     ],
@@ -3628,14 +3634,7 @@ export function StudioApp() {
                 <>
                   <DomEditOverlay
                     iframeRef={previewIframeRef}
-                    selection={
-                      !rightCollapsed &&
-                      rightPanelTab === "design" &&
-                      inspectedTimelineElementId &&
-                      showInspectedTimelineBounds
-                        ? domEditSelection
-                        : null
-                    }
+                    selection={showDomEditSelectionOverlay ? domEditSelection : null}
                     onCanvasMouseDown={handlePreviewCanvasMouseDown}
                     onCanvasDoubleClick={handlePreviewCanvasDoubleClick}
                     onSelectedDoubleClick={handleSelectedOverlayDoubleClick}

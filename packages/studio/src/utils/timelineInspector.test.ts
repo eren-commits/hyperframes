@@ -1,10 +1,35 @@
 import { describe, expect, it } from "vitest";
+import { Window } from "happy-dom";
 import {
   canInspectTimelineElement,
   getTimelineElementKey,
+  isTimelineLayerVisibleInPreview,
   isAudioTimelineElement,
   shouldShowTimelineInspectorBounds,
 } from "./timelineInspector";
+
+function attachVisibleBox(
+  element: HTMLElement,
+  rect = { left: 10, top: 10, width: 80, height: 24 },
+) {
+  Object.defineProperty(element, "getBoundingClientRect", {
+    configurable: true,
+    value: () => ({
+      ...rect,
+      right: rect.left + rect.width,
+      bottom: rect.top + rect.height,
+      x: rect.left,
+      y: rect.top,
+      toJSON: () => ({}),
+    }),
+  });
+}
+
+function createDocument(markup: string): Document {
+  const window = new Window();
+  window.document.body.innerHTML = markup;
+  return window.document;
+}
 
 describe("getTimelineElementKey", () => {
   it("prefers stable timeline keys over DOM ids", () => {
@@ -54,5 +79,33 @@ describe("shouldShowTimelineInspectorBounds", () => {
     expect(shouldShowTimelineInspectorBounds(0, null)).toBe(false);
     expect(shouldShowTimelineInspectorBounds(Number.NaN, element)).toBe(false);
     expect(shouldShowTimelineInspectorBounds(0, { start: Number.NaN, duration: 1 })).toBe(false);
+  });
+});
+
+describe("isTimelineLayerVisibleInPreview", () => {
+  it("treats ancestor opacity as hidden for nested clip layers", () => {
+    const doc = createDocument(`
+      <div id="clip" style="opacity: 0">
+        <span id="label" style="opacity: 1">Label</span>
+      </div>
+    `);
+    const label = doc.getElementById("label");
+    expect(label).not.toBeNull();
+    attachVisibleBox(label as HTMLElement);
+
+    expect(isTimelineLayerVisibleInPreview(label as HTMLElement)).toBe(false);
+  });
+
+  it("accepts a boxed layer when ancestors are visible", () => {
+    const doc = createDocument(`
+      <div id="clip" style="opacity: 1">
+        <span id="label" style="opacity: 1">Label</span>
+      </div>
+    `);
+    const label = doc.getElementById("label");
+    expect(label).not.toBeNull();
+    attachVisibleBox(label as HTMLElement);
+
+    expect(isTimelineLayerVisibleInPreview(label as HTMLElement)).toBe(true);
   });
 });

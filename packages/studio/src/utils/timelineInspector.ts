@@ -39,3 +39,51 @@ export function shouldShowTimelineInspectorBounds(
   const epsilon = Math.max(0, epsilonSeconds);
   return Math.abs(currentTime - start) <= epsilon || Math.abs(currentTime - end) <= epsilon;
 }
+
+export interface TimelineLayerVisibility {
+  visible: boolean;
+  compositeOpacity: number;
+}
+
+export function getTimelineLayerVisibilityInPreview(
+  element: HTMLElement,
+  options: { minCompositeOpacity?: number } = {},
+): TimelineLayerVisibility {
+  if (!element.isConnected) return { visible: false, compositeOpacity: 0 };
+  const doc = element.ownerDocument;
+  const win = doc.defaultView;
+  if (!win) return { visible: false, compositeOpacity: 0 };
+
+  const minCompositeOpacity = options.minCompositeOpacity ?? 0.01;
+  let compositeOpacity = 1;
+  let current: HTMLElement | null = element;
+  while (current && current !== doc.body && current !== doc.documentElement) {
+    const style = win.getComputedStyle(current);
+    if (style.display === "none" || style.visibility === "hidden") {
+      return { visible: false, compositeOpacity };
+    }
+    compositeOpacity *= Number.parseFloat(style.opacity || "1");
+    if (compositeOpacity <= minCompositeOpacity) return { visible: false, compositeOpacity };
+    current = current.parentElement;
+  }
+
+  const rect = element.getBoundingClientRect();
+  if (rect.width <= 0.5 || rect.height <= 0.5) {
+    return { visible: false, compositeOpacity };
+  }
+
+  const viewportWidth = win.innerWidth || doc.documentElement.clientWidth;
+  const viewportHeight = win.innerHeight || doc.documentElement.clientHeight;
+  return {
+    compositeOpacity,
+    visible:
+      rect.right > 0 && rect.bottom > 0 && rect.left < viewportWidth && rect.top < viewportHeight,
+  };
+}
+
+export function isTimelineLayerVisibleInPreview(
+  element: HTMLElement,
+  options: { minCompositeOpacity?: number } = {},
+): boolean {
+  return getTimelineLayerVisibilityInPreview(element, options).visible;
+}
