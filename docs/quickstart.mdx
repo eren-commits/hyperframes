@@ -19,6 +19,10 @@ This teaches your agent (Claude Code, Cursor, Gemini CLI, Codex) how to write co
   Claude Design uses a different entry path. Open [`docs/guides/claude-design-hyperframes.md`](https://github.com/heygen-com/hyperframes/blob/main/docs/guides/claude-design-hyperframes.md) on GitHub, click the download button (↓) to save it, then attach to your Claude Design chat. It produces a valid first draft you can refine in any AI coding agent. See the [Claude Design guide](/guides/claude-design).
 </Note>
 
+<Note>
+  Cursor users should install HyperFrames as agent skills, not from Marketplace. Inside a HyperFrames project, run `npx hyperframes skills --cursor`; before creating a project, run `npx skills add heygen-com/hyperframes --agent cursor --yes`. Then open the folder in Cursor or run `cursor-agent` from that directory. `hyperframes init` also writes `AGENTS.md` and `CLAUDE.md`, which Cursor Agent CLI reads as project instructions.
+</Note>
+
 ### Try it: example prompts
 
 Copy any of these into your agent to get started.

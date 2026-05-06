@@ -3,6 +3,13 @@ import { execFileSync, spawn } from "node:child_process";
 import * as clack from "@clack/prompts";
 import { c } from "../ui/colors.js";
 
+type SkillsCommandArgs = {
+  claude?: boolean;
+  gemini?: boolean;
+  codex?: boolean;
+  cursor?: boolean;
+};
+
 function hasNpx(): boolean {
   try {
     execFileSync("npx", ["--version"], { stdio: "ignore", timeout: 5000 });
@@ -12,9 +19,24 @@ function hasNpx(): boolean {
   }
 }
 
-function runSkillsAdd(repo: string): Promise<void> {
+function getSelectedAgents(args: SkillsCommandArgs): string[] {
+  const agents: string[] = [];
+  if (args.claude) agents.push("claude-code");
+  if (args.gemini) agents.push("gemini");
+  if (args.codex) agents.push("codex");
+  if (args.cursor) agents.push("cursor");
+  return agents;
+}
+
+function getSkillsAddArgs(repo: string, args: SkillsCommandArgs): string[] {
+  const agents = getSelectedAgents(args);
+  if (agents.length === 0) return ["skills", "add", repo, "--all"];
+  return ["skills", "add", repo, "--agent", ...agents, "--yes"];
+}
+
+function runSkillsAdd(repo: string, args: SkillsCommandArgs): Promise<void> {
   return new Promise((resolve, reject) => {
-    const child = spawn("npx", ["skills", "add", repo, "--all"], {
+    const child = spawn("npx", getSkillsAddArgs(repo, args), {
       stdio: "inherit",
       timeout: 120_000,
       // GH #316 — the upstream `skills` CLI shells out to `git clone`.
@@ -42,8 +64,25 @@ export default defineCommand({
     name: "skills",
     description: "Install HyperFrames skills for AI coding tools",
   },
-  args: {},
-  async run() {
+  args: {
+    claude: {
+      type: "boolean",
+      description: "Install to Claude Code",
+    },
+    gemini: {
+      type: "boolean",
+      description: "Install to Gemini CLI",
+    },
+    codex: {
+      type: "boolean",
+      description: "Install to Codex CLI",
+    },
+    cursor: {
+      type: "boolean",
+      description: "Install to Cursor",
+    },
+  },
+  async run({ args }) {
     if (!hasNpx()) {
       clack.log.error(c.error("npx not found. Install Node.js and retry."));
       return;
@@ -54,7 +93,7 @@ export default defineCommand({
       console.log(c.bold(`Installing ${source.name} skills...`));
       console.log();
       try {
-        await runSkillsAdd(source.repo);
+        await runSkillsAdd(source.repo, args);
       } catch {
         console.log(c.dim(`${source.name} skills skipped`));
       }

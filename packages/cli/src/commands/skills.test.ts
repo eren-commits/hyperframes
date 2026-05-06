@@ -46,4 +46,25 @@ describe("hyperframes skills", () => {
     expect(first!.args).toContain("add");
     expect(first!.env?.GIT_CLONE_PROTECTION_ACTIVE).toBe("0");
   });
+
+  it("forwards --cursor to the upstream skills CLI instead of installing every agent", async () => {
+    const { default: skillsCmd } = await import("./skills.js");
+    await skillsCmd.run?.({
+      args: { cursor: true },
+      rawArgs: ["--cursor"],
+      cmd: skillsCmd,
+    } as never);
+
+    const first = state.calls[0];
+    expect(first).toBeDefined();
+    expect(first!.command).toBe("npx");
+    expect(first!.args).toEqual([
+      "skills",
+      "add",
+      "heygen-com/hyperframes",
+      "--agent",
+      "cursor",
+      "--yes",
+    ]);
+  });
 });

@@ -43,7 +43,16 @@ codex plugin marketplace add heygen-com/hyperframes --sparse .codex-plugin --spa
 ```
 
 For Claude Code, the repo also ships a [Claude Code plugin manifest](./.claude-plugin/plugin.json): test it locally with `claude --plugin-dir .`. The manifest intentionally omits `skills` because Claude Code auto-discovers the root `skills/` directory by convention, and for marketplace submission use the title `HyperFrames by HeyGen` plus the black/white icon assets at [`assets/claude-code-icon-dark.svg`](./assets/claude-code-icon-dark.svg) and [`assets/claude-code-icon-light.svg`](./assets/claude-code-icon-light.svg) for the two theme slots.
-For Cursor, the same skills are packaged as a [Cursor plugin](./.cursor-plugin/plugin.json) — install from the Cursor Marketplace, or sideload by cloning this repo and pointing **Settings → Plugins → Load unpacked** at the repo root.
+
+For Cursor, install the skills instead of looking for a Marketplace plugin or a "Load unpacked" manifest flow:
+
+```bash
+npx hyperframes skills --cursor
+# or, before creating a HyperFrames project:
+npx skills add heygen-com/hyperframes --agent cursor --yes
+```
+
+Then open the project in Cursor or run `cursor-agent` from the project directory. `hyperframes init` also writes `AGENTS.md` and `CLAUDE.md`; Cursor Agent CLI reads those project instructions alongside installed skills. The checked-in [Cursor plugin manifest](./.cursor-plugin/plugin.json) is for packaging/submission work, not the current user install path until the plugin is published.
 
 #### Try it: example prompts
 
