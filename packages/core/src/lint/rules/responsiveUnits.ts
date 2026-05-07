@@ -181,4 +181,56 @@ export const responsiveUnitRules: Array<(ctx: LintContext) => HyperframeLintFind
       },
     ];
   },
+
+  // gsap_prefer_container_units — flag GSAP tween props using bare numbers (px) for position/size
+  (ctx) => {
+    const findings: HyperframeLintFinding[] = [];
+    if (!ctx.rootTag || !readAttr(ctx.rootTag.raw, "data-composition-id")) return findings;
+
+    const widthRaw = parseInt(readAttr(ctx.rootTag.raw, "data-width") || "", 10);
+    const heightRaw = parseInt(readAttr(ctx.rootTag.raw, "data-height") || "", 10);
+    const compWidth = Number.isFinite(widthRaw) && widthRaw > 0 ? widthRaw : 1920;
+    const compHeight = Number.isFinite(heightRaw) && heightRaw > 0 ? heightRaw : 1080;
+
+    const GSAP_V_PROPS = new Set(["y", "top", "bottom", "height"]);
+    const GSAP_TWEEN = /\.(to|from|fromTo|set)\s*\(/g;
+    const PROP_NUM =
+      /\b(x|y|left|right|top|bottom|width|height|fontSize|padding)\s*:\s*(-?\d+(?:\.\d+)?)\b/g;
+
+    for (const script of ctx.scripts) {
+      if (!GSAP_TWEEN.test(script.content)) {
+        GSAP_TWEEN.lastIndex = 0;
+        continue;
+      }
+      GSAP_TWEEN.lastIndex = 0;
+
+      let propMatch: RegExpExecArray | null;
+      PROP_NUM.lastIndex = 0;
+      while ((propMatch = PROP_NUM.exec(script.content)) !== null) {
+        const prop = propMatch[1] ?? "";
+        const value = parseFloat(propMatch[2] ?? "0");
+        if (Math.abs(value) <= MIN_PX_THRESHOLD) continue;
+
+        const absValue = Math.abs(value);
+        const sign = value < 0 ? "-" : "";
+        let suggested: string;
+        if (GSAP_V_PROPS.has(prop)) {
+          const cq = Math.round((absValue / compHeight) * 100 * 100) / 100;
+          suggested = `"${sign}${cq}cqh"`;
+        } else {
+          const cq = Math.round((absValue / compWidth) * 100 * 100) / 100;
+          suggested = `"${sign}${cq}cqw"`;
+        }
+
+        findings.push({
+          code: "gsap_prefer_container_units",
+          severity: "info",
+          message: `GSAP ${prop}: ${value} (px) could be ${suggested} for aspect-ratio independence.`,
+          fixHint: `Use string values with cqw/cqh in GSAP tweens for responsive positioning: ${prop}: ${suggested}`,
+        });
+      }
+    }
+
+    return findings;
+  },
 ];

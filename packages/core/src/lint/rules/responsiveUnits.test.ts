@@ -152,3 +152,79 @@ describe("composition_root_missing_container_type", () => {
     expect(findings).toHaveLength(0);
   });
 });
+
+describe("gsap_prefer_container_units", () => {
+  it("flags GSAP tween props with bare number values", () => {
+    const html = `<div data-composition-id="test" data-width="1920" data-height="1080">
+      <script>
+        const tl = gsap.timeline({ paused: true });
+        tl.to("#title", { x: 500, y: 200, opacity: 0, duration: 0.8 });
+      </script>
+    </div>`;
+    const findings = findByCode(html, "gsap_prefer_container_units");
+    expect(findings.length).toBeGreaterThanOrEqual(2);
+    expect(findings.some((f) => f.message.includes("x:"))).toBe(true);
+    expect(findings.some((f) => f.message.includes("y:"))).toBe(true);
+  });
+
+  it("suggests cqw for horizontal GSAP props", () => {
+    const html = `<div data-composition-id="test" data-width="1920" data-height="1080">
+      <script>
+        tl.to("#el", { x: 96 });
+      </script>
+    </div>`;
+    const findings = findByCode(html, "gsap_prefer_container_units");
+    expect(findings[0].message).toContain("5cqw");
+  });
+
+  it("suggests cqh for vertical GSAP props", () => {
+    const html = `<div data-composition-id="test" data-width="1920" data-height="1080">
+      <script>
+        tl.from("#el", { y: 108 });
+      </script>
+    </div>`;
+    const findings = findByCode(html, "gsap_prefer_container_units");
+    expect(findings[0].message).toContain("10cqh");
+  });
+
+  it("handles negative values", () => {
+    const html = `<div data-composition-id="test" data-width="1920" data-height="1080">
+      <script>
+        tl.to("#el", { x: -192 });
+      </script>
+    </div>`;
+    const findings = findByCode(html, "gsap_prefer_container_units");
+    expect(findings[0].message).toContain("-10cqw");
+  });
+
+  it("ignores small values", () => {
+    const html = `<div data-composition-id="test" data-width="1920" data-height="1080">
+      <script>
+        tl.to("#el", { x: 2, y: 1 });
+      </script>
+    </div>`;
+    const findings = findByCode(html, "gsap_prefer_container_units");
+    expect(findings).toHaveLength(0);
+  });
+
+  it("ignores non-position props like opacity and duration", () => {
+    const html = `<div data-composition-id="test" data-width="1920" data-height="1080">
+      <script>
+        tl.to("#el", { opacity: 0, duration: 0.8, scale: 1.5 });
+      </script>
+    </div>`;
+    const findings = findByCode(html, "gsap_prefer_container_units");
+    expect(findings).toHaveLength(0);
+  });
+
+  it("does not flag scripts without GSAP tween calls", () => {
+    const html = `<div data-composition-id="test" data-width="1920" data-height="1080">
+      <script>
+        const width = 500;
+        const height = 200;
+      </script>
+    </div>`;
+    const findings = findByCode(html, "gsap_prefer_container_units");
+    expect(findings).toHaveLength(0);
+  });
+});
