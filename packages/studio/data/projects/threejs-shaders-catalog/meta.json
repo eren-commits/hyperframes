@@ -1,0 +1,7 @@
+{
+  "name": "threejs-shaders-catalog",
+  "description": "Three.js Shaders Catalog — showcase of 14 GPU transitions and 3 flagship HTML-in-Canvas effects for the HyperFrames tech article",
+  "width": 1920,
+  "height": 1080,
+  "fps": 30
+}

@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Three.js Shaders Catalog</title>
+    <style>
+      html, body { margin: 0; padding: 0; background: #030407; }
+    </style>
+  </head>
+  <body>
+    <!--
+      Three.js Shaders Catalog — full reel
+      Sequences all 17 effects for the tech article video.
+      Each composition can also be rendered standalone via its own HTML file.
+
+      Layout:
+        Section 1: Flagship HTML-in-Canvas effects (liquid glass, device mockup, shatter)
+        Section 2: Shader transitions by category (warp, light, noise, geometric, cinematic)
+    -->
+    <div data-composition-id="root" data-width="1920" data-height="1080" data-start="0" data-duration="112">
+
+      <!-- ═══════════════════════════════════════════════════
+           SECTION 1: Flagship HTML-in-Canvas Effects
+           ═══════════════════════════════════════════════════ -->
+
+      <!-- 1. Liquid Glass — Voronoi fracture + refraction (20s) -->
+      <div
+        data-composition-id="liquid-glass"
+        data-composition-src="compositions/vfx-liquid-glass.html"
+        data-start="0"
+        data-duration="20"
+        data-track-index="0"
+      ></div>
+
+      <!-- 2. 3D Device Mockups — GLTF + live HTML screens (15s) -->
+      <div
+        data-composition-id="device-mockup"
+        data-composition-src="compositions/vfx-iphone-device.html"
+        data-start="20"
+        data-duration="15"
+        data-track-index="0"
+      ></div>
+
+      <!-- 3. Shatter — Delaunay fragmentation + physics (12s) -->
+      <div
+        data-composition-id="shatter"
+        data-composition-src="compositions/vfx-shatter.html"
+        data-start="35"
+        data-duration="12"
+        data-track-index="0"
+      ></div>
+
+      <!-- ═══════════════════════════════════════════════════
+           SECTION 2: Shader Transitions (4s each)
+           ═══════════════════════════════════════════════════ -->
+
+      <!-- Warp & Morph -->
+      <div
+        data-composition-id="cross-warp-morph"
+        data-composition-src="compositions/cross-warp-morph.html"
+        data-start="47"
+        data-duration="4"
+        data-track-index="0"
+      ></div>
+
+      <div
+        data-composition-id="swirl-vortex"
+        data-composition-src="compositions/swirl-vortex.html"
+        data-start="51"
+        data-duration="4"
+        data-track-index="0"
+      ></div>
+
+      <div
+        data-composition-id="gravitational-lens"
+        data-composition-src="compositions/gravitational-lens.html"
+        data-start="55"
+        data-duration="4"
+        data-track-index="0"
+      ></div>
+
+      <!-- Light & Color -->
+      <div
+        data-composition-id="light-leak"
+        data-composition-src="compositions/light-leak.html"
+        data-start="59"
+        data-duration="4"
+        data-track-index="0"
+      ></div>
+
+      <div
+        data-composition-id="flash-through-white"
+        data-composition-src="compositions/flash-through-white.html"
+        data-start="63"
+        data-duration="4"
+        data-track-index="0"
+      ></div>
+
+      <div
+        data-composition-id="chromatic-radial-split"
+        data-composition-src="compositions/chromatic-radial-split.html"
+        data-start="67"
+        data-duration="4"
+        data-track-index="0"
+      ></div>
+
+      <!-- Noise & Dissolve -->
+      <div
+        data-composition-id="domain-warp-dissolve"
+        data-composition-src="compositions/domain-warp-dissolve.html"
+        data-start="71"
+        data-duration="4"
+        data-track-index="0"
+      ></div>
+
+      <div
+        data-composition-id="ridged-burn"
+        data-composition-src="compositions/ridged-burn.html"
+        data-start="75"
+        data-duration="4"
+        data-track-index="0"
+      ></div>
+
+      <div
+        data-composition-id="thermal-distortion"
+        data-composition-src="compositions/thermal-distortion.html"
+        data-start="79"
+        data-duration="4"
+        data-track-index="0"
+      ></div>
+
+      <!-- Geometric -->
+      <div
+        data-composition-id="sdf-iris"
+        data-composition-src="compositions/sdf-iris.html"
+        data-start="83"
+        data-duration="4"
+        data-track-index="0"
+      ></div>
+
+      <div
+        data-composition-id="whip-pan"
+        data-composition-src="compositions/whip-pan.html"
+        data-start="87"
+        data-duration="4"
+        data-track-index="0"
+      ></div>
+
+      <div
+        data-composition-id="ripple-waves"
+        data-composition-src="compositions/ripple-waves.html"
+        data-start="91"
+        data-duration="4"
+        data-track-index="0"
+      ></div>
+
+      <!-- Cinematic -->
+      <div
+        data-composition-id="cinematic-zoom"
+        data-composition-src="compositions/cinematic-zoom.html"
+        data-start="95"
+        data-duration="4"
+        data-track-index="0"
+      ></div>
+
+      <div
+        data-composition-id="glitch"
+        data-composition-src="compositions/glitch.html"
+        data-start="99"
+        data-duration="4"
+        data-track-index="0"
+      ></div>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <script>
+      window.__timelines = window.__timelines || {};
+      const rootTl = gsap.timeline({ paused: true });
+      rootTl.to({}, { duration: 112, ease: "none" }, 0);
+      window.__timelines["root"] = rootTl;
+    </script>
+  </body>
+</html>
