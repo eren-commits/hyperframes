@@ -14,11 +14,13 @@ Keeping the capture artifacts (`screenshots/`, `assets/`, `extracted/`, `AGENTS.
 
 For exploratory captures that aren't becoming a video yet, `-o captures/<name>` at the repo root is fine — the isolation convention only matters when you're building a video on top of the capture.
 
-No API keys required. The capture extracts design tokens, screenshots, fonts, and assets with DOM-context descriptions automatically.
+No API keys required for the base capture. However, before running, ask the user:
 
-**Optional:** Set `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) in a `.env` file at the repo root for richer AI-powered image descriptions via Gemini 3.1 Flash Lite vision (~$0.001/image).
+> "For the best results, I recommend setting a Gemini API key — it gives me AI-powered descriptions of every captured image, which helps me choose the right assets for each scene. It costs about $0.001 per image. You can skip this if you want, but the video quality will be better with it. To set it up: add `GEMINI_API_KEY=your-key` to a `.env` file in the project root. You can get a free key at ai.google.dev."
 
-Wait for it to complete. Print how many screenshots, assets, sections, and fonts were extracted.
+If the user provides the key or already has one set, proceed. If they skip it, proceed anyway — the capture works without it, but `asset-descriptions.md` will have DOM-context descriptions only (position, size, alt text) instead of AI vision descriptions (what the image actually shows).
+
+Wait for the capture to complete. Print how many screenshots, assets, sections, and fonts were extracted.
 
 ## Read and summarize
 

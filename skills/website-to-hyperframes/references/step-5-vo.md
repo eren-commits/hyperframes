@@ -37,6 +37,6 @@ Update STORYBOARD.md with real durations. Replace estimated times (e.g., "0:00-0
 
 Beat boundaries land on word onsets — hard cuts to the VO.
 
-## Update index.html
+## Save timing data for Step 6
 
-Update each scene slot's `data-start` and `data-duration` to match the real beat timings from the transcript. Also update the total composition duration and audio element duration.
+Record the final beat timings (start, duration) so Step 6 can use them when building `index.html`. The storyboard now has real timestamps — these become `data-start` and `data-duration` values on each scene slot when the root composition is assembled in Step 6.

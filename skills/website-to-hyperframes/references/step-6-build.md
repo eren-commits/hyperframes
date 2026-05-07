@@ -5,7 +5,7 @@
 - **DESIGN.md** — your color palette, fonts, components, and Do's/Don'ts. Every composition must use EXACT hex colors and font families from this file. If it says "white backgrounds" — use white, not dark.
 - **STORYBOARD.md** — the beat-by-beat plan you're executing. Each beat specifies assets, animations, transitions, and which techniques to use.
 - **`capture/extracted/asset-descriptions.md`** — when the storyboard assigns an asset to a beat, re-read the description to understand what it shows and how to position/style it correctly.
-- **[techniques.md](../../hyperframes/references/techniques.md)** — code patterns for the 10 visual techniques. When the storyboard says "SVG path drawing" or "per-word kinetic typography" — read the code pattern from this file and adapt it.
+- **[techniques.md](../../hyperframes/references/techniques.md)** — code patterns for the 11 visual techniques. When the storyboard says "SVG path drawing" or "per-word kinetic typography" — read the code pattern from this file and adapt it.
 - **transcript.json** — word-level timestamps that drive scene durations.
 
 **Split the work: spawn a sub-agent for each beat.** By this step your context is full of captured data, DESIGN.md, SCRIPT, STORYBOARD, and transcript. Building compositions on top of all that means the detailed rules below compete with thousands of tokens of prior work. Each sub-agent gets a fresh context focused on one beat — dramatically better output.
@@ -103,7 +103,7 @@ Every visible element must have continuous motion. A still image on a still back
 Check the storyboard's transition specification for this beat:
 
 - **CSS transition**: implement the exit animation (e.g., `y:-150, blur:30px, 0.33s power2.in`). The next composition handles its own entry.
-- **Shader transition**: no exit animation needed — the shader handles the blend. Read `packages/shader-transitions/README.md` for the API, available shaders, and setup. The package handles WebGL init, capture, and GSAP integration — do not copy raw GLSL manually.
+- **Shader transition**: no exit animation needed — the shader handles the blend. Available shaders: chromatic-radial-split, cinematic-zoom, cross-warp-morph, domain-warp-dissolve, flash-through-white, glitch, gravitational-lens, light-leak, ridged-burn, ripple-waves, sdf-iris, swirl-vortex, thermal-distortion, whip-pan. Install with `npx hyperframes add <name>`. The package handles WebGL init, capture, and GSAP integration — do not copy raw GLSL manually.
 - **Hard cut**: no exit animation. The scene simply ends.
 
 For all CSS transition types and their GSAP implementations, read `skills/hyperframes/references/transitions/catalog.md`.
@@ -132,7 +132,7 @@ After building the composition, check WITH ACTUAL CODE:
 - [ ] No overlapping text (text covering text is always ugly)
 - [ ] Depth layers present (background + midground + foreground — see Depth Layers section above)
 - [ ] Every visible element has mid-scene activity (not just entrance + exit)
-- [ ] **Animation density**: count the `tl.to()`, `tl.from()`, `tl.fromTo()`, and `tl.set()` calls. Production compositions average 30-70 GSAP calls. If yours has fewer than 15, the composition is under-animated — add more choreography, varied entrances, ambient loops, and exit transitions. For calibration, read `launch-video-2/compositions/act-1-cold-open.html` (72 GSAP operations in 12 seconds).
+- [ ] **Animation density**: count the `tl.to()`, `tl.from()`, `tl.fromTo()`, and `tl.set()` calls. Production compositions average 30-70 GSAP calls. If yours has fewer than 15, the composition is under-animated — add more choreography, varied entrances, ambient loops, and exit transitions. For reference: a 12-second production composition typically has 70+ GSAP operations (6/second), across 8+ distinct animation phases.
 - [ ] **Easing variety**: check that you used at least 3 different easing functions. If everything uses `power2.out`, the motion feels monotonous. See the easing vocabulary table in techniques.md for the full palette.
 - [ ] Font sizes above minimum (20px body text, 16px labels — sub-14px is unreadable after encoding)
 - [ ] No full-screen dark linear gradients (H.264 creates visible banding — use solid + localized radial glows)
@@ -175,7 +175,7 @@ Never embed a raw flat image. Every image must have motion treatment:
 - **Device frame**: Wrap in a laptop/phone shape using CSS `border-radius` and `box-shadow`
 - **Floating UI**: Extract a key element and animate it at a different z-depth for parallax
 - **Scroll reveal**: Clip the image to a viewport window and animate `y` position
-- **VFX block**: If `html-in-canvas` blocks are installed (`ls skills/` or check registry), use iPhone/MacBook mockups or liquid glass effects for hero treatments. Run `npx hyperframes add html-in-canvas` to install them.
+- **VFX block**: If HTML-in-Canvas VFX blocks are installed (check with `npx hyperframes list --installed`), use device mockups, liquid glass, or other effects for hero treatments. Install with `npx hyperframes add --tag html-in-canvas`. Or build custom effects from scratch using the `drawElementImage` API — see `docs/guides/html-in-canvas.mdx`.
 
 ---
 

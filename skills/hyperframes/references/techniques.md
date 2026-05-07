@@ -1,6 +1,6 @@
 # Visual Techniques Reference
 
-10 proven techniques from production HyperFrames videos. Use these in your storyboard and compositions to create visually rich, professional output. Each technique includes a minimal code pattern you can adapt.
+11 proven techniques from production HyperFrames videos. Use these in your storyboard and compositions to create visually rich, professional output. Each technique includes a minimal code pattern you can adapt.
 
 These are NOT advanced — they're standard motion design patterns that every composition should use at least 2-3 of.
 
