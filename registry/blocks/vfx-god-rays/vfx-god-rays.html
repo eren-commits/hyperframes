@@ -4,288 +4,342 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=1920, height=1080" />
     <title>Volumetric Light Rays</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
     <style>
-      *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-      body { background: #000; overflow: hidden; }
-      #root { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: #000; }
-      #three-canvas { position: absolute; top: 0; left: 0; width: 1920px; height: 1080px; }
+      *,
+      *::before,
+      *::after {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        background: #000;
+        overflow: hidden;
+      }
+      #root {
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #000;
+      }
+      #three-canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 1920px;
+        height: 1080px;
+      }
     </style>
   </head>
   <body>
-    <div id="root" data-composition-id="main" data-start="0" data-duration="8" data-width="1920" data-height="1080">
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="8"
+      data-width="1920"
+      data-height="1080"
+    >
       <canvas id="three-canvas" width="1920" height="1080"></canvas>
-      <div id="driver" data-start="0" data-duration="8" data-track-index="0"
-           style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none"></div>
+      <div
+        id="driver"
+        data-start="0"
+        data-duration="8"
+        data-track-index="0"
+        style="position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none"
+      ></div>
     </div>
 
     <script>
-    (function () {
-      window.__timelines = window.__timelines || {};
+      (function () {
+        window.__timelines = window.__timelines || {};
 
-      var W = 1920, H = 1080;
-      var canvas = document.getElementById("three-canvas");
+        var W = 1920,
+          H = 1080;
+        var canvas = document.getElementById("three-canvas");
 
-      // ── Renderer ──────────────────────────────────────────
-      var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
-      renderer.setSize(W, H);
-      renderer.setPixelRatio(1);
-      renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.0;
+        // ── Renderer ──────────────────────────────────────────
+        var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+        renderer.setSize(W, H);
+        renderer.setPixelRatio(1);
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.0;
 
-      // ── Scene ─────────────────────────────────────────────
-      var scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x020208);
-      scene.fog = new THREE.FogExp2(0x020208, 0.04);
+        // ── Scene ─────────────────────────────────────────────
+        var scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x020208);
+        scene.fog = new THREE.FogExp2(0x020208, 0.04);
 
-      var camera = new THREE.PerspectiveCamera(60, W / H, 0.1, 100);
-      camera.position.set(0, 2, 8);
-      camera.lookAt(0, 1, 0);
+        var camera = new THREE.PerspectiveCamera(60, W / H, 0.1, 100);
+        camera.position.set(0, 2, 8);
+        camera.lookAt(0, 1, 0);
 
-      // ── Light source (the "sun") ──────────────────────────
-      var sunPos = new THREE.Vector3(0, 6, -8);
-      var sunLight = new THREE.PointLight(0xffeedd, 2, 50);
-      sunLight.position.copy(sunPos);
-      scene.add(sunLight);
+        // ── Light source (the "sun") ──────────────────────────
+        var sunPos = new THREE.Vector3(0, 6, -8);
+        var sunLight = new THREE.PointLight(0xffeedd, 2, 50);
+        sunLight.position.copy(sunPos);
+        scene.add(sunLight);
 
-      var ambient = new THREE.AmbientLight(0x0a0a20, 0.3);
-      scene.add(ambient);
+        var ambient = new THREE.AmbientLight(0x0a0a20, 0.3);
+        scene.add(ambient);
 
-      // Sun glow sphere
-      var sunGeo = new THREE.SphereGeometry(0.8, 32, 32);
-      var sunMat = new THREE.MeshBasicMaterial({ color: 0xffeedd });
-      var sunMesh = new THREE.Mesh(sunGeo, sunMat);
-      sunMesh.position.copy(sunPos);
-      scene.add(sunMesh);
+        // Sun glow sphere
+        var sunGeo = new THREE.SphereGeometry(0.8, 32, 32);
+        var sunMat = new THREE.MeshBasicMaterial({ color: 0xffeedd });
+        var sunMesh = new THREE.Mesh(sunGeo, sunMat);
+        sunMesh.position.copy(sunPos);
+        scene.add(sunMesh);
 
-      // ── Occluding pillars (create god ray shadows) ────────
-      var pillarMat = new THREE.MeshStandardMaterial({
-        color: 0x080818, roughness: 0.8, metalness: 0.2,
-      });
-      var pillarPositions = [
-        [-3, 0, -2], [-1.2, 0, -3], [1.2, 0, -3], [3, 0, -2],
-        [-2, 0, -5], [0, 0, -5.5], [2, 0, -5],
-      ];
-      pillarPositions.forEach(function (p) {
-        var h = 4 + Math.random() * 4;
-        var r = 0.15 + Math.random() * 0.2;
-        var geo = new THREE.CylinderGeometry(r, r, h, 8);
-        var mesh = new THREE.Mesh(geo, pillarMat);
-        mesh.position.set(p[0], h / 2, p[2]);
-        scene.add(mesh);
-      });
+        // ── Occluding pillars (create god ray shadows) ────────
+        var pillarMat = new THREE.MeshStandardMaterial({
+          color: 0x080818,
+          roughness: 0.8,
+          metalness: 0.2,
+        });
+        var pillarPositions = [
+          [-3, 0, -2],
+          [-1.2, 0, -3],
+          [1.2, 0, -3],
+          [3, 0, -2],
+          [-2, 0, -5],
+          [0, 0, -5.5],
+          [2, 0, -5],
+        ];
+        pillarPositions.forEach(function (p) {
+          var h = 4 + Math.random() * 4;
+          var r = 0.15 + Math.random() * 0.2;
+          var geo = new THREE.CylinderGeometry(r, r, h, 8);
+          var mesh = new THREE.Mesh(geo, pillarMat);
+          mesh.position.set(p[0], h / 2, p[2]);
+          scene.add(mesh);
+        });
 
-      // ── Ground plane ──────────────────────────────────────
-      var groundGeo = new THREE.PlaneGeometry(40, 40);
-      var groundMat = new THREE.MeshStandardMaterial({
-        color: 0x0a0a18, roughness: 0.9, metalness: 0,
-      });
-      var ground = new THREE.Mesh(groundGeo, groundMat);
-      ground.rotation.x = -Math.PI / 2;
-      scene.add(ground);
+        // ── Ground plane ──────────────────────────────────────
+        var groundGeo = new THREE.PlaneGeometry(40, 40);
+        var groundMat = new THREE.MeshStandardMaterial({
+          color: 0x0a0a18,
+          roughness: 0.9,
+          metalness: 0,
+        });
+        var ground = new THREE.Mesh(groundGeo, groundMat);
+        ground.rotation.x = -Math.PI / 2;
+        scene.add(ground);
 
-      // ── Dust particles ────────────────────────────────────
-      var dustCount = 500;
-      var dustGeo = new THREE.BufferGeometry();
-      var dustPos = new Float32Array(dustCount * 3);
-      for (var i = 0; i < dustCount; i++) {
-        dustPos[i * 3] = (Math.random() - 0.5) * 12;
-        dustPos[i * 3 + 1] = Math.random() * 8;
-        dustPos[i * 3 + 2] = (Math.random() - 0.5) * 12 - 2;
-      }
-      dustGeo.setAttribute("position", new THREE.BufferAttribute(dustPos, 3));
-      var dustMat = new THREE.PointsMaterial({
-        color: 0xffeedd, size: 0.04, transparent: true, opacity: 0.4,
-      });
-      var dust = new THREE.Points(dustGeo, dustMat);
-      scene.add(dust);
-
-      // ── God rays post-process (screen-space radial blur) ──
-      var godRayScene = new THREE.Scene();
-      var godRayCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-
-      var occlusionRT = new THREE.WebGLRenderTarget(W / 2, H / 2);
-      var godRayRT = new THREE.WebGLRenderTarget(W / 2, H / 2);
-
-      var godRayMaterial = new THREE.ShaderMaterial({
-        uniforms: {
-          tDiffuse: { value: null },
-          lightPos: { value: new THREE.Vector2(0.5, 0.7) },
-          exposure: { value: 0.25 },
-          decay: { value: 0.96 },
-          density: { value: 0.8 },
-          weight: { value: 0.5 },
-          samples: { value: 60 },
-        },
-        vertexShader: [
-          "varying vec2 vUv;",
-          "void main() {",
-          "  vUv = uv;",
-          "  gl_Position = vec4(position, 1.0);",
-          "}",
-        ].join("\n"),
-        fragmentShader: [
-          "precision highp float;",
-          "varying vec2 vUv;",
-          "uniform sampler2D tDiffuse;",
-          "uniform vec2 lightPos;",
-          "uniform float exposure;",
-          "uniform float decay;",
-          "uniform float density;",
-          "uniform float weight;",
-          "uniform float samples;",
-          "",
-          "void main() {",
-          "  vec2 texCoord = vUv;",
-          "  vec2 deltaTexCoord = (texCoord - lightPos) * (1.0 / samples) * density;",
-          "  vec3 color = texture2D(tDiffuse, texCoord).rgb;",
-          "  float illuminationDecay = 1.0;",
-          "  for (int i = 0; i < 60; i++) {",
-          "    texCoord -= deltaTexCoord;",
-          "    vec3 samp = texture2D(tDiffuse, texCoord).rgb;",
-          "    samp *= illuminationDecay * weight;",
-          "    color += samp;",
-          "    illuminationDecay *= decay;",
-          "  }",
-          "  gl_FragColor = vec4(color * exposure, 1.0);",
-          "}",
-        ].join("\n"),
-      });
-
-      var compositeMaterial = new THREE.ShaderMaterial({
-        uniforms: {
-          tScene: { value: null },
-          tGodRays: { value: null },
-          godRayIntensity: { value: 1.0 },
-        },
-        vertexShader: [
-          "varying vec2 vUv;",
-          "void main() { vUv = uv; gl_Position = vec4(position, 1.0); }",
-        ].join("\n"),
-        fragmentShader: [
-          "precision highp float;",
-          "varying vec2 vUv;",
-          "uniform sampler2D tScene;",
-          "uniform sampler2D tGodRays;",
-          "uniform float godRayIntensity;",
-          "void main() {",
-          "  vec3 scene = texture2D(tScene, vUv).rgb;",
-          "  vec3 rays = texture2D(tGodRays, vUv).rgb;",
-          "  // Warm tint on the rays",
-          "  rays *= vec3(1.0, 0.85, 0.6);",
-          "  gl_FragColor = vec4(scene + rays * godRayIntensity, 1.0);",
-          "}",
-        ].join("\n"),
-      });
-
-      var fullscreenQuad = new THREE.Mesh(
-        new THREE.PlaneGeometry(2, 2),
-        godRayMaterial
-      );
-      godRayScene.add(fullscreenQuad);
-
-      var sceneRT = new THREE.WebGLRenderTarget(W, H);
-
-      // Occlusion scene — black occluders, white sun
-      var occScene = new THREE.Scene();
-      occScene.background = new THREE.Color(0x000000);
-      var occSun = new THREE.Mesh(sunGeo.clone(), new THREE.MeshBasicMaterial({ color: 0xffffff }));
-      occSun.position.copy(sunPos);
-      occScene.add(occSun);
-
-      // Black versions of pillars for occlusion
-      var occMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
-      pillarPositions.forEach(function (p) {
-        var h = 4 + Math.random() * 4;
-        var r = 0.15 + Math.random() * 0.2;
-        var geo = new THREE.CylinderGeometry(r, r, h, 8);
-        var mesh = new THREE.Mesh(geo, occMat);
-        mesh.position.set(p[0], h / 2, p[2]);
-        occScene.add(mesh);
-      });
-
-      // ── Animation state ───────────────────────────────────
-      var state = { camAngle: 0, rayIntensity: 0, sunY: 6 };
-
-      function projectSunToScreen() {
-        var v = sunPos.clone().project(camera);
-        return new THREE.Vector2(v.x * 0.5 + 0.5, v.y * 0.5 + 0.5);
-      }
-
-      function renderFrame() {
-        // Update sun position
-        sunPos.y = state.sunY;
-        sunMesh.position.y = state.sunY;
-        sunLight.position.y = state.sunY;
-        occSun.position.y = state.sunY;
-
-        // Camera orbit
-        camera.position.x = Math.sin(state.camAngle) * 8;
-        camera.position.z = Math.cos(state.camAngle) * 8;
-        camera.position.y = 2 + Math.sin(state.camAngle * 0.5) * 0.5;
-        camera.lookAt(0, 1.5, -2);
-
-        // Dust drift
-        dust.rotation.y += 0.002;
-        var arr = dustGeo.attributes.position.array;
-        for (var i = 1; i < dustCount * 3; i += 3) {
-          arr[i] += 0.002;
-          if (arr[i] > 8) arr[i] = 0;
+        // ── Dust particles ────────────────────────────────────
+        var dustCount = 500;
+        var dustGeo = new THREE.BufferGeometry();
+        var dustPos = new Float32Array(dustCount * 3);
+        for (var i = 0; i < dustCount; i++) {
+          dustPos[i * 3] = (Math.random() - 0.5) * 12;
+          dustPos[i * 3 + 1] = Math.random() * 8;
+          dustPos[i * 3 + 2] = (Math.random() - 0.5) * 12 - 2;
         }
-        dustGeo.attributes.position.needsUpdate = true;
+        dustGeo.setAttribute("position", new THREE.BufferAttribute(dustPos, 3));
+        var dustMat = new THREE.PointsMaterial({
+          color: 0xffeedd,
+          size: 0.04,
+          transparent: true,
+          opacity: 0.4,
+        });
+        var dust = new THREE.Points(dustGeo, dustMat);
+        scene.add(dust);
 
-        // 1. Render main scene to RT
-        renderer.setRenderTarget(sceneRT);
-        renderer.render(scene, camera);
+        // ── God rays post-process (screen-space radial blur) ──
+        var godRayScene = new THREE.Scene();
+        var godRayCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
 
-        // 2. Render occlusion map
-        renderer.setRenderTarget(occlusionRT);
-        renderer.render(occScene, camera);
+        var occlusionRT = new THREE.WebGLRenderTarget(W / 2, H / 2);
+        var godRayRT = new THREE.WebGLRenderTarget(W / 2, H / 2);
 
-        // 3. God rays pass
-        var sp = projectSunToScreen();
-        godRayMaterial.uniforms.tDiffuse.value = occlusionRT.texture;
-        godRayMaterial.uniforms.lightPos.value.copy(sp);
-        fullscreenQuad.material = godRayMaterial;
+        var godRayMaterial = new THREE.ShaderMaterial({
+          uniforms: {
+            tDiffuse: { value: null },
+            lightPos: { value: new THREE.Vector2(0.5, 0.7) },
+            exposure: { value: 0.25 },
+            decay: { value: 0.96 },
+            density: { value: 0.8 },
+            weight: { value: 0.5 },
+            samples: { value: 60 },
+          },
+          vertexShader: [
+            "varying vec2 vUv;",
+            "void main() {",
+            "  vUv = uv;",
+            "  gl_Position = vec4(position, 1.0);",
+            "}",
+          ].join("\n"),
+          fragmentShader: [
+            "precision highp float;",
+            "varying vec2 vUv;",
+            "uniform sampler2D tDiffuse;",
+            "uniform vec2 lightPos;",
+            "uniform float exposure;",
+            "uniform float decay;",
+            "uniform float density;",
+            "uniform float weight;",
+            "uniform float samples;",
+            "",
+            "void main() {",
+            "  vec2 texCoord = vUv;",
+            "  vec2 deltaTexCoord = (texCoord - lightPos) * (1.0 / samples) * density;",
+            "  vec3 color = texture2D(tDiffuse, texCoord).rgb;",
+            "  float illuminationDecay = 1.0;",
+            "  for (int i = 0; i < 60; i++) {",
+            "    texCoord -= deltaTexCoord;",
+            "    vec3 samp = texture2D(tDiffuse, texCoord).rgb;",
+            "    samp *= illuminationDecay * weight;",
+            "    color += samp;",
+            "    illuminationDecay *= decay;",
+            "  }",
+            "  gl_FragColor = vec4(color * exposure, 1.0);",
+            "}",
+          ].join("\n"),
+        });
 
-        renderer.setRenderTarget(godRayRT);
-        renderer.render(godRayScene, godRayCamera);
+        var compositeMaterial = new THREE.ShaderMaterial({
+          uniforms: {
+            tScene: { value: null },
+            tGodRays: { value: null },
+            godRayIntensity: { value: 1.0 },
+          },
+          vertexShader: [
+            "varying vec2 vUv;",
+            "void main() { vUv = uv; gl_Position = vec4(position, 1.0); }",
+          ].join("\n"),
+          fragmentShader: [
+            "precision highp float;",
+            "varying vec2 vUv;",
+            "uniform sampler2D tScene;",
+            "uniform sampler2D tGodRays;",
+            "uniform float godRayIntensity;",
+            "void main() {",
+            "  vec3 scene = texture2D(tScene, vUv).rgb;",
+            "  vec3 rays = texture2D(tGodRays, vUv).rgb;",
+            "  // Warm tint on the rays",
+            "  rays *= vec3(1.0, 0.85, 0.6);",
+            "  gl_FragColor = vec4(scene + rays * godRayIntensity, 1.0);",
+            "}",
+          ].join("\n"),
+        });
 
-        // 4. Composite
-        compositeMaterial.uniforms.tScene.value = sceneRT.texture;
-        compositeMaterial.uniforms.tGodRays.value = godRayRT.texture;
-        compositeMaterial.uniforms.godRayIntensity.value = state.rayIntensity;
-        fullscreenQuad.material = compositeMaterial;
+        var fullscreenQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), godRayMaterial);
+        godRayScene.add(fullscreenQuad);
 
-        renderer.setRenderTarget(null);
-        renderer.render(godRayScene, godRayCamera);
-      }
+        var sceneRT = new THREE.WebGLRenderTarget(W, H);
 
-      // ── Timeline ──────────────────────────────────────────
-      var tl = gsap.timeline({ paused: true, onUpdate: renderFrame });
+        // Occlusion scene — black occluders, white sun
+        var occScene = new THREE.Scene();
+        occScene.background = new THREE.Color(0x000000);
+        var occSun = new THREE.Mesh(
+          sunGeo.clone(),
+          new THREE.MeshBasicMaterial({ color: 0xffffff }),
+        );
+        occSun.position.copy(sunPos);
+        occScene.add(occSun);
 
-      // Fade in god rays
-      tl.fromTo(state, { rayIntensity: 0 }, { rayIntensity: 1.2, duration: 2, ease: "power2.out" }, 0);
+        // Black versions of pillars for occlusion
+        var occMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+        pillarPositions.forEach(function (p) {
+          var h = 4 + Math.random() * 4;
+          var r = 0.15 + Math.random() * 0.2;
+          var geo = new THREE.CylinderGeometry(r, r, h, 8);
+          var mesh = new THREE.Mesh(geo, occMat);
+          mesh.position.set(p[0], h / 2, p[2]);
+          occScene.add(mesh);
+        });
 
-      // Slow camera orbit
-      tl.to(state, { camAngle: Math.PI * 0.4, duration: 8, ease: "none" }, 0);
+        // ── Animation state ───────────────────────────────────
+        var state = { camAngle: 0, rayIntensity: 0, sunY: 6 };
 
-      // Sun rises then descends
-      tl.to(state, { sunY: 8, duration: 4, ease: "sine.inOut" }, 0);
-      tl.to(state, { sunY: 4, duration: 4, ease: "sine.inOut" }, 4);
+        function projectSunToScreen() {
+          var v = sunPos.clone().project(camera);
+          return new THREE.Vector2(v.x * 0.5 + 0.5, v.y * 0.5 + 0.5);
+        }
 
-      // Intensity pulse
-      tl.to(state, { rayIntensity: 1.8, duration: 2, ease: "sine.inOut" }, 3);
-      tl.to(state, { rayIntensity: 0.8, duration: 2, ease: "sine.inOut" }, 5);
-      tl.to(state, { rayIntensity: 0, duration: 1, ease: "power2.in" }, 7);
+        function renderFrame() {
+          // Update sun position
+          sunPos.y = state.sunY;
+          sunMesh.position.y = state.sunY;
+          sunLight.position.y = state.sunY;
+          occSun.position.y = state.sunY;
 
-      tl.to({}, { duration: 8, ease: "none" }, 0);
+          // Camera orbit
+          camera.position.x = Math.sin(state.camAngle) * 8;
+          camera.position.z = Math.cos(state.camAngle) * 8;
+          camera.position.y = 2 + Math.sin(state.camAngle * 0.5) * 0.5;
+          camera.lookAt(0, 1.5, -2);
 
-      renderFrame();
-      window.__timelines["main"] = tl;
-    })();
+          // Dust drift
+          dust.rotation.y += 0.002;
+          var arr = dustGeo.attributes.position.array;
+          for (var i = 1; i < dustCount * 3; i += 3) {
+            arr[i] += 0.002;
+            if (arr[i] > 8) arr[i] = 0;
+          }
+          dustGeo.attributes.position.needsUpdate = true;
+
+          // 1. Render main scene to RT
+          renderer.setRenderTarget(sceneRT);
+          renderer.render(scene, camera);
+
+          // 2. Render occlusion map
+          renderer.setRenderTarget(occlusionRT);
+          renderer.render(occScene, camera);
+
+          // 3. God rays pass
+          var sp = projectSunToScreen();
+          godRayMaterial.uniforms.tDiffuse.value = occlusionRT.texture;
+          godRayMaterial.uniforms.lightPos.value.copy(sp);
+          fullscreenQuad.material = godRayMaterial;
+
+          renderer.setRenderTarget(godRayRT);
+          renderer.render(godRayScene, godRayCamera);
+
+          // 4. Composite
+          compositeMaterial.uniforms.tScene.value = sceneRT.texture;
+          compositeMaterial.uniforms.tGodRays.value = godRayRT.texture;
+          compositeMaterial.uniforms.godRayIntensity.value = state.rayIntensity;
+          fullscreenQuad.material = compositeMaterial;
+
+          renderer.setRenderTarget(null);
+          renderer.render(godRayScene, godRayCamera);
+        }
+
+        // ── Timeline ──────────────────────────────────────────
+        var tl = gsap.timeline({ paused: true, onUpdate: renderFrame });
+
+        // Fade in god rays
+        tl.fromTo(
+          state,
+          { rayIntensity: 0 },
+          { rayIntensity: 1.2, duration: 2, ease: "power2.out" },
+          0,
+        );
+
+        // Slow camera orbit
+        tl.to(state, { camAngle: Math.PI * 0.4, duration: 8, ease: "none" }, 0);
+
+        // Sun rises then descends
+        tl.to(state, { sunY: 8, duration: 4, ease: "sine.inOut" }, 0);
+        tl.to(state, { sunY: 4, duration: 4, ease: "sine.inOut" }, 4);
+
+        // Intensity pulse
+        tl.to(state, { rayIntensity: 1.8, duration: 2, ease: "sine.inOut" }, 3);
+        tl.to(state, { rayIntensity: 0.8, duration: 2, ease: "sine.inOut" }, 5);
+        tl.to(state, { rayIntensity: 0, duration: 1, ease: "power2.in" }, 7);
+
+        tl.to({}, { duration: 8, ease: "none" }, 0);
+
+        renderFrame();
+        window.__timelines["main"] = tl;
+      })();
     </script>
   </body>
 </html>

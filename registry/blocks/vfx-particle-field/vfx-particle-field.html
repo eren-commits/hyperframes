@@ -7,244 +7,295 @@
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
     <style>
-      *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-      body { background: #030308; overflow: hidden; }
-      #root { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: #030308; }
-      #three-canvas { position: absolute; top: 0; left: 0; width: 1920px; height: 1080px; }
+      *,
+      *::before,
+      *::after {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        background: #030308;
+        overflow: hidden;
+      }
+      #root {
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #030308;
+      }
+      #three-canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 1920px;
+        height: 1080px;
+      }
     </style>
   </head>
   <body>
-    <div id="root" data-composition-id="main" data-start="0" data-duration="10" data-width="1920" data-height="1080">
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="10"
+      data-width="1920"
+      data-height="1080"
+    >
       <canvas id="three-canvas" width="1920" height="1080"></canvas>
-      <div id="driver" data-start="0" data-duration="10" data-track-index="0"
-           style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none"></div>
+      <div
+        id="driver"
+        data-start="0"
+        data-duration="10"
+        data-track-index="0"
+        style="position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none"
+      ></div>
     </div>
 
     <script>
-    (function () {
-      window.__timelines = window.__timelines || {};
+      (function () {
+        window.__timelines = window.__timelines || {};
 
-      var W = 1920, H = 1080;
-      var canvas = document.getElementById("three-canvas");
-      var COUNT = 8000;
+        var W = 1920,
+          H = 1080;
+        var canvas = document.getElementById("three-canvas");
+        var COUNT = 8000;
 
-      var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
-      renderer.setSize(W, H);
-      renderer.setPixelRatio(1);
+        var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+        renderer.setSize(W, H);
+        renderer.setPixelRatio(1);
 
-      var scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x030308);
+        var scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x030308);
 
-      var camera = new THREE.PerspectiveCamera(50, W / H, 0.1, 100);
-      camera.position.set(0, 0, 12);
+        var camera = new THREE.PerspectiveCamera(50, W / H, 0.1, 100);
+        camera.position.set(0, 0, 12);
 
-      // ── Generate target shapes ────────────────────────────
-      function textToPositions(text, scale) {
-        var c = document.createElement("canvas");
-        c.width = 512; c.height = 128;
-        var ctx = c.getContext("2d");
-        ctx.fillStyle = "#000";
-        ctx.fillRect(0, 0, 512, 128);
-        ctx.font = "bold 90px Inter, Arial, sans-serif";
-        ctx.fillStyle = "#fff";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(text, 256, 68);
+        // ── Generate target shapes ────────────────────────────
+        function textToPositions(text, scale) {
+          var c = document.createElement("canvas");
+          c.width = 512;
+          c.height = 128;
+          var ctx = c.getContext("2d");
+          ctx.fillStyle = "#000";
+          ctx.fillRect(0, 0, 512, 128);
+          ctx.font = "bold 90px Inter, Arial, sans-serif";
+          ctx.fillStyle = "#fff";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(text, 256, 68);
 
-        var data = ctx.getImageData(0, 0, 512, 128).data;
-        var pts = [];
-        for (var y = 0; y < 128; y += 2) {
-          for (var x = 0; x < 512; x += 2) {
-            if (data[(y * 512 + x) * 4] > 128) {
-              pts.push(new THREE.Vector3(
-                (x - 256) * scale * 0.018,
-                (64 - y) * scale * 0.018,
-                (Math.random() - 0.5) * 0.3
-              ));
+          var data = ctx.getImageData(0, 0, 512, 128).data;
+          var pts = [];
+          for (var y = 0; y < 128; y += 2) {
+            for (var x = 0; x < 512; x += 2) {
+              if (data[(y * 512 + x) * 4] > 128) {
+                pts.push(
+                  new THREE.Vector3(
+                    (x - 256) * scale * 0.018,
+                    (64 - y) * scale * 0.018,
+                    (Math.random() - 0.5) * 0.3,
+                  ),
+                );
+              }
             }
           }
+          return pts;
         }
-        return pts;
-      }
 
-      function spherePositions(radius, count) {
-        var pts = [];
-        for (var i = 0; i < count; i++) {
-          var phi = Math.acos(2 * Math.random() - 1);
-          var theta = Math.random() * Math.PI * 2;
-          pts.push(new THREE.Vector3(
-            radius * Math.sin(phi) * Math.cos(theta),
-            radius * Math.sin(phi) * Math.sin(theta),
-            radius * Math.cos(phi)
-          ));
-        }
-        return pts;
-      }
-
-      function torusPositions(R, r, count) {
-        var pts = [];
-        for (var i = 0; i < count; i++) {
-          var u = Math.random() * Math.PI * 2;
-          var v = Math.random() * Math.PI * 2;
-          pts.push(new THREE.Vector3(
-            (R + r * Math.cos(v)) * Math.cos(u),
-            (R + r * Math.cos(v)) * Math.sin(u),
-            r * Math.sin(v)
-          ));
-        }
-        return pts;
-      }
-
-      function noisePositions(spread, count) {
-        var pts = [];
-        for (var i = 0; i < count; i++) {
-          pts.push(new THREE.Vector3(
-            (Math.random() - 0.5) * spread,
-            (Math.random() - 0.5) * spread * 0.6,
-            (Math.random() - 0.5) * spread
-          ));
-        }
-        return pts;
-      }
-
-      // Pad/trim arrays to exactly COUNT
-      function padPositions(arr) {
-        while (arr.length < COUNT) {
-          arr.push(arr[Math.floor(Math.random() * arr.length)].clone().add(
-            new THREE.Vector3((Math.random()-0.5)*0.1, (Math.random()-0.5)*0.1, (Math.random()-0.5)*0.1)
-          ));
-        }
-        return arr.slice(0, COUNT);
-      }
-
-      var shapes = [
-        padPositions(textToPositions("HYPERFRAMES", 1.0)),
-        padPositions(noisePositions(10, COUNT)),
-        padPositions(spherePositions(3.5, COUNT)),
-        padPositions(noisePositions(12, COUNT)),
-        padPositions(torusPositions(3, 1.2, COUNT)),
-      ];
-
-      // ── Particles ─────────────────────────────────────────
-      var geo = new THREE.BufferGeometry();
-      var positions = new Float32Array(COUNT * 3);
-      var colors = new Float32Array(COUNT * 3);
-      var sizes = new Float32Array(COUNT);
-
-      // Start at shape 0
-      for (var i = 0; i < COUNT; i++) {
-        var p = shapes[0][i];
-        positions[i * 3] = p.x;
-        positions[i * 3 + 1] = p.y;
-        positions[i * 3 + 2] = p.z;
-
-        // Color palette: cyan → purple → pink
-        var t = i / COUNT;
-        colors[i * 3] = 0.0 + t * 0.5;
-        colors[i * 3 + 1] = 0.7 - t * 0.4;
-        colors[i * 3 + 2] = 1.0;
-        sizes[i] = 2.0 + Math.random() * 2.0;
-      }
-
-      geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-      geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
-      geo.setAttribute("size", new THREE.BufferAttribute(sizes, 1));
-
-      var mat = new THREE.ShaderMaterial({
-        uniforms: {
-          uPixelRatio: { value: 1 },
-          uOpacity: { value: 1.0 },
-        },
-        vertexShader: [
-          "attribute float size;",
-          "attribute vec3 color;",
-          "varying vec3 vColor;",
-          "uniform float uPixelRatio;",
-          "void main() {",
-          "  vColor = color;",
-          "  vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);",
-          "  gl_PointSize = size * uPixelRatio * (300.0 / -mvPosition.z);",
-          "  gl_Position = projectionMatrix * mvPosition;",
-          "}",
-        ].join("\n"),
-        fragmentShader: [
-          "precision highp float;",
-          "varying vec3 vColor;",
-          "uniform float uOpacity;",
-          "void main() {",
-          "  float d = length(gl_PointCoord - vec2(0.5));",
-          "  if (d > 0.5) discard;",
-          "  float alpha = smoothstep(0.5, 0.1, d) * uOpacity;",
-          "  gl_FragColor = vec4(vColor, alpha);",
-          "}",
-        ].join("\n"),
-        transparent: true,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
-      });
-
-      var points = new THREE.Points(geo, mat);
-      scene.add(points);
-
-      // ── Morph state ───────────────────────────────────────
-      var morphState = { progress: 0, shapeIndex: 0, rotation: 0, opacity: 1.0 };
-
-      function lerpToShape(targetIdx, t) {
-        var target = shapes[targetIdx];
-        var pos = geo.attributes.position.array;
-        for (var i = 0; i < COUNT; i++) {
-          var idx = i * 3;
-          pos[idx] += (target[i].x - pos[idx]) * t;
-          pos[idx + 1] += (target[i].y - pos[idx + 1]) * t;
-          pos[idx + 2] += (target[i].z - pos[idx + 2]) * t;
-        }
-        geo.attributes.position.needsUpdate = true;
-      }
-
-      function renderFrame() {
-        points.rotation.y = morphState.rotation;
-        mat.uniforms.uOpacity.value = morphState.opacity;
-        renderer.render(scene, camera);
-      }
-
-      // ── Timeline ──────────────────────────────────────────
-      // 10s total: text(2s) → dissolve(1s) → sphere(1.5s) → dissolve(1s) → torus(1.5s) → dissolve(1s) → text(2s)
-      var tl = gsap.timeline({
-        paused: true,
-        onUpdate: function () {
-          var t = tl.time();
-          // Morph between shapes based on time
-          if (t < 2) {
-            lerpToShape(0, 0.15); // Hold text
-          } else if (t < 3) {
-            lerpToShape(1, 0.08); // Dissolve to noise
-          } else if (t < 4.5) {
-            lerpToShape(2, 0.1); // Form sphere
-          } else if (t < 5.5) {
-            lerpToShape(3, 0.08); // Dissolve to noise
-          } else if (t < 7) {
-            lerpToShape(4, 0.1); // Form torus
-          } else if (t < 8) {
-            lerpToShape(3, 0.08); // Dissolve
-          } else {
-            lerpToShape(0, 0.12); // Reform text
+        function spherePositions(radius, count) {
+          var pts = [];
+          for (var i = 0; i < count; i++) {
+            var phi = Math.acos(2 * Math.random() - 1);
+            var theta = Math.random() * Math.PI * 2;
+            pts.push(
+              new THREE.Vector3(
+                radius * Math.sin(phi) * Math.cos(theta),
+                radius * Math.sin(phi) * Math.sin(theta),
+                radius * Math.cos(phi),
+              ),
+            );
           }
-          renderFrame();
-        },
-      });
+          return pts;
+        }
 
-      // Slow rotation
-      tl.to(morphState, { rotation: Math.PI * 0.6, duration: 10, ease: "none" }, 0);
+        function torusPositions(R, r, count) {
+          var pts = [];
+          for (var i = 0; i < count; i++) {
+            var u = Math.random() * Math.PI * 2;
+            var v = Math.random() * Math.PI * 2;
+            pts.push(
+              new THREE.Vector3(
+                (R + r * Math.cos(v)) * Math.cos(u),
+                (R + r * Math.cos(v)) * Math.sin(u),
+                r * Math.sin(v),
+              ),
+            );
+          }
+          return pts;
+        }
 
-      // Fade in/out
-      tl.fromTo(morphState, { opacity: 0 }, { opacity: 1, duration: 0.5 }, 0);
-      tl.to(morphState, { opacity: 0, duration: 0.5 }, 9.5);
+        function noisePositions(spread, count) {
+          var pts = [];
+          for (var i = 0; i < count; i++) {
+            pts.push(
+              new THREE.Vector3(
+                (Math.random() - 0.5) * spread,
+                (Math.random() - 0.5) * spread * 0.6,
+                (Math.random() - 0.5) * spread,
+              ),
+            );
+          }
+          return pts;
+        }
 
-      tl.to({}, { duration: 10, ease: "none" }, 0);
+        // Pad/trim arrays to exactly COUNT
+        function padPositions(arr) {
+          while (arr.length < COUNT) {
+            arr.push(
+              arr[Math.floor(Math.random() * arr.length)]
+                .clone()
+                .add(
+                  new THREE.Vector3(
+                    (Math.random() - 0.5) * 0.1,
+                    (Math.random() - 0.5) * 0.1,
+                    (Math.random() - 0.5) * 0.1,
+                  ),
+                ),
+            );
+          }
+          return arr.slice(0, COUNT);
+        }
 
-      renderFrame();
-      window.__timelines["main"] = tl;
-    })();
+        var shapes = [
+          padPositions(textToPositions("HYPERFRAMES", 1.0)),
+          padPositions(noisePositions(10, COUNT)),
+          padPositions(spherePositions(3.5, COUNT)),
+          padPositions(noisePositions(12, COUNT)),
+          padPositions(torusPositions(3, 1.2, COUNT)),
+        ];
+
+        // ── Particles ─────────────────────────────────────────
+        var geo = new THREE.BufferGeometry();
+        var positions = new Float32Array(COUNT * 3);
+        var colors = new Float32Array(COUNT * 3);
+        var sizes = new Float32Array(COUNT);
+
+        // Start at shape 0
+        for (var i = 0; i < COUNT; i++) {
+          var p = shapes[0][i];
+          positions[i * 3] = p.x;
+          positions[i * 3 + 1] = p.y;
+          positions[i * 3 + 2] = p.z;
+
+          // Color palette: cyan → purple → pink
+          var t = i / COUNT;
+          colors[i * 3] = 0.0 + t * 0.5;
+          colors[i * 3 + 1] = 0.7 - t * 0.4;
+          colors[i * 3 + 2] = 1.0;
+          sizes[i] = 2.0 + Math.random() * 2.0;
+        }
+
+        geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+        geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+        geo.setAttribute("size", new THREE.BufferAttribute(sizes, 1));
+
+        var mat = new THREE.ShaderMaterial({
+          uniforms: {
+            uPixelRatio: { value: 1 },
+            uOpacity: { value: 1.0 },
+          },
+          vertexShader: [
+            "attribute float size;",
+            "attribute vec3 color;",
+            "varying vec3 vColor;",
+            "uniform float uPixelRatio;",
+            "void main() {",
+            "  vColor = color;",
+            "  vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);",
+            "  gl_PointSize = size * uPixelRatio * (300.0 / -mvPosition.z);",
+            "  gl_Position = projectionMatrix * mvPosition;",
+            "}",
+          ].join("\n"),
+          fragmentShader: [
+            "precision highp float;",
+            "varying vec3 vColor;",
+            "uniform float uOpacity;",
+            "void main() {",
+            "  float d = length(gl_PointCoord - vec2(0.5));",
+            "  if (d > 0.5) discard;",
+            "  float alpha = smoothstep(0.5, 0.1, d) * uOpacity;",
+            "  gl_FragColor = vec4(vColor, alpha);",
+            "}",
+          ].join("\n"),
+          transparent: true,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending,
+        });
+
+        var points = new THREE.Points(geo, mat);
+        scene.add(points);
+
+        // ── Morph state ───────────────────────────────────────
+        var morphState = { progress: 0, shapeIndex: 0, rotation: 0, opacity: 1.0 };
+
+        function lerpToShape(targetIdx, t) {
+          var target = shapes[targetIdx];
+          var pos = geo.attributes.position.array;
+          for (var i = 0; i < COUNT; i++) {
+            var idx = i * 3;
+            pos[idx] += (target[i].x - pos[idx]) * t;
+            pos[idx + 1] += (target[i].y - pos[idx + 1]) * t;
+            pos[idx + 2] += (target[i].z - pos[idx + 2]) * t;
+          }
+          geo.attributes.position.needsUpdate = true;
+        }
+
+        function renderFrame() {
+          points.rotation.y = morphState.rotation;
+          mat.uniforms.uOpacity.value = morphState.opacity;
+          renderer.render(scene, camera);
+        }
+
+        // ── Timeline ──────────────────────────────────────────
+        // 10s total: text(2s) → dissolve(1s) → sphere(1.5s) → dissolve(1s) → torus(1.5s) → dissolve(1s) → text(2s)
+        var tl = gsap.timeline({
+          paused: true,
+          onUpdate: function () {
+            var t = tl.time();
+            // Morph between shapes based on time
+            if (t < 2) {
+              lerpToShape(0, 0.15); // Hold text
+            } else if (t < 3) {
+              lerpToShape(1, 0.08); // Dissolve to noise
+            } else if (t < 4.5) {
+              lerpToShape(2, 0.1); // Form sphere
+            } else if (t < 5.5) {
+              lerpToShape(3, 0.08); // Dissolve to noise
+            } else if (t < 7) {
+              lerpToShape(4, 0.1); // Form torus
+            } else if (t < 8) {
+              lerpToShape(3, 0.08); // Dissolve
+            } else {
+              lerpToShape(0, 0.12); // Reform text
+            }
+            renderFrame();
+          },
+        });
+
+        // Slow rotation
+        tl.to(morphState, { rotation: Math.PI * 0.6, duration: 10, ease: "none" }, 0);
+
+        // Fade in/out
+        tl.fromTo(morphState, { opacity: 0 }, { opacity: 1, duration: 0.5 }, 0);
+        tl.to(morphState, { opacity: 0, duration: 0.5 }, 9.5);
+
+        tl.to({}, { duration: 10, ease: "none" }, 0);
+
+        renderFrame();
+        window.__timelines["main"] = tl;
+      })();
     </script>
   </body>
 </html>
