@@ -240,18 +240,9 @@ cp -r skills/website-to-hyperframes/assets/sfx/ <project-dir>/sfx/
 ls <project-dir>/sfx/
 ```
 
-Now re-read the storyboard and match SFX to the creative moments — don't plan creative around the SFX inventory. For each beat, ask: "what emotion does this moment need?" then pick the sound that serves it:
+Read `sfx/manifest.json` — it has the exact duration and a description of what each sound effect sounds like. Match SFX to the storyboard's creative moments based on the description, not the filename. For each beat, ask: "what emotion does this moment need?" then find the SFX whose description fits.
 
-| Moment type                    | SFX to use                      | Timing                           |
-| ------------------------------ | ------------------------------- | -------------------------------- |
-| Beat transition                | whoosh or whoosh-cinematic      | 0.1s before the cut              |
-| Element appearing              | pop                             | Exact moment of entrance         |
-| UI interaction                 | click or click-soft             | On the action                    |
-| Big text landing / stat reveal | impact-bass-1 or impact-bass-2  | On the final word/number         |
-| Tension building before reveal | riser                           | Start 2-3s before, end at reveal |
-| Success / CTA moment           | chime or sparkle                | On the CTA appearance            |
-| Code / terminal sequence       | typing or key-press             | Aligned to typing animation      |
-| Tech glitch transition         | glitch-1, glitch-2, or glitch-3 | On the cut                       |
+**Timing precision:** Use the `duration` from the manifest as the `data-duration` value. Time the `data-start` to the exact animation moment — not "beat start" but the specific second when the element appears, lands, or transitions. Example: if a hero headline slams at beat-local-time 0.4s and the beat starts at global 13.0s, the SFX `data-start` is 13.4, not 13.0.
 
 Wire each SFX as its own `<audio>` element with a unique track index (41+):
 
