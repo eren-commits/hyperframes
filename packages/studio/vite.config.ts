@@ -615,18 +615,26 @@ function devProjectApi(): Plugin {
   };
 }
 
-export default defineConfig({
-  plugins: [react(), devProjectApi()],
-  resolve: {
-    alias: {
-      "@hyperframes/player": resolve(__dirname, "../player/src/hyperframes-player.ts"),
+export default defineConfig(({ mode }) => {
+  const isDev = mode === "development";
+  return {
+    plugins: [react(), devProjectApi()],
+    resolve: {
+      alias: {
+        "@hyperframes/player": resolve(__dirname, "../player/src/hyperframes-player.ts"),
+      },
     },
-  },
-  build: {
-    outDir: "dist",
-    emptyOutDir: true,
-  },
-  server: {
-    port: 5190,
-  },
+    ...(isDev && {
+      define: { "process.env.NODE_ENV": JSON.stringify("development") },
+    }),
+    build: {
+      outDir: "dist",
+      emptyOutDir: true,
+      sourcemap: isDev,
+      minify: !isDev,
+    },
+    server: {
+      port: 5190,
+    },
+  };
 });
