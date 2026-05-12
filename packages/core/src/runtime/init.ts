@@ -7,6 +7,7 @@ import { createLottieAdapter } from "./adapters/lottie";
 import { createThreeAdapter } from "./adapters/three";
 import { createWaapiAdapter } from "./adapters/waapi";
 import { refreshRuntimeMediaCache, syncRuntimeMedia } from "./media";
+import { createMediaPreloadManager } from "./mediaPreloader";
 import { createPickerModule } from "./picker";
 import { createRuntimePlayer } from "./player";
 import { createRuntimeState } from "./state";
@@ -1231,24 +1232,61 @@ export function initSandboxRuntimeModular(): void {
     metadataBoundMedia.clear();
   };
 
+  const isRenderMode = Boolean((window as Record<string, unknown>).__HF_EXPORT_RENDER_SEEK_CONFIG);
+  const mediaPreloader = createMediaPreloadManager({
+    onActivation: (clipCount) => {
+      postRuntimeDiagnosticOnce("lazy_preload_activated", { clipCount }, "lazy_preload_activated");
+    },
+  });
+
   const bindMediaMetadataListeners = () => {
     if (state.tornDown) return;
     const mediaEls = Array.from(document.querySelectorAll("video, audio")) as HTMLMediaElement[];
+    const isLazy = mediaPreloader.isLazy();
+
+    let newElementsBound = false;
     for (const mediaEl of mediaEls) {
       if (metadataBoundMedia.has(mediaEl)) continue;
       metadataBoundMedia.add(mediaEl);
+      newElementsBound = true;
       mediaEl.addEventListener("loadedmetadata", scheduleMetadataDurationHydration);
       mediaEl.addEventListener("durationchange", scheduleMetadataDurationHydration);
 
-      // Eagerly preload media data so audio/video is buffered before the user
-      // clicks play. Without this, the first play() call fires on un-fetched
-      // media, producing silence or choppy audio until the browser caches it.
-      if (mediaEl.preload !== "auto") {
-        mediaEl.preload = "auto";
+      // In eager mode, preload inline (same ordering as before lazy preloading)
+      if (!isLazy || isRenderMode) {
+        if (mediaEl.preload !== "auto") mediaEl.preload = "auto";
+        if (mediaEl.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) mediaEl.load();
       }
-      if (mediaEl.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) {
-        mediaEl.load();
+    }
+
+    if (newElementsBound && !isRenderMode) {
+      mediaPreloader.refresh();
+    }
+
+    // Lazy-mode demotion runs separately after refresh updates the clip list
+    if (mediaPreloader.isLazy() && !isRenderMode) {
+      // Only demote timed media (elements with data-start) to metadata preload.
+      // Untimed media (background audio, ambient loops, decorative video) must
+      // keep their original preload state — the mediaPreloader only manages
+      // timed clips and would never promote them back.
+      for (const mediaEl of mediaEls) {
+        if (!mediaEl.hasAttribute("data-start")) continue;
+        // Power-user opt-out: data-preload-eager keeps a clip eagerly buffered
+        // even under lazy mode, useful when a specific clip must be instantly
+        // available regardless of playhead proximity.
+        if (mediaEl.hasAttribute("data-preload-eager")) continue;
+        if (mediaEl.preload === "auto" || mediaEl.preload === "") {
+          mediaEl.preload = "metadata";
+          // Kick off the metadata fetch explicitly — some browsers (Chrome Lite
+          // mode, Firefox with media.preload.default=0) won't fetch metadata
+          // until load() is called, and timeline duration depends on el.duration.
+          mediaEl.load();
+        }
+        if (mediaEl.readyState < HTMLMediaElement.HAVE_METADATA) {
+          mediaEl.load();
+        }
       }
+      mediaPreloader.preloadAroundTime(Math.max(0, state.currentTime || 0));
     }
   };
 
@@ -1841,6 +1879,9 @@ export function initSandboxRuntimeModular(): void {
 
       if (clock.isPlaying()) {
         syncMediaForCurrentState();
+        if (mediaPreloader.isLazy() && transportTickCount % 10 === 0) {
+          mediaPreloader.sync(Math.max(0, state.currentTime || 0));
+        }
       }
       postState(false);
     } finally {
@@ -1874,7 +1915,8 @@ export function initSandboxRuntimeModular(): void {
   // Player methods route through the TransportClock.
   player.play = () => {
     const tl = state.capturedTimeline;
-    if (clock.isPlaying()) return;
+    if (!tl || clock.isPlaying()) return;
+    mediaPreloader.preloadAroundTime(Math.max(0, state.currentTime || 0));
     const dur = getSafeTimelineDurationSeconds(tl, 0);
     if (dur > 0) {
       clock.setDuration(dur);
@@ -1947,6 +1989,7 @@ export function initSandboxRuntimeModular(): void {
       Math.max(0, Number(timeSeconds) || 0),
       state.canonicalFps,
     );
+    mediaPreloader.preloadAroundTime(quantized);
     webAudio.stopAll();
     clock.detachAudioSource();
     const wasPlaying = clock.isPlaying();

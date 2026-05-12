@@ -548,8 +548,15 @@ describe("HyperframesPlayer media MutationObserver scoping", () => {
     expect(observedTargets).not.toContain(fakeDoc.body);
     // Subtree is still required — sub-composition media can be deeply nested
     // inside the host (e.g. wrapper div around the `<audio>`).
+    // Attribute observation on "preload" is required so the player creates
+    // parent proxies just-in-time when the preloader promotes a clip.
     for (const call of observeSpy.mock.calls) {
-      expect(call[1]).toEqual({ childList: true, subtree: true });
+      expect(call[1]).toEqual({
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ["preload"],
+      });
     }
   });
 

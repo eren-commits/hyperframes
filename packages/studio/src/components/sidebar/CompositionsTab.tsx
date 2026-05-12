@@ -131,9 +131,12 @@ function CompCard({
   };
   const name = comp.replace(/^compositions\//, "").replace(/\.html$/, "");
   const previewUrl = `/api/projects/${projectId}/preview/comp/${comp}`;
+  const isPortrait = stageSize.height > stageSize.width;
+  const cardWidth = isPortrait ? Math.round((45 * stageSize.width) / stageSize.height) : 80;
+  const cardHeight = isPortrait ? 45 : Math.round((80 * stageSize.height) / stageSize.width);
   const previewScale = resolveCompositionPreviewScale({
-    cardWidth: 80,
-    cardHeight: 45,
+    cardWidth,
+    cardHeight,
     stageWidth: stageSize.width,
     stageHeight: stageSize.height,
   });
@@ -160,35 +163,53 @@ function CompCard({
           : "border-l-2 border-transparent hover:bg-neutral-800/50"
       }`}
     >
-      <div className="w-20 h-[45px] rounded overflow-hidden bg-neutral-900 flex-shrink-0 relative">
-        <iframe
-          ref={iframeRef}
-          src={previewUrl}
-          sandbox="allow-scripts allow-same-origin"
-          loading="lazy"
-          className="absolute left-0 top-0 border-none pointer-events-none"
-          style={{
-            transformOrigin: "0 0",
-            width: stageSize.width,
-            height: stageSize.height,
-            transform: `scale(${previewScale})`,
-          }}
-          onLoad={(e) => {
-            try {
-              const iframe = e.currentTarget;
-              const root = iframe.contentDocument?.querySelector("[data-composition-id]");
-              const width = Number(root?.getAttribute("data-width")) || DEFAULT_PREVIEW_STAGE.width;
-              const height =
-                Number(root?.getAttribute("data-height")) || DEFAULT_PREVIEW_STAGE.height;
-              setStageSize({ width, height });
-              requestIframePlaybackSync(hovered);
-            } catch {
-              setStageSize(DEFAULT_PREVIEW_STAGE);
-            }
-          }}
-          title={`${name} preview`}
-          tabIndex={-1}
-        />
+      <div
+        className="rounded overflow-hidden bg-neutral-900 flex-shrink-0 relative"
+        style={{ width: cardWidth, height: cardHeight }}
+      >
+        {/* Live iframe preview on hover */}
+        {hovered && (
+          <iframe
+            src={previewUrl}
+            sandbox="allow-scripts allow-same-origin"
+            className="absolute left-0 top-0 border-none pointer-events-none"
+            style={{
+              transformOrigin: "0 0",
+              width: stageSize.width,
+              height: stageSize.height,
+              transform: `scale(${previewScale})`,
+            }}
+            onLoad={(e) => {
+              try {
+                const iframe = e.currentTarget;
+                const root = iframe.contentDocument?.querySelector("[data-composition-id]");
+                const width =
+                  Number(root?.getAttribute("data-width")) || DEFAULT_PREVIEW_STAGE.width;
+                const height =
+                  Number(root?.getAttribute("data-height")) || DEFAULT_PREVIEW_STAGE.height;
+                setStageSize({ width, height });
+              } catch {
+                setStageSize(DEFAULT_PREVIEW_STAGE);
+              }
+            }}
+            tabIndex={-1}
+          />
+        )}
+        {/* Static thumbnail — hidden while hovering */}
+        <div
+          className="absolute inset-0 transition-opacity duration-150"
+          style={{ opacity: hovered ? 0 : 1 }}
+        >
+          <img
+            src={thumbnailUrl}
+            alt={name}
+            loading="lazy"
+            className="w-full h-full object-contain"
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = "none";
+            }}
+          />
+        </div>
       </div>
       <div className="min-w-0 flex-1">
         <span className="text-[11px] font-medium text-neutral-300 truncate block">{name}</span>

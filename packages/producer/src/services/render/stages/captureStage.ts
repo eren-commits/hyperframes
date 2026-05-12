@@ -1,0 +1,211 @@
+/**
+ * captureStage — SDR disk-capture path of `executeRenderJob`.
+ *
+ * Handles both branches of the SDR / DOM-only-HDR disk-capture flow:
+ *   - `workerCount > 1`: parallel capture with adaptive retry via
+ *     `executeDiskCaptureWithAdaptiveRetry`.
+ *   - `workerCount === 1`: sequential capture in the orchestrator process,
+ *     reusing `probeSession` when available.
+ *
+ * The HDR layered branch (`useLayeredComposite === true`) and the streaming
+ * encode fusion path (`useStreamingEncode === true` with successful encoder
+ * spawn) live in separate stages.
+ *
+ * Hard constraints preserved verbatim:
+ *   - `probeSession` is closed (and the local binding nulled) once the
+ *     stage no longer needs it. The sequencer's `let probeSession` is
+ *     updated via the returned result.
+ *   - `captureAttempts` is mutated in place — the parallel path appends
+ *     each retry attempt to the array the sequencer owns.
+ *   - `workerCount` may be reduced by an adaptive retry; the returned
+ *     value reflects the final worker count for the perf summary.
+ *   - `lastBrowserConsole` is set to the buffer of whichever session was
+ *     active last (probe session in the parallel close path; sequential
+ *     session in the sequential path).
+ *   - `job.framesRendered` is updated at the same per-frame / per-progress
+ *     points; the same `Capturing frame N/M` `updateJobStatus` payloads
+ *     fire at 30-frame and completion checkpoints (parallel) or every
+ *     frame (sequential).
+ *
+ * Known follow-up: this stage imports `executeDiskCaptureWithAdaptiveRetry`
+ * from `renderOrchestrator.ts`, which itself imports the stage — a runtime
+ * cycle that resolves at module-init time because no stage function is
+ * invoked during load. A subsequent PR will consolidate the capture
+ * helpers (`executeDiskCaptureWithAdaptiveRetry`, `countFrameRanges`,
+ * `safeCleanup`, `sampleDirectoryBytes`, etc.) into a shared module so
+ * the stages can import them without reaching back into the orchestrator.
+ */
+
+import {
+  type BeforeCaptureHook,
+  type CaptureOptions,
+  type CaptureSession,
+  type EngineConfig,
+  captureFrame,
+  closeCaptureSession,
+  createCaptureSession,
+  initializeSession,
+  prepareCaptureSessionForReuse,
+} from "@hyperframes/engine";
+import type { FileServerHandle } from "../../fileServer.js";
+import type { ProducerLogger } from "../../../logger.js";
+import {
+  executeDiskCaptureWithAdaptiveRetry,
+  updateJobStatus,
+  type CaptureAttemptSummary,
+  type ProgressCallback,
+  type RenderJob,
+} from "../../renderOrchestrator.js";
+
+export interface CaptureStageInput {
+  fileServer: FileServerHandle;
+  workDir: string;
+  framesDir: string;
+  job: RenderJob;
+  /**
+   * `job.totalFrames` is `number | undefined` in the public type — the
+   * sequencer narrows it to a `number` via the probeStage result before
+   * calling this stage. Passed in explicitly here so the stage doesn't
+   * have to re-narrow on every reference.
+   */
+  totalFrames: number;
+  cfg: EngineConfig;
+  log: ProducerLogger;
+  /** Initial worker count from `resolveRenderWorkerCount`; adaptive retry may reduce it. */
+  workerCount: number;
+  /** Reused for the sequential path's first session if non-null. */
+  probeSession: CaptureSession | null;
+  /** True for webm / mov / png-sequence (controls capture format + extension). */
+  needsAlpha: boolean;
+  /** Mutated in place — each parallel retry attempt is appended. */
+  captureAttempts: CaptureAttemptSummary[];
+  buildCaptureOptions: () => CaptureOptions;
+  createRenderVideoFrameInjector: () => BeforeCaptureHook | null;
+  abortSignal: AbortSignal | undefined;
+  assertNotAborted: () => void;
+  onProgress?: ProgressCallback;
+}
+
+export interface CaptureStageResult {
+  /** Final worker count after any adaptive retry. */
+  workerCount: number;
+  /** Always `null` after the stage — the probe session is closed before the stage returns. */
+  probeSession: CaptureSession | null;
+  /** Browser console buffer from whichever session was active last. */
+  lastBrowserConsole: string[];
+}
+
+export async function runCaptureStage(input: CaptureStageInput): Promise<CaptureStageResult> {
+  const {
+    fileServer,
+    workDir,
+    framesDir,
+    job,
+    totalFrames,
+    cfg,
+    log,
+    captureAttempts,
+    buildCaptureOptions,
+    createRenderVideoFrameInjector,
+    abortSignal,
+    assertNotAborted,
+    onProgress,
+    needsAlpha,
+  } = input;
+  let { workerCount, probeSession } = input;
+  let lastBrowserConsole: string[] = [];
+
+  if (workerCount > 1) {
+    // Parallel capture
+    const attempts = await executeDiskCaptureWithAdaptiveRetry({
+      serverUrl: fileServer.url,
+      workDir,
+      framesDir,
+      totalFrames,
+      initialWorkerCount: workerCount,
+      allowRetry: job.config.workers === undefined,
+      frameExt: needsAlpha ? "png" : "jpg",
+      captureOptions: buildCaptureOptions(),
+      createBeforeCaptureHook: createRenderVideoFrameInjector,
+      abortSignal,
+      onProgress: (progress) => {
+        job.framesRendered = progress.capturedFrames;
+        const frameProgress = progress.capturedFrames / progress.totalFrames;
+        const progressPct = 25 + frameProgress * 45;
+
+        if (
+          progress.capturedFrames % 30 === 0 ||
+          progress.capturedFrames === progress.totalFrames
+        ) {
+          updateJobStatus(
+            job,
+            "rendering",
+            `Capturing frame ${progress.capturedFrames}/${progress.totalFrames} (${progress.activeWorkers} workers)`,
+            Math.round(progressPct),
+            onProgress,
+          );
+        }
+      },
+      cfg,
+      log,
+    });
+    captureAttempts.push(...attempts);
+    const lastAttempt = attempts[attempts.length - 1];
+    if (lastAttempt) {
+      workerCount = lastAttempt.workers;
+    }
+    if (probeSession) {
+      lastBrowserConsole = probeSession.browserConsoleBuffer;
+      await closeCaptureSession(probeSession);
+      probeSession = null;
+    }
+  } else {
+    // Sequential capture
+
+    const videoInjector = createRenderVideoFrameInjector();
+    const session =
+      probeSession ??
+      (await createCaptureSession(
+        fileServer.url,
+        framesDir,
+        buildCaptureOptions(),
+        videoInjector,
+        cfg,
+      ));
+    if (probeSession) {
+      prepareCaptureSessionForReuse(session, framesDir, videoInjector);
+      probeSession = null;
+    }
+
+    try {
+      if (!session.isInitialized) {
+        await initializeSession(session);
+      }
+      assertNotAborted();
+      lastBrowserConsole = session.browserConsoleBuffer;
+
+      for (let i = 0; i < totalFrames; i++) {
+        assertNotAborted();
+        const time = (i * job.config.fps.den) / job.config.fps.num;
+        await captureFrame(session, i, time);
+        job.framesRendered = i + 1;
+
+        const frameProgress = (i + 1) / totalFrames;
+        const progress = 25 + frameProgress * 45;
+
+        updateJobStatus(
+          job,
+          "rendering",
+          `Capturing frame ${i + 1}/${totalFrames}`,
+          Math.round(progress),
+          onProgress,
+        );
+      }
+    } finally {
+      lastBrowserConsole = session.browserConsoleBuffer;
+      await closeCaptureSession(session);
+    }
+  }
+
+  return { workerCount, probeSession, lastBrowserConsole };
+}

@@ -1511,6 +1511,14 @@ class HyperframesPlayer extends HTMLElement {
    * identical URL-resolution and attribute parsing.
    */
   private _adoptIframeMedia(iframeEl: HTMLMediaElement): void {
+    // Respect the preloader's demotion: if the iframe element has been set to
+    // metadata-only or none, creating a parent proxy with preload="auto" would
+    // bypass the lazy preloader and eagerly buffer the clip. Skip it — the
+    // MutationObserver in _observeDynamicMedia watches for preload attribute
+    // changes and will create the proxy just-in-time when the preloader
+    // promotes the clip.
+    if (iframeEl.preload === "metadata" || iframeEl.preload === "none") return;
+
     const rawSrc =
       iframeEl.getAttribute("src") || iframeEl.querySelector("source")?.getAttribute("src");
     if (!rawSrc) return;
@@ -1557,6 +1565,22 @@ class HyperframesPlayer extends HTMLElement {
     if (typeof MutationObserver === "undefined" || !doc.body) return;
     const obs = new MutationObserver((mutations) => {
       for (const m of mutations) {
+        // Attribute mutations: the preloader promotes a clip by changing its
+        // preload attribute from "metadata" to "auto". When that happens, the
+        // early-return guard in _adoptIframeMedia no longer blocks, so we can
+        // create the parent proxy just-in-time.
+        if (m.type === "attributes" && m.attributeName === "preload") {
+          const target = m.target;
+          if (
+            target instanceof HTMLMediaElement &&
+            target.matches("audio[data-start], video[data-start]") &&
+            target.preload === "auto"
+          ) {
+            this._adoptIframeMedia(target);
+          }
+          continue;
+        }
+
         for (const added of m.addedNodes) {
           if (!(added instanceof Element)) continue;
           // Handle both the node itself and any timed media nested inside
@@ -1591,13 +1615,19 @@ class HyperframesPlayer extends HTMLElement {
         }
       }
     });
+    const observeOpts: MutationObserverInit = {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["preload"],
+    };
     const hosts = doc.querySelectorAll("[data-composition-id]");
     if (hosts.length > 0) {
       for (const host of hosts) {
-        obs.observe(host, { childList: true, subtree: true });
+        obs.observe(host, observeOpts);
       }
     } else {
-      obs.observe(doc.body, { childList: true, subtree: true });
+      obs.observe(doc.body, observeOpts);
     }
     this._mediaObserver = obs;
   }

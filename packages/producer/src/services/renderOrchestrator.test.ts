@@ -6,7 +6,6 @@ import type { EngineConfig, ExtractedFrames } from "@hyperframes/engine";
 import type { CompiledComposition } from "./htmlCompiler.js";
 
 import {
-  applyRenderModeHints,
   buildMissingFrameRetryBatches,
   collectVideoMetadataHints,
   collectVideoReadinessSkipIds,
@@ -19,16 +18,19 @@ import {
   getNextRetryWorkerCount,
   isRecoverableParallelCaptureError,
   materializeExtractedFramesForCompiledDir,
-  projectBrowserEndToCompositionTimeline,
-  resolveDeviceScaleFactor,
   resolveRenderWorkerCount,
   resolveCompositeTransfer,
   selectCaptureCalibrationFrames,
   shouldFallbackToScreenshotAfterCalibrationError,
   shouldUseLayeredComposite,
   shouldUseStreamingEncode,
-  writeCompiledArtifacts,
 } from "./renderOrchestrator.js";
+import {
+  applyRenderModeHints,
+  projectBrowserEndToCompositionTimeline,
+  resolveDeviceScaleFactor,
+  writeCompiledArtifacts,
+} from "./render/shared.js";
 import { toExternalAssetKey } from "../utils/paths.js";
 
 describe("extractStandaloneEntryFromIndex", () => {
@@ -198,6 +200,9 @@ describe("materializeExtractedFramesForCompiledDir", () => {
         symlinkSync: () => {
           throw new Error("inside compiledDir should not symlink");
         },
+        cpSync: () => {
+          throw new Error("inside compiledDir should not copy");
+        },
       },
     });
 
@@ -220,6 +225,9 @@ describe("materializeExtractedFramesForCompiledDir", () => {
         symlinkSync: (target, path) => {
           symlinks.push({ target, path });
         },
+        cpSync: () => {
+          throw new Error("symlink path should not invoke cpSync");
+        },
       },
     });
 
@@ -228,6 +236,37 @@ describe("materializeExtractedFramesForCompiledDir", () => {
     expect(extracted.framePaths.get(0)).toBe(win32.join(linkPath, "frame_000001.jpg"));
     expect(extracted.framePaths.get(0)).not.toContain(outputDir);
     expect(symlinks).toEqual([{ target: outputDir, path: linkPath }]);
+  });
+
+  it("recursively copies frames into compiledDir when materializeSymlinks is true", () => {
+    // Distributed plan() must produce a self-contained planDir — symlinks
+    // don't survive S3 / GCS round-trips. With materializeSymlinks=true the
+    // helper invokes cpSync(recursive) instead of symlinkSync.
+    const compiledDir = win32.resolve("C:\\compiled");
+    const outputDir = win32.resolve("D:\\cache\\abc123");
+    const framePath = win32.join(outputDir, "frame_000001.jpg");
+    const extracted = createExtractedFrames(outputDir, framePath);
+    const copies: Array<{ src: string; dest: string; recursive: boolean }> = [];
+
+    materializeExtractedFramesForCompiledDir([extracted], compiledDir, {
+      pathModule: win32,
+      fileSystem: {
+        existsSync: () => false,
+        mkdirSync: () => undefined,
+        symlinkSync: () => {
+          throw new Error("copy path should not invoke symlinkSync");
+        },
+        cpSync: (src, dest, options) => {
+          copies.push({ src, dest, recursive: options.recursive });
+        },
+      },
+      materializeSymlinks: true,
+    });
+
+    const linkPath = win32.join(compiledDir, "__hyperframes_video_frames", "video-1");
+    expect(extracted.outputDir).toBe(linkPath);
+    expect(extracted.framePaths.get(0)).toBe(win32.join(linkPath, "frame_000001.jpg"));
+    expect(copies).toEqual([{ src: outputDir, dest: linkPath, recursive: true }]);
   });
 });
 
