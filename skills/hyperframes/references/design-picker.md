@@ -67,7 +67,7 @@ If no brief was gathered (user jumped straight to picker, or request was specifi
 
 Each architecture object must include a `preview_html` field — the HTML that renders in the preview panel. Use token placeholders that the template replaces at runtime: `{{bg}}`, `{{fg}}`, `{{ac}}`, `{{mt}}`, `{{hf}}`, `{{hw}}`, `{{bf}}`, `{{bw}}`, `{{cr}}` (corner radius), `{{pad}}`, `{{gap}}`, `{{shadow}}`, `{{g}}` (grid line color), `{{fg3}}`/`{{fg6}}`/`{{fg8}}`/`{{fg15}}` (fg at opacity), `{{ac3}}`/`{{ac5}}`/`{{ac25}}` (accent at opacity).
 
-**Every token must be used.** Apply `{{cr}}` to all cards, buttons, and containers. Apply `{{shadow}}` to elevated elements (cards, buttons, code blocks). Apply `{{pad}}` and `{{gap}}` to control spacing. If a token isn't used in the preview_html, that option will have no visible effect.
+**Use tokens where they apply.** Not every architecture needs every token — a minimal 3-element layout won't have cards or buttons. Tokens that aren't used in a preview simply won't have a visible effect when the user changes that option in Phase 2, which is fine for architectures where that category doesn't apply.
 
 **Density should match the concept.** A data-dense blueprint needs many elements. An extreme-negative-space direction needs 3-4. The preview should look like a frame from the actual video, not a UI component showcase. If every architecture has the same element list in the same order, the concepts are visually identical despite different colors — that's the problem.
 
@@ -81,15 +81,47 @@ Optionally include `components` (component styling rules) and `dos` (do's and do
 
 **Palette variety:** Always include a mix of light, dark, and tinted backgrounds across the 6 palettes — even for calm/wellness prompts.
 
-### Example architecture object
+### Structural diversity
 
+**No two architectures should share the same layout shape.** After generating all architectures, check: if you drew only the bounding boxes of major elements (ignoring text, color, font), would each architecture produce a different silhouette? If two look like the same wireframe, one is redundant.
+
+Layout shapes to draw from (not exhaustive — invent others):
+- Centered column (overline → headline → body) — use at most ONCE across all architectures
+- Split horizontal (content left, data right, or vice versa)
+- Bottom-anchored (content pinned to bottom 40% of frame, top is empty/atmospheric)
+- Grid of equal-weight blocks (no hierarchy — everything same size)
+- Single dominant element (one number/word fills 60%+ of frame, tiny supporting text)
+- List/table (structured rows, no cards, no headline)
+- Diagonal or asymmetric (content offset to one corner, rest is space)
+- Timeline/horizontal axis (content pinned along a line)
+
+The preview_html for each architecture is a 1920×1080 frame. Use the full frame — not just a centered column in the middle. Content can be pinned to edges, split into zones, arranged in grids, or clustered in one corner with the rest empty.
+
+### Example architecture objects
+
+Three structurally different examples showing how the same token system produces completely different layouts:
+
+**Split horizontal:**
 ```json
 {
-  "name": "Editorial Stack",
-  "description": "Vertical rhythm with large type, pull quotes, and data callouts",
-  "tag": "editorial / longform / narrative",
-  "mood": "Confident, unhurried, typographically driven",
-  "preview_html": "<div style='background:{{bg}};color:{{fg}};padding:{{pad}};min-height:100vh;font-family:\"{{bf}}\",sans-serif;font-weight:{{bw}};'><div style='max-width:100%;display:flex;flex-direction:column;gap:{{gap}};'><div style='font-size:10px;text-transform:uppercase;letter-spacing:0.12em;color:{{mt}};'>Overline Label</div><div style='font-family:\"{{hf}}\",serif;font-weight:{{hw}};font-size:48px;line-height:1.1;letter-spacing:-0.02em;'>The Headline Goes Here</div><div style='font-size:20px;color:{{mt}};max-width:70%;line-height:1.5;'>Subheading text that introduces the narrative arc of this composition with enough words to fill two lines.</div><div style='font-size:15px;line-height:1.7;color:{{fg}};max-width:65%;'>Body paragraph with real sentences. The quick brown fox jumps over the lazy dog. This gives a sense of text density and reading rhythm at the chosen type size.</div><div style='display:flex;gap:{{gap}};flex-wrap:wrap;'><div style='background:{{fg6}};border-radius:{{cr}};padding:{{pad}};flex:1;min-width:200px;box-shadow:{{shadow}};'><div style='font-size:36px;font-family:\"{{hf}}\",serif;font-weight:{{hw}};color:{{ac}};'>2.4M</div><div style='font-size:12px;color:{{mt}};margin-top:4px;'>Primary Stat</div></div><div style='background:{{fg6}};border-radius:{{cr}};padding:{{pad}};flex:1;min-width:200px;box-shadow:{{shadow}};'><div style='font-size:36px;font-family:\"{{hf}}\",serif;font-weight:{{hw}};color:{{fg}};'>87%</div><div style='font-size:12px;color:{{mt}};margin-top:4px;'>Secondary Stat</div></div></div><div style='border-left:3px solid {{ac}};padding:12px {{pad}};background:{{ac3}};border-radius:0 {{cr}} {{cr}} 0;'><div style='font-size:18px;font-style:italic;color:{{fg}};line-height:1.5;'>\"A pull quote that captures the key insight of the piece.\"</div><div style='font-size:12px;color:{{mt}};margin-top:8px;'>— Attribution Name</div></div><div style='background:{{fg3}};border-radius:{{cr}};padding:{{pad}};box-shadow:{{shadow}};'><div style='font-size:14px;font-weight:{{hw}};margin-bottom:8px;'>Card Title</div><div style='font-size:13px;color:{{mt}};line-height:1.5;'>Card body text with a different treatment than the main content area.</div></div><div style='background:{{ac5}};border:1px solid {{ac25}};border-radius:{{cr}};padding:{{pad}};box-shadow:{{shadow}};'><div style='font-size:14px;font-weight:{{hw}};color:{{ac}};margin-bottom:8px;'>Accent Card</div><div style='font-size:13px;color:{{fg}};line-height:1.5;'>Second card with a tinted accent treatment for variety.</div></div><div style='font-family:monospace;font-size:13px;background:{{fg8}};border-radius:{{cr}};padding:{{pad}};color:{{fg15}};box-shadow:{{shadow}};'>$ hyperframes render --output video.mp4</div><div style='display:flex;gap:12px;flex-wrap:wrap;'><button style='background:{{ac}};color:{{bg}};border:none;padding:10px 24px;border-radius:{{cr}};font-size:14px;font-weight:600;box-shadow:{{shadow}};cursor:pointer;'>Primary Action</button><button style='background:transparent;color:{{fg}};border:1px solid {{fg15}};padding:10px 24px;border-radius:{{cr}};font-size:14px;cursor:pointer;'>Secondary</button></div><div style='display:flex;gap:8px;flex-wrap:wrap;'><span style='background:{{fg6}};border-radius:100px;padding:4px 12px;font-size:11px;color:{{mt}};'>Tag One</span><span style='background:{{fg6}};border-radius:100px;padding:4px 12px;font-size:11px;color:{{mt}};'>Tag Two</span><span style='background:{{ac5}};border-radius:100px;padding:4px 12px;font-size:11px;color:{{ac}};'>Accent Tag</span></div><div style='height:1px;background:linear-gradient(to right,{{ac25}},{{fg6}},{{ac25}});'></div><div style='display:flex;justify-content:space-between;font-size:12px;color:{{mt}};border-bottom:1px solid {{g}};padding:8px 0;'><span>Data row label</span><span style='color:{{fg}};font-weight:600;'>1,234</span></div></div></div>"
+  "name": "Split Briefing",
+  "preview_html": "<div style='width:1920px;height:1080px;display:flex;'><div style='flex:1;background:{{bg}};padding:80px;display:flex;flex-direction:column;justify-content:center;gap:16px;'><div style='font-family:\"{{hf}}\",sans-serif;font-weight:{{hw}};font-size:64px;color:{{fg}};'>{{prompt_headline}}</div><div style='font-size:20px;color:{{mt}};'>{{prompt_sub}}</div></div><div style='flex:1;background:{{fg6}};padding:80px;display:flex;flex-direction:column;justify-content:center;gap:12px;'><div style='display:flex;justify-content:space-between;padding:16px 0;border-bottom:1px solid {{g}};'><span style='color:{{mt}};'>Metric</span><span style='color:{{ac}};font-weight:800;'>Value</span></div></div></div>"
+}
+```
+
+**Single dominant element:**
+```json
+{
+  "name": "Monolith",
+  "preview_html": "<div style='width:1920px;height:1080px;background:{{bg}};display:flex;flex-direction:column;justify-content:flex-end;padding:100px;'><div style='font-family:\"{{hf}}\",sans-serif;font-weight:{{hw}};font-size:240px;color:{{ac}};line-height:0.8;'>2.4M</div><div style='font-size:16px;color:{{mt}};letter-spacing:0.2em;margin-top:16px;'>THE ONLY NUMBER THAT MATTERS</div></div>"
+}
+```
+
+**Grid of equal blocks:**
+```json
+{
+  "name": "Evidence Wall",
+  "preview_html": "<div style='width:1920px;height:1080px;background:{{bg}};padding:40px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;'><div style='background:{{fg6}};padding:32px;display:flex;flex-direction:column;justify-content:center;'><div style='font-family:\"{{hf}}\",sans-serif;font-weight:{{hw}};font-size:48px;color:{{ac}};'>Fact 1</div></div><div style='background:{{fg6}};padding:32px;display:flex;flex-direction:column;justify-content:center;'><div style='font-size:20px;color:{{fg}};'>Supporting detail</div></div><div style='background:{{fg6}};padding:32px;display:flex;flex-direction:column;justify-content:center;'><div style='font-family:\"{{hf}}\",sans-serif;font-weight:{{hw}};font-size:48px;color:{{fg}};'>Fact 2</div></div></div>"
 }
 ```
 

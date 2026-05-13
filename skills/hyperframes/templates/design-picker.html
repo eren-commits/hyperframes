@@ -994,8 +994,8 @@
             return '<div class="mood-dot' + (di === 0 ? ' active' : '') + '"></div>';
           }).join("") + '</div>' : '';
           var arrowsHtml = frames.length > 1 ? '<div class="mood-arrow left">‹</div><div class="mood-arrow right">›</div>' : '';
-          var bgType = arch.bg_canvas || "";
-          var canvasHtml = bgType ? '<canvas class="mood-canvas" data-bg="' + bgType + '" data-ac="' + pal.accent + '" data-bg-color="' + bg + '" data-fg="' + fg + '" data-mt="' + (pal.muted || "#666") + '"></canvas>' : '';
+          var bgConf = arch.bg_canvas || null;
+          var canvasHtml = bgConf ? '<canvas class="mood-canvas" data-config="' + (typeof bgConf === "string" ? bgConf : encodeURIComponent(JSON.stringify(bgConf))).replace(/"/g, "&quot;") + '" data-ac="' + pal.accent + '" data-bg-color="' + bg + '" data-fg="' + fg + '" data-mt="' + (pal.muted || "#666") + '"></canvas>' : '';
           card.innerHTML = '<div class="mood-preview" style="background:' + bg + ';">' + canvasHtml + framesHtml + arrowsHtml + dotsHtml + '</div>';
           if (frames.length > 1) {
             (function(cardEl, count) {
@@ -1061,39 +1061,54 @@
             var t = Math.imul(a ^ a >>> 15, 1 | a); t ^= t + Math.imul(t ^ t >>> 7, 61 | t);
             return ((t ^ t >>> 14) >>> 0) / 4294967296; };
         }
-        // Simplex-like noise (2D value noise with smoothstep)
         function makeNoise(seed) {
           var rng = mulberry32(seed);
           var SIZE = 64, grid = [];
           for (var i = 0; i < SIZE * SIZE; i++) grid[i] = rng();
-          function smooth(x, y) {
-            var ix = ((x|0) % SIZE + SIZE) % SIZE, iy = ((y|0) % SIZE + SIZE) % SIZE;
-            var fx = x - Math.floor(x), fy = y - Math.floor(y);
-            fx = fx*fx*(3-2*fx); fy = fy*fy*(3-2*fy);
-            var nx = (ix+1) % SIZE, ny = (iy+1) % SIZE;
-            return grid[iy*SIZE+ix]*(1-fx)*(1-fy) + grid[iy*SIZE+nx]*fx*(1-fy) +
-                   grid[ny*SIZE+ix]*(1-fx)*fy + grid[ny*SIZE+nx]*fx*fy;
-          }
-          return function(x, y, octaves) {
-            var v = 0, amp = 1, freq = 1, max = 0;
-            for (var o = 0; o < (octaves||3); o++) {
-              v += smooth(x*freq, y*freq) * amp; max += amp; amp *= 0.5; freq *= 2;
+          return function(x, y, oct) {
+            function sm(x,y) {
+              var ix=((x|0)%SIZE+SIZE)%SIZE,iy=((y|0)%SIZE+SIZE)%SIZE;
+              var fx=x-Math.floor(x),fy=y-Math.floor(y);
+              fx=fx*fx*(3-2*fx);fy=fy*fy*(3-2*fy);
+              var nx=(ix+1)%SIZE,ny=(iy+1)%SIZE;
+              return grid[iy*SIZE+ix]*(1-fx)*(1-fy)+grid[iy*SIZE+nx]*fx*(1-fy)+grid[ny*SIZE+ix]*(1-fx)*fy+grid[ny*SIZE+nx]*fx*fy;
             }
-            return v / max;
+            var v=0,amp=1,freq=1,max=0;
+            for(var o=0;o<(oct||3);o++){v+=sm(x*freq,y*freq)*amp;max+=amp;amp*=0.5;freq*=2;}
+            return v/max;
           };
+        }
+        function drawStar(ctx,cx,cy,r,col) {
+          ctx.beginPath();
+          for(var i=0;i<5;i++){
+            var a=Math.PI*2*i/5-Math.PI/2;
+            ctx[i===0?'moveTo':'lineTo'](cx+Math.cos(a)*r,cy+Math.sin(a)*r);
+            var b=a+Math.PI/5;
+            ctx.lineTo(cx+Math.cos(b)*r*0.4,cy+Math.sin(b)*r*0.4);
+          }
+          ctx.closePath();ctx.fillStyle=col;ctx.fill();
         }
 
         var canvases = document.querySelectorAll('.mood-canvas');
         var runners = _canvasRunners;
 
         canvases.forEach(function(cvs) {
-          var type = cvs.dataset.bg;
+          var rawConf = cvs.dataset.config || "";
+          var conf;
+          try { conf = JSON.parse(decodeURIComponent(rawConf)); } catch(e) {
+            // Legacy string format — shouldn't happen but fallback
+            conf = { type: rawConf };
+          }
+          if (!conf || !conf.type) return;
+
           var ac = hexToRgb(cvs.dataset.ac);
           var bgc = hexToRgb(cvs.dataset.bgColor || '#000000');
           var fg = hexToRgb(cvs.dataset.fg || '#ffffff');
           var mt = hexToRgb(cvs.dataset.mt || '#666666');
           var ctx = cvs.getContext('2d');
           var w, h, dpr;
+          var c = conf.config || {};
+          var col = c.color === 'fg' ? fg : c.color === 'muted' ? mt : ac;
 
           function resize() {
             dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -1105,179 +1120,146 @@
           resize();
 
           var render;
-          var rng = mulberry32(type.length * 7 + ac[0]);
+          var seed = (conf.type + JSON.stringify(c)).length * 7 + ac[0];
+          var rng = mulberry32(seed);
 
-          if (type === 'particles') {
-            // Upward-drifting sparks
+          if (conf.type === 'dots') {
+            // Configurable dot/shape particles
+            var count = c.count || 40;
+            var shape = c.shape || 'circle';
+            var drift = c.drift || 'up';
+            var sMin = (c.sizeRange || [1,3])[0], sMax = (c.sizeRange || [1,3])[1];
+            var oMin = (c.opacity || [0.05,0.3])[0], oMax = (c.opacity || [0.05,0.3])[1];
+            var spd = c.speed || 0.3;
             var pts = [];
-            for (var i = 0; i < 60; i++) pts.push({ x: rng(), y: rng(), s: rng()*2+0.5, v: rng()*0.3+0.1, a: rng()*0.4+0.1 });
+            for (var i = 0; i < count; i++) pts.push({
+              x: rng(), y: rng(),
+              s: rng()*(sMax-sMin)+sMin,
+              v: rng()*spd+spd*0.3,
+              a: rng()*(oMax-oMin)+oMin,
+              phase: rng()*Math.PI*2
+            });
             render = function(t) {
               ctx.clearRect(0,0,w,h);
               pts.forEach(function(p) {
-                var px = p.x * w, py = (p.y - t * p.v * 0.01) % 1;
-                if (py < 0) py += 1;
-                py *= h;
-                ctx.beginPath();
-                ctx.arc(px, py, p.s, 0, Math.PI*2);
-                ctx.fillStyle = 'rgba('+ac[0]+','+ac[1]+','+ac[2]+','+p.a*0.6+')';
-                ctx.fill();
+                var px = p.x * w, py;
+                if (drift === 'up') { py = ((p.y - t*p.v*0.0001) % 1); if(py<0)py+=1; py*=h; }
+                else if (drift === 'down' || drift === 'fall') { py = ((p.y + t*p.v*0.0001) % 1); py*=h; }
+                else if (drift === 'twinkle') { py = p.y*h; }
+                else { py = p.y*h + Math.sin(t*0.001+p.phase)*10; px += Math.sin(t*0.0008+p.phase*1.3)*8; }
+                var alpha = p.a;
+                if (drift === 'twinkle') alpha *= (0.5 + 0.5*Math.sin(t*0.003+p.phase));
+                var rgba = 'rgba('+col[0]+','+col[1]+','+col[2]+','+alpha+')';
+                if (shape === 'star') { drawStar(ctx, px, py, p.s, rgba); }
+                else { ctx.beginPath(); ctx.arc(px, py, p.s, 0, Math.PI*2); ctx.fillStyle = rgba; ctx.fill(); }
               });
             };
-          } else if (type === 'voronoi') {
-            // Slowly shifting voronoi cells
-            var seeds = [];
-            for (var i = 0; i < 20; i++) seeds.push({ x: rng(), y: rng(), dx: (rng()-0.5)*0.02, dy: (rng()-0.5)*0.02 });
-            render = function(t) {
-              ctx.clearRect(0,0,w,h);
-              var step = 8;
-              for (var x = 0; x < w; x += step) {
-                for (var y = 0; y < h; y += step) {
-                  var minD = 1e9, minI = 0;
-                  for (var s = 0; s < seeds.length; s++) {
-                    var sx = (seeds[s].x + Math.sin(t*0.001+s)*seeds[s].dx) * w;
-                    var sy = (seeds[s].y + Math.cos(t*0.001+s)*seeds[s].dy) * h;
-                    var d = (x-sx)*(x-sx) + (y-sy)*(y-sy);
-                    if (d < minD) { minD = d; minI = s; }
-                  }
-                  var edge = Math.sqrt(minD) < 3 ? 0.15 : 0;
-                  if (edge > 0) {
-                    ctx.fillStyle = 'rgba('+ac[0]+','+ac[1]+','+ac[2]+','+edge+')';
-                    ctx.fillRect(x, y, step, step);
-                  }
-                }
-              }
-            };
-          } else if (type === 'perlin') {
-            // Shifting false-color heatmap — render small, drawImage to scale up
-            var noise = makeNoise(42);
+          } else if (conf.type === 'noise') {
+            var noise = makeNoise(c.seed || 42);
+            var scale = c.scale || 0.04;
+            var maxAlpha = c.maxAlpha || 80;
             var tmpCvs = document.createElement('canvas');
             var tmpCtx = tmpCvs.getContext('2d');
             render = function(t) {
-              var sw = Math.ceil(w/4), sh = Math.ceil(h/4);
-              tmpCvs.width = sw; tmpCvs.height = sh;
-              var img = tmpCtx.createImageData(sw, sh);
-              var off = t * 0.0003;
-              for (var y = 0; y < sh; y++) {
-                for (var x = 0; x < sw; x++) {
-                  var v = noise(x*0.04+off, y*0.04+off*0.7, 4);
-                  var idx = (y*sw+x)*4;
-                  img.data[idx]   = Math.floor(ac[0] * v * 0.5);
-                  img.data[idx+1] = Math.floor(ac[1] * v * 0.3);
-                  img.data[idx+2] = Math.floor(ac[2] * v * 0.2);
-                  img.data[idx+3] = Math.floor(v * 80);
-                }
+              var sw=Math.ceil(w/4),sh=Math.ceil(h/4);
+              tmpCvs.width=sw;tmpCvs.height=sh;
+              var img=tmpCtx.createImageData(sw,sh);
+              var off=t*0.0003;
+              for(var y=0;y<sh;y++)for(var x=0;x<sw;x++){
+                var v=noise(x*scale+off,y*scale+off*0.7,4);
+                var idx=(y*sw+x)*4;
+                img.data[idx]=Math.floor(col[0]*v*0.5);
+                img.data[idx+1]=Math.floor(col[1]*v*0.3);
+                img.data[idx+2]=Math.floor(col[2]*v*0.2);
+                img.data[idx+3]=Math.floor(v*maxAlpha);
               }
-              tmpCtx.putImageData(img, 0, 0);
-              ctx.clearRect(0,0,w,h);
-              ctx.imageSmoothingEnabled = true;
-              ctx.drawImage(tmpCvs, 0, 0, w, h);
+              tmpCtx.putImageData(img,0,0);
+              ctx.clearRect(0,0,w,h);ctx.imageSmoothingEnabled=true;
+              ctx.drawImage(tmpCvs,0,0,w,h);
             };
-          } else if (type === 'ring-pulse') {
-            // Expanding ring from center
+          } else if (conf.type === 'rings') {
+            var rCount = c.count || 3;
+            var rSpeed = c.speed || 0.0005;
+            var rMax = c.maxRadius || 0.6;
             render = function(t) {
               ctx.clearRect(0,0,w,h);
-              var cx = w*0.5, cy = h*0.5;
-              for (var i = 0; i < 3; i++) {
-                var phase = ((t * 0.0005 + i * 0.33) % 1);
-                var r = phase * Math.max(w,h) * 0.6;
-                var alpha = (1 - phase) * 0.15;
-                ctx.beginPath();
-                ctx.arc(cx, cy, r, 0, Math.PI*2);
-                ctx.strokeStyle = 'rgba('+ac[0]+','+ac[1]+','+ac[2]+','+alpha+')';
-                ctx.lineWidth = 1.5;
-                ctx.stroke();
+              var cx=(c.cx||0.5)*w, cy=(c.cy||0.5)*h;
+              for(var i=0;i<rCount;i++){
+                var phase=((t*rSpeed+i/rCount)%1);
+                var r=phase*Math.max(w,h)*rMax;
+                var alpha=(1-phase)*(c.maxAlpha||0.15);
+                ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);
+                ctx.strokeStyle='rgba('+col[0]+','+col[1]+','+col[2]+','+alpha+')';
+                ctx.lineWidth=c.lineWidth||1.5;ctx.stroke();
               }
             };
-          } else if (type === 'scanline') {
-            // Moving scan line
+          } else if (conf.type === 'sweep') {
+            var dir = c.direction || 'down';
+            var band = c.bandWidth || 40;
+            var sweepSpd = c.speed || 0.02;
             render = function(t) {
               ctx.clearRect(0,0,w,h);
-              var scanY = ((t * 0.02) % h);
-              var grad = ctx.createLinearGradient(0, scanY-20, 0, scanY+20);
-              grad.addColorStop(0, 'rgba('+ac[0]+','+ac[1]+','+ac[2]+',0)');
-              grad.addColorStop(0.5, 'rgba('+ac[0]+','+ac[1]+','+ac[2]+',0.08)');
-              grad.addColorStop(1, 'rgba('+ac[0]+','+ac[1]+','+ac[2]+',0)');
-              ctx.fillStyle = grad;
-              ctx.fillRect(0, scanY-20, w, 40);
+              var pos = ((t*sweepSpd) % (dir==='down'||dir==='up'?h:w));
+              var g;
+              if (dir==='down'||dir==='up') {
+                if(dir==='up') pos=h-pos;
+                g=ctx.createLinearGradient(0,pos-band,0,pos+band);
+              } else {
+                if(dir==='left') pos=w-pos;
+                g=ctx.createLinearGradient(pos-band,0,pos+band,0);
+              }
+              g.addColorStop(0,'rgba('+col[0]+','+col[1]+','+col[2]+',0)');
+              g.addColorStop(0.5,'rgba('+col[0]+','+col[1]+','+col[2]+','+(c.peakAlpha||0.08)+')');
+              g.addColorStop(1,'rgba('+col[0]+','+col[1]+','+col[2]+',0)');
+              ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
             };
-          } else if (type === 'digits') {
-            // Faint falling digits
-            var cols = [];
-            for (var i = 0; i < 30; i++) cols.push({ x: rng()*1.0, y: rng(), speed: rng()*0.015+0.005, chars: [] });
-            cols.forEach(function(c) { for (var j=0;j<8;j++) c.chars.push(Math.floor(rng()*10)); });
+          } else if (conf.type === 'glow') {
+            var blobs = [];
+            var bCount = c.count || 3;
+            for(var i=0;i<bCount;i++) blobs.push({x:rng(),y:rng(),r:rng()*(c.maxSize||0.15)+0.08});
             render = function(t) {
               ctx.clearRect(0,0,w,h);
-              ctx.font = '10px monospace';
-              cols.forEach(function(c) {
-                var px = c.x * w;
-                var base = (c.y + t * c.speed * 0.001) % 1.5;
-                c.chars.forEach(function(ch, ci) {
-                  var py = (base + ci * 0.03) * h;
-                  if (py > h) py -= h * 1.5;
-                  var alpha = 0.08 - ci * 0.008;
-                  if (alpha < 0) alpha = 0;
-                  ctx.fillStyle = 'rgba('+ac[0]+','+ac[1]+','+ac[2]+','+alpha+')';
-                  ctx.fillText(String(ch), px, py);
-                });
+              blobs.forEach(function(b,bi){
+                var bx=(b.x+Math.sin(t*0.0004+bi*2)*0.1)*w;
+                var by=(b.y+Math.cos(t*0.0005+bi*3)*0.08)*h;
+                var br=b.r*Math.min(w,h);
+                var g=ctx.createRadialGradient(bx,by,0,bx,by,br);
+                g.addColorStop(0,'rgba('+col[0]+','+col[1]+','+col[2]+','+(c.peakAlpha||0.12)+')');
+                g.addColorStop(1,'rgba('+col[0]+','+col[1]+','+col[2]+',0)');
+                ctx.fillStyle=g;ctx.fillRect(bx-br,by-br,br*2,br*2);
               });
             };
-          } else if (type === 'sine-mesh') {
-            // Gentle deforming mesh
+          } else if (conf.type === 'mesh') {
+            var mRows = c.rows || 12, mCols = c.cols || 16;
+            var mAmp = c.amplitude || 8;
             render = function(t) {
               ctx.clearRect(0,0,w,h);
-              ctx.strokeStyle = 'rgba('+mt[0]+','+mt[1]+','+mt[2]+',0.08)';
-              ctx.lineWidth = 0.5;
-              var rows = 12, cols = 16;
-              for (var r = 0; r < rows; r++) {
-                ctx.beginPath();
-                for (var c = 0; c <= cols; c++) {
-                  var x = (c/cols)*w;
-                  var y = (r/rows)*h + Math.sin(c*0.5+t*0.001+r)*8;
-                  if (c===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-                }
-                ctx.stroke();
-              }
-              for (var c = 0; c < cols; c++) {
-                ctx.beginPath();
-                for (var r = 0; r <= rows; r++) {
-                  var x = (c/cols)*w + Math.sin(r*0.5+t*0.0012+c)*6;
-                  var y = (r/rows)*h;
-                  if (r===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-                }
-                ctx.stroke();
-              }
+              ctx.strokeStyle='rgba('+col[0]+','+col[1]+','+col[2]+','+(c.opacity||0.08)+')';
+              ctx.lineWidth=0.5;
+              for(var r=0;r<mRows;r++){ctx.beginPath();for(var cc=0;cc<=mCols;cc++){var x=(cc/mCols)*w;var y=(r/mRows)*h+Math.sin(cc*0.5+t*0.001+r)*mAmp;if(cc===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.stroke();}
+              for(var cc=0;cc<mCols;cc++){ctx.beginPath();for(var r=0;r<=mRows;r++){var x=(cc/mCols)*w+Math.sin(r*0.5+t*0.0012+cc)*mAmp*0.75;var y=(r/mRows)*h;if(r===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.stroke();}
             };
-          } else if (type === 'ripple') {
-            // Interference pattern
+          } else if (conf.type === 'text') {
+            // Falling/floating text characters
+            var chars = c.chars || '0123456789';
+            var tCols = [];
+            var tCount = c.count || 25;
+            for(var i=0;i<tCount;i++) {
+              var cc=[];for(var j=0;j<(c.depth||6);j++) cc.push(chars[Math.floor(rng()*chars.length)]);
+              tCols.push({x:rng(),y:rng(),speed:rng()*(c.speed||0.01)+0.003,chars:cc});
+            }
             render = function(t) {
               ctx.clearRect(0,0,w,h);
-              var cx = w*0.5, cy = h*0.5;
-              var off = t * 0.002;
-              for (var r = 10; r < Math.max(w,h)*0.7; r += 20) {
-                var phase = Math.sin(r*0.05 - off);
-                var alpha = (phase * 0.5 + 0.5) * 0.06;
-                ctx.beginPath();
-                ctx.arc(cx, cy, r, 0, Math.PI*2);
-                ctx.strokeStyle = 'rgba('+fg[0]+','+fg[1]+','+fg[2]+','+alpha+')';
-                ctx.lineWidth = 1;
-                ctx.stroke();
-              }
-            };
-          } else if (type === 'blobs') {
-            // Morphing gradient blobs
-            var blobs = [];
-            for (var i = 0; i < 3; i++) blobs.push({ x: rng(), y: rng(), r: rng()*0.15+0.1, px: rng()*2-1, py: rng()*2-1 });
-            render = function(t) {
-              ctx.clearRect(0,0,w,h);
-              blobs.forEach(function(b, bi) {
-                var bx = (b.x + Math.sin(t*0.0004+bi*2)*0.1) * w;
-                var by = (b.y + Math.cos(t*0.0005+bi*3)*0.08) * h;
-                var br = b.r * Math.min(w,h);
-                var grad = ctx.createRadialGradient(bx, by, 0, bx, by, br);
-                grad.addColorStop(0, 'rgba('+ac[0]+','+ac[1]+','+ac[2]+',0.12)');
-                grad.addColorStop(1, 'rgba('+ac[0]+','+ac[1]+','+ac[2]+',0)');
-                ctx.fillStyle = grad;
-                ctx.fillRect(bx-br, by-br, br*2, br*2);
+              ctx.font=(c.fontSize||10)+'px monospace';
+              tCols.forEach(function(tc){
+                var px=tc.x*w;
+                var base=(tc.y+t*tc.speed*0.001)%1.5;
+                tc.chars.forEach(function(ch,ci){
+                  var py=(base+ci*0.04)*h;if(py>h)py-=h*1.5;
+                  var a=(c.peakAlpha||0.08)-ci*0.012;if(a<0)a=0;
+                  ctx.fillStyle='rgba('+col[0]+','+col[1]+','+col[2]+','+a+')';
+                  ctx.fillText(ch,px,py);
+                });
               });
             };
           } else {
@@ -1513,18 +1495,16 @@
         depthOpts.appendChild(el);
       });
 
-      // Background effect chips
+      // Background effect chips — generic primitives, context comes from architecture bg_canvas
       var BG_EFFECTS = [
-        { name: "None", value: "", desc: "Solid color only" },
-        { name: "Particles", value: "particles", desc: "Drifting sparks" },
-        { name: "Voronoi", value: "voronoi", desc: "Crystal grain cells" },
-        { name: "Heatmap", value: "perlin", desc: "Shifting noise field" },
-        { name: "Ring Pulse", value: "ring-pulse", desc: "Expanding rings" },
-        { name: "Scan Line", value: "scanline", desc: "Moving horizontal sweep" },
-        { name: "Digits", value: "digits", desc: "Falling data rain" },
-        { name: "Sine Mesh", value: "sine-mesh", desc: "Deforming grid" },
-        { name: "Ripple", value: "ripple", desc: "Interference rings" },
-        { name: "Blobs", value: "blobs", desc: "Morphing gradient" }
+        { name: "None", desc: "Solid color only", canvasConf: null },
+        { name: "Dots", desc: "Floating particles", canvasConf: {type:"dots",config:{count:40,shape:"circle",drift:"float",sizeRange:[1,3],opacity:[0.05,0.25],speed:0.3}} },
+        { name: "Stars", desc: "Twinkling points", canvasConf: {type:"dots",config:{count:50,shape:"star",drift:"twinkle",sizeRange:[2,5],opacity:[0.1,0.4],speed:0.2}} },
+        { name: "Noise Field", desc: "Shifting color fog", canvasConf: {type:"noise",config:{scale:0.04,maxAlpha:60}} },
+        { name: "Rings", desc: "Expanding circles", canvasConf: {type:"rings",config:{count:3,speed:0.0005,maxRadius:0.6,maxAlpha:0.12}} },
+        { name: "Sweep", desc: "Moving light band", canvasConf: {type:"sweep",config:{direction:"down",bandWidth:40,speed:0.02,peakAlpha:0.06}} },
+        { name: "Glow", desc: "Drifting color blobs", canvasConf: {type:"glow",config:{count:3,maxSize:0.18,peakAlpha:0.1}} },
+        { name: "Mesh", desc: "Deforming grid", canvasConf: {type:"mesh",config:{rows:12,cols:16,amplitude:8,opacity:0.06,color:"muted"}} },
       ];
       var bgOpts = document.getElementById("bg-options");
       BG_EFFECTS.forEach(function (b, i) {
@@ -1688,8 +1668,8 @@
           return resolved;
         }).join("");
 
-        var bgFxVal = picks.bgEffect !== null ? BG_EFFECTS[picks.bgEffect].value : (a.bg_canvas || "");
-        var canvasTag = bgFxVal ? '<canvas class="mood-canvas preview-bg-canvas" data-bg="' + bgFxVal + '" data-ac="' + ac + '" data-bg-color="' + bg + '" data-fg="' + fg + '" data-mt="' + mt + '" style="position:sticky;top:0;width:100%;height:100vh;z-index:0;margin-bottom:-100vh;pointer-events:none;"></canvas>' : '';
+        var bgFxObj = picks.bgEffect !== null ? BG_EFFECTS[picks.bgEffect].canvasConf : (a.bg_canvas || null);
+        var canvasTag = bgFxObj ? '<canvas class="mood-canvas preview-bg-canvas" data-config="' + encodeURIComponent(JSON.stringify(bgFxObj)).replace(/"/g, '&quot;') + '" data-ac="' + ac + '" data-bg-color="' + bg + '" data-fg="' + fg + '" data-mt="' + mt + '" style="position:sticky;top:0;width:100%;height:100vh;z-index:0;margin-bottom:-100vh;pointer-events:none;"></canvas>' : '';
         pv.style.background = bg;
         pv.innerHTML = canvasTag + '<div style="position:relative;z-index:1;display:flex;flex-direction:column;gap:2px;">' + combined + '</div>';
         if (bgFxVal) {
