@@ -26,7 +26,8 @@ execFileSync(
 );
 console.log("Generated photo.jpg");
 
-// 3-second test-pattern MP4 at 600×338, 30 fps (~60 KB)
+// 3-second solid-color MP4 at 600×338, 30 fps — solid color is platform-agnostic
+// (testsrc2 caused cross-platform YUV→RGB conversion differences)
 execFileSync(
   "ffmpeg",
   [
@@ -34,11 +35,11 @@ execFileSync(
     "-f",
     "lavfi",
     "-i",
-    "testsrc2=size=600x338:rate=30:duration=3",
+    "color=c=0x5e81ac:s=600x338:rate=30:d=3",
     "-c:v",
     "libx264",
     "-crf",
-    "40",
+    "18",
     "-preset",
     "fast",
     "-pix_fmt",
