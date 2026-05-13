@@ -196,14 +196,19 @@ export async function captureSceneIntoBuffer(a: CaptureSceneArgs): Promise<void>
   timingStart = Date.now();
   // BeginFrame fast-path for transparent capture when the session was
   // launched with begin-frame-control (5x faster on 854x480). Falls back to
-  // Page.captureScreenshot for screenshot-mode sessions (alpha output
+  // Page.captureScreenshot for (a) screenshot-mode sessions (alpha output
   // formats — webm/mov/png-sequence — still force screenshot mode upstream
-  // via the entry-point `cfg.forceScreenshot` override). Both encoder
-  // paths preserve alpha bit-perfect; see screenshotService.ts.
-  const domPng =
-    session.captureMode === "beginframe"
-      ? await captureAlphaPngBeginFrame(session.page, width, height, session.beginFrameIntervalMs)
-      : await captureAlphaPng(session.page, width, height);
+  // via the entry-point `cfg.forceScreenshot` override) and (b) HDR
+  // composite paths, where per-frame beginFrame readback exceeded the CDP
+  // protocolTimeout on regression-shards (hdr) for #787. SDR shader-transition
+  // keeps the fast path; HDR stays on Page.captureScreenshot pending a
+  // separate HDR-beginFrame perf investigation. Both encoder paths preserve
+  // alpha bit-perfect; see screenshotService.ts.
+  const canUseBeginFrameAlpha =
+    session.captureMode === "beginframe" && compositeTransfer === "srgb";
+  const domPng = canUseBeginFrameAlpha
+    ? await captureAlphaPngBeginFrame(session.page, width, height, session.beginFrameIntervalMs)
+    : await captureAlphaPng(session.page, width, height);
   addHdrTiming(hdrPerf, "domScreenshotMs", timingStart);
   timingStart = Date.now();
   await removeDomLayerMask(session.page, hideIds);

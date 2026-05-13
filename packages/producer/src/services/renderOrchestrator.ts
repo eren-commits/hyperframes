@@ -1265,21 +1265,25 @@ export async function compositeHdrFrame(
 
       // 4. Screenshot. BeginFrame is the fast path (atomic single-CDP,
       //    ~5x faster on 854x480, preserves alpha on Chrome 146+); the
-      //    Page.captureScreenshot fallback covers sessions running in
+      //    Page.captureScreenshot fallback covers (a) sessions running in
       //    screenshot mode (alpha output formats force this upstream via
-      //    `cfg.forceScreenshot`). The beginFrame helper maintains its own
-      //    per-page monotonic tick counter, so multi-layer-per-frame call
-      //    patterns don't need to thread one through.
+      //    `cfg.forceScreenshot`) and (b) HDR composite paths, where
+      //    per-frame beginFrame readback exceeds the CDP protocolTimeout
+      //    on the heavier HDR pipeline (regression-shards (hdr) on #787
+      //    confirmed two consecutive timeout failures). SDR shader-transition
+      //    keeps the fast path; HDR stays on Page.captureScreenshot until
+      //    the HDR-beginFrame perf is investigated separately.
       timingStart = Date.now();
-      const domPng =
-        domSession.captureMode === "beginframe"
-          ? await captureAlphaPngBeginFrame(
-              domSession.page,
-              width,
-              height,
-              domSession.beginFrameIntervalMs,
-            )
-          : await captureAlphaPng(domSession.page, width, height);
+      const canUseBeginFrameAlpha =
+        domSession.captureMode === "beginframe" && compositeTransfer === "srgb";
+      const domPng = canUseBeginFrameAlpha
+        ? await captureAlphaPngBeginFrame(
+            domSession.page,
+            width,
+            height,
+            domSession.beginFrameIntervalMs,
+          )
+        : await captureAlphaPng(domSession.page, width, height);
       addHdrTiming(hdrPerf, "domScreenshotMs", timingStart);
 
       // 5. Tear down the mask
