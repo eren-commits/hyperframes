@@ -61,7 +61,7 @@ const PRISTINE_INDEX_HTML = `<!doctype html>
         right: 200px;
         width: 400px;
         height: 300px;
-        object-fit: cover;
+        background: #3b82f6;
       }
 
       #clip {
@@ -70,7 +70,7 @@ const PRISTINE_INDEX_HTML = `<!doctype html>
         left: 200px;
         width: 600px;
         height: 338px;
-        object-fit: cover;
+        background: #5e81ac;
       }
     </style>
   </head>
@@ -85,8 +85,8 @@ const PRISTINE_INDEX_HTML = `<!doctype html>
       data-start="0"
     >
       <p id="title" class="clip" data-start="0" data-duration="3">Hello Parity</p>
-      <img id="photo" class="clip" src="assets/photo.jpg" data-start="0" data-duration="3" alt="" />
-      <video id="clip" class="clip" src="assets/clip.mp4" data-start="0" data-duration="3" muted></video>
+      <div id="photo" class="clip" data-start="0" data-duration="3"></div>
+      <div id="clip" class="clip" data-start="0" data-duration="3"></div>
     </div>
   </body>
 </html>
