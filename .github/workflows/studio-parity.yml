@@ -71,6 +71,11 @@ jobs:
       - name: Install Playwright browsers
         run: bunx playwright install chromium --with-deps
 
+      - name: Export Playwright Chromium path for renderer
+        run: |
+          CHROME=$(bun --cwd packages/studio -e "import { chromium } from '@playwright/test'; console.log(chromium.executablePath())")
+          echo "HYPERFRAMES_BROWSER_PATH=${CHROME}" >> "$GITHUB_ENV"
+
       - name: Run studio parity E2E
         run: bun run --cwd packages/studio test:e2e
 
