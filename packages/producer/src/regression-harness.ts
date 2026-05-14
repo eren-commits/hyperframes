@@ -20,6 +20,13 @@ import { validateCompilation } from "./services/compilationTester.js";
 import { extractMediaMetadata } from "./utils/ffprobe.js";
 import { buildRmsEnvelope, compareAudioEnvelopes } from "./utils/audioRegression.js";
 import { parseFps, fpsToNumber } from "@hyperframes/core";
+import {
+  checkDistributedSupport,
+  type HarnessMode,
+  parseHarnessModeFlag,
+  resolveMinPsnrForMode,
+  runDistributedSimulatedRender,
+} from "./regression-harness-distributed.js";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -51,6 +58,18 @@ type TestMetadata = {
      * and these overrides. Omit when the test doesn't exercise variables.
      */
     variables?: Record<string, unknown>;
+    /**
+     * Chunk size in frames for `--mode=distributed-simulated`. Forwarded
+     * to `DistributedRenderConfig.chunkSize`. Ignored in `--mode=in-process`.
+     * Default is the plan's own default (240 frames).
+     */
+    chunkSize?: number;
+    /**
+     * Cap on parallel chunks for `--mode=distributed-simulated`. Forwarded
+     * to `DistributedRenderConfig.maxParallelChunks`. Ignored in
+     * `--mode=in-process`. Default is the plan's own default (16).
+     */
+    maxParallelChunks?: number;
   };
 };
 
@@ -67,11 +86,26 @@ type CliOptions = {
   update: boolean;
   sequential: boolean;
   keepTemp: boolean;
+  /**
+   * Which render path to exercise. `in-process` (default) calls
+   * `executeRenderJob`; `distributed-simulated` calls
+   * `plan() → renderChunk() × N → assemble()` from
+   * `@hyperframes/producer/distributed`. See
+   * `regression-harness-distributed.ts`.
+   */
+  mode: HarnessMode;
 };
 
 type TestResult = {
   suite: TestSuite;
   passed: boolean;
+  /**
+   * Set when `--mode=distributed-simulated` skips a fixture that the
+   * distributed pipeline can't run (webm, HDR, NTSC fps, fps∉{24,30,60}).
+   * `passed` is `true` for skipped fixtures — skipping is a clean outcome,
+   * not a failure — but the summary distinguishes them.
+   */
+  skipped?: { reason: string };
   compilation?: {
     passed: boolean;
     errors: string[];
@@ -105,6 +139,7 @@ function parseArgs(argv: string[]): CliOptions {
   let update = false;
   let sequential = false;
   let keepTemp = false;
+  let mode: HarnessMode = "in-process";
 
   for (let i = 2; i < argv.length; i += 1) {
     const token = argv[i];
@@ -119,12 +154,29 @@ function parseArgs(argv: string[]): CliOptions {
       i += 1;
       const tagArg = argv[i];
       if (tagArg) excludeTags.push(...tagArg.split(","));
-    } else if (!token.startsWith("--")) {
-      testNames.push(token);
+    } else {
+      const parsedMode = parseHarnessModeFlag(token);
+      if (parsedMode !== null) {
+        mode = parsedMode;
+      } else if (!token.startsWith("--")) {
+        testNames.push(token);
+      }
     }
   }
 
-  return { testNames, excludeTags, update, sequential, keepTemp };
+  if (update && mode === "distributed-simulated") {
+    // The in-process renderer is the source of truth for golden baselines —
+    // distributed-simulated's job is to verify the contract against the
+    // same baseline, not to author its own. Surfacing this at parse time
+    // saves a multi-minute render before the user notices.
+    throw new Error(
+      "regression-harness: --update is incompatible with --mode=distributed-simulated. " +
+        "Generate baselines with the in-process renderer (the default mode), then re-run " +
+        "without --update to verify both modes match.",
+    );
+  }
+
+  return { testNames, excludeTags, update, sequential, keepTemp, mode };
 }
 
 function validateMetadata(meta: unknown): TestMetadata {
@@ -194,6 +246,20 @@ function validateMetadata(meta: unknown): TestMetadata {
     (rc.variables === null || typeof rc.variables !== "object" || Array.isArray(rc.variables))
   ) {
     throw new Error("meta.json: 'renderConfig.variables' must be a JSON object (or omitted)");
+  }
+  if (rc.chunkSize !== undefined) {
+    if (!Number.isInteger(rc.chunkSize) || (rc.chunkSize as number) < 1) {
+      throw new Error(
+        "meta.json: 'renderConfig.chunkSize' must be a positive integer (or omitted)",
+      );
+    }
+  }
+  if (rc.maxParallelChunks !== undefined) {
+    if (!Number.isInteger(rc.maxParallelChunks) || (rc.maxParallelChunks as number) < 1) {
+      throw new Error(
+        "meta.json: 'renderConfig.maxParallelChunks' must be a positive integer (or omitted)",
+      );
+    }
   }
 
   return m as TestMetadata;
@@ -399,6 +465,7 @@ function saveFailureDetails(
   result: TestResult,
   renderedVideoPath: string,
   snapshotVideoPath: string,
+  effectiveMinPsnr: number,
   compiledHtml?: string,
   snapshotHtml?: string,
 ): void {
@@ -441,12 +508,13 @@ function saveFailureDetails(
       summary: {
         totalCheckpoints: result.visual.checkpoints.length,
         failedCheckpoints: failedCheckpoints.length,
-        threshold: suite.meta.minPsnr,
+        threshold: effectiveMinPsnr,
+        fixtureThreshold: suite.meta.minPsnr,
       },
       failedFrames: failedCheckpoints.map((c) => ({
         time: c.time,
         psnr: c.psnr,
-        belowThresholdBy: suite.meta.minPsnr - c.psnr,
+        belowThresholdBy: effectiveMinPsnr - c.psnr,
       })),
     };
 
@@ -522,6 +590,7 @@ async function runTestSuite(
   options: {
     update: boolean;
     keepTemp: boolean;
+    mode: HarnessMode;
   },
 ): Promise<TestResult> {
   // Use predictable temp location: /tmp/hyperframes-tests/{test-id}/
@@ -621,25 +690,68 @@ async function runTestSuite(
     }
 
     // STEP 2: Render video
-    console.log(JSON.stringify({ event: "rendering_start", suite: suite.id }));
-    logPretty("Rendering video...", "🎬");
+    console.log(JSON.stringify({ event: "rendering_start", suite: suite.id, mode: options.mode }));
+    logPretty(`Rendering video (mode=${options.mode})...`, "🎬");
 
     const tempSrcDir = join(tempRoot, "src");
     copyFixtureSupportFiles(suite, tempRoot);
     cpSync(suite.srcDir, tempSrcDir, { recursive: true });
 
-    const job = createRenderJob({
-      fps: suite.meta.renderConfig.fps,
-      quality: "high", // Always use max quality for tests
-      format: outputFormat,
-      workers: suite.meta.renderConfig.workers,
-      useGpu: false,
-      debug: false,
-      hdrMode: suite.meta.renderConfig.hdr ? "force-hdr" : "force-sdr",
-      variables: suite.meta.renderConfig.variables,
-    });
+    if (options.mode === "distributed-simulated") {
+      const support = checkDistributedSupport(suite.meta.renderConfig);
+      if (!support.supported) {
+        // Skipping is a clean outcome — the distributed pipeline can't
+        // run this fixture, but in-process mode already covers it. Mark
+        // passed so the suite summary doesn't trip CI; the `skipped`
+        // field is what distinguishes a real pass from a skip.
+        console.log(
+          JSON.stringify({
+            event: "test_skipped",
+            suite: suite.id,
+            mode: options.mode,
+            reason: support.reason,
+          }),
+        );
+        logPretty(`Skipping ${suite.meta.name} (mode=${options.mode}): ${support.reason}`, "⏭️");
+        result.passed = true;
+        result.skipped = { reason: support.reason };
+        return result;
+      }
+      // The support check narrows `fps.num` to 24|30|60; assert here so
+      // TS sees the literal type that `DistributedRenderConfig.fps`
+      // requires. The check itself rejected every other value above.
+      const fpsNum = suite.meta.renderConfig.fps.num as 24 | 30 | 60;
+      const distributedFormat: "mp4" | "mov" | "png-sequence" =
+        suite.meta.renderConfig.format === "webm"
+          ? // Unreachable — checkDistributedSupport rejected webm above.
+            (() => {
+              throw new Error("webm reached distributed render path");
+            })()
+          : (suite.meta.renderConfig.format ?? "mp4");
+      await runDistributedSimulatedRender({
+        projectDir: tempSrcDir,
+        tempRoot,
+        renderedOutputPath,
+        fps: fpsNum,
+        format: distributedFormat,
+        chunkSize: suite.meta.renderConfig.chunkSize,
+        maxParallelChunks: suite.meta.renderConfig.maxParallelChunks,
+        variables: suite.meta.renderConfig.variables,
+      });
+    } else {
+      const job = createRenderJob({
+        fps: suite.meta.renderConfig.fps,
+        quality: "high", // Always use max quality for tests
+        format: outputFormat,
+        workers: suite.meta.renderConfig.workers,
+        useGpu: false,
+        debug: false,
+        hdrMode: suite.meta.renderConfig.hdr ? "force-hdr" : "force-sdr",
+        variables: suite.meta.renderConfig.variables,
+      });
 
-    await executeRenderJob(job, tempSrcDir, renderedOutputPath);
+      await executeRenderJob(job, tempSrcDir, renderedOutputPath);
+    }
 
     console.log(JSON.stringify({ event: "rendering_complete", suite: suite.id }));
     logPretty("Render complete! Starting quality validation...", "✓");
@@ -680,6 +792,7 @@ async function runTestSuite(
     // which causes ffmpeg's PSNR filter to emit no `average:` line.
     const videoDuration = Math.min(videoMetadata.durationSeconds, snapshotMetadata.durationSeconds);
 
+    const minPsnrForMode = resolveMinPsnrForMode(options.mode, suite.meta.minPsnr);
     const visualCheckpoints: Array<{ time: number; psnr: number; passed: boolean }> = [];
     for (let i = 0; i < 100; i++) {
       const time = (videoDuration * i) / 100;
@@ -692,7 +805,7 @@ async function runTestSuite(
       visualCheckpoints.push({
         time,
         psnr,
-        passed: psnr >= suite.meta.minPsnr,
+        passed: psnr >= minPsnrForMode,
       });
 
       // Progress indicator every 20 checkpoints
@@ -815,6 +928,7 @@ async function runTestSuite(
           result,
           renderedOutputPath,
           snapshotVideoPath,
+          resolveMinPsnrForMode(options.mode, suite.meta.minPsnr),
           compiledHtml,
           snapshotHtml,
         );
@@ -857,11 +971,13 @@ async function run(): Promise<void> {
       event: "test_suite_start",
       totalSuites: suites.length,
       parallel: !options.sequential,
+      mode: options.mode,
     }),
   );
 
   logPretty(
-    `Starting ${suites.length} test suite(s) - ${options.sequential ? "sequential" : "parallel"} mode`,
+    `Starting ${suites.length} test suite(s) - ${options.sequential ? "sequential" : "parallel"} mode, ` +
+      `harness mode=${options.mode}`,
     "🚀",
   );
 
@@ -925,7 +1041,8 @@ async function run(): Promise<void> {
     );
     logPretty(`Updated ${results.length} snapshot(s)`, "📸");
   } else {
-    const passed = results.filter((r) => r.passed).length;
+    const skipped = results.filter((r) => r.skipped).length;
+    const passed = results.filter((r) => r.passed && !r.skipped).length;
     const failed = results.filter((r) => !r.passed).length;
     const failedAtCompilation = results.filter(
       (r) => r.compilation && !r.compilation.passed,
@@ -939,6 +1056,8 @@ async function run(): Promise<void> {
         total: results.length,
         passed,
         failed,
+        skipped,
+        mode: options.mode,
         failedAtCompilation,
         failedAtVisual,
         failedAtAudio,
@@ -946,6 +1065,7 @@ async function run(): Promise<void> {
           suite: r.suite.id,
           name: r.suite.meta.name,
           passed: r.passed,
+          skipped: r.skipped?.reason,
           compilation: r.compilation?.passed,
           visual: r.visual?.passed,
           audio: r.audio?.passed,
@@ -955,8 +1075,11 @@ async function run(): Promise<void> {
 
     // Pretty summary
     logPretty("═══════════════════════════════════════", "");
-    logPretty(`Test Suite Summary`, "📊");
-    logPretty(`Total: ${results.length} | Passed: ${passed} | Failed: ${failed}`, "");
+    logPretty(`Test Suite Summary (mode=${options.mode})`, "📊");
+    logPretty(
+      `Total: ${results.length} | Passed: ${passed} | Failed: ${failed} | Skipped: ${skipped}`,
+      "",
+    );
     if (failed > 0) {
       logPretty(`  Failed at compilation: ${failedAtCompilation}`, "");
       logPretty(`  Failed at visual: ${failedAtVisual}`, "");
