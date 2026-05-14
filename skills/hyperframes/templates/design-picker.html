@@ -372,19 +372,19 @@
       /* Motion preview */
       .ease-preview-track {
         width: 100%;
-        height: 40px;
+        height: 48px;
         background: rgba(128,128,128,0.06);
-        border-radius: 6px;
+        border-radius: 8px;
         position: relative;
         overflow: hidden;
         border: 1px solid rgba(128,128,128,0.12);
       }
       .ease-preview-dot {
-        width: 12px;
-        height: 12px;
+        width: 24px;
+        height: 24px;
         border-radius: 50%;
         position: absolute;
-        top: 14px;
+        top: 8px;
         left: 10px;
       }
 
@@ -945,14 +945,6 @@
           </div>
           <div class="section-body"><div class="chips" id="corner-options"></div></div>
         </div>
-        <!-- Density -->
-        <div class="section-card">
-          <div class="section-header">
-            <div class="section-icon">≡</div>
-            <div class="section-title">Density</div>
-          </div>
-          <div class="section-body"><div class="chips" id="density-options"></div></div>
-        </div>
         <!-- Depth -->
         <div class="section-card">
           <div class="section-header">
@@ -981,45 +973,45 @@
             <p class="showcase-lead" id="sc-overview-lead"></p>
           </div>
 
+          <div class="showcase-section" id="sc-scenes">
+            <div class="showcase-eyebrow">/ 02 / Composition</div>
+            <h2 class="showcase-heading">Scene Frames</h2>
+            <p class="showcase-lead">Four key moments — hook, proof, action, close.</p>
+            <div class="scene-grid" id="sc-scene-grid"></div>
+          </div>
+
           <div class="showcase-section" id="sc-palette">
-            <div class="showcase-eyebrow">/ 02 / Palette</div>
+            <div class="showcase-eyebrow">/ 03 / Palette</div>
             <h2 class="showcase-heading">Color Palette</h2>
             <p class="showcase-lead" id="sc-palette-lead"></p>
             <div class="swatch-grid" id="sc-swatches"></div>
           </div>
 
           <div class="showcase-section" id="sc-type">
-            <div class="showcase-eyebrow">/ 03 / Typography</div>
+            <div class="showcase-eyebrow">/ 04 / Typography</div>
             <h2 class="showcase-heading">Typography Scale</h2>
             <p class="showcase-lead" id="sc-type-lead"></p>
             <div id="sc-type-specimens"></div>
           </div>
 
-          <div class="showcase-section" id="sc-scenes">
-            <div class="showcase-eyebrow">/ 04 / Composition</div>
-            <h2 class="showcase-heading">Scene Frames</h2>
-            <p class="showcase-lead">Four key moments from the composition — hook, proof, action, close.</p>
-            <div class="scene-grid" id="sc-scene-grid"></div>
-          </div>
-
-          <div class="showcase-section" id="sc-motion">
-            <div class="showcase-eyebrow">/ 05 / Motion</div>
-            <h2 class="showcase-heading">Motion Personality</h2>
-            <p class="showcase-lead" id="sc-motion-lead"></p>
-            <div id="sc-ease-preview"></div>
+          <div class="showcase-section" id="sc-radius">
+            <div class="showcase-eyebrow">/ 05 / Corners</div>
+            <h2 class="showcase-heading">Border Radius</h2>
+            <div class="radius-grid" id="sc-radius-grid"></div>
           </div>
 
           <div class="showcase-section" id="sc-elevation">
-            <div class="showcase-eyebrow">/ 06 / Surface & Depth</div>
+            <div class="showcase-eyebrow">/ 06 / Depth</div>
             <h2 class="showcase-heading">Elevation</h2>
             <p class="showcase-lead" id="sc-elevation-lead"></p>
             <div class="elevation-grid" id="sc-elevation-grid"></div>
           </div>
 
-          <div class="showcase-section" id="sc-radius">
-            <div class="showcase-eyebrow">/ 07 / Border Radius</div>
-            <h2 class="showcase-heading">Radius Scale</h2>
-            <div class="radius-grid" id="sc-radius-grid"></div>
+          <div class="showcase-section" id="sc-motion">
+            <div class="showcase-eyebrow">/ 07 / Motion</div>
+            <h2 class="showcase-heading">Motion Personality</h2>
+            <p class="showcase-lead" id="sc-motion-lead"></p>
+            <div id="sc-ease-preview"></div>
           </div>
 
         </div>
@@ -1494,6 +1486,7 @@
           el.classList.add("selected");
           picks.easing = i;
           checkReady();
+          renderPreview();
         };
         easeOpts.appendChild(el);
         // Animate the dot with GSAP
@@ -1655,12 +1648,16 @@
         var motionLead = easeObj ? easeObj.name + " energy. Entry easing: " + easeObj.value + " — " + easeObj.desc + "." : "Select an easing to preview.";
         document.getElementById("sc-motion-lead").textContent = motionLead;
         var easePreview = document.getElementById("sc-ease-preview");
+        // Kill any existing ease animation
+        if (window._easeDotTween) { window._easeDotTween.kill(); window._easeDotTween = null; }
+        if (window._easeDotReturn) { window._easeDotReturn.kill(); window._easeDotReturn = null; }
         easePreview.innerHTML = '<div class="ease-preview-track"><div class="ease-preview-dot" id="sc-ease-dot" style="background:' + ac + ';"></div></div>';
         if (easeObj && typeof gsap !== "undefined") {
           var dot = document.getElementById("sc-ease-dot");
+          var currentEase = easeObj.value;
           function animateDot() {
-            gsap.fromTo(dot, { left: 10 }, { left: "calc(100% - 22px)", duration: 1.2, ease: easeObj.value, delay: 0.5, onComplete: function() {
-              gsap.to(dot, { left: 10, duration: 0.3, ease: "power1.in", delay: 1, onComplete: animateDot });
+            window._easeDotTween = gsap.fromTo(dot, { left: 10 }, { left: "calc(100% - 34px)", duration: 1.2, ease: currentEase, delay: 0.5, onComplete: function() {
+              window._easeDotReturn = gsap.to(dot, { left: 10, duration: 1.2, ease: currentEase, delay: 0.5, onComplete: animateDot });
             }});
           }
           animateDot();
@@ -1668,27 +1665,27 @@
 
         // ── Elevation ──
         document.getElementById("sc-elevation-lead").textContent = dp.name + " — " + dp.desc + ".";
+        var surfBg = isDark ? al(fg, 0.06) : al(fg, 0.03);
         var elvGrid = document.getElementById("sc-elevation-grid");
-        elvGrid.innerHTML = [
-          { name: "Flat", style: "background:" + (isDark ? "#141414" : "#f5f5f5") + ";border:none;" },
-          { name: "Hairline", style: "background:" + (isDark ? "#141414" : "#f5f5f5") + ";border:1px solid " + al(fg, 0.06) + ";" },
-          { name: "Shadow", style: "background:" + (isDark ? "#1a1a1a" : "#fff") + ";border:none;box-shadow:" + shadow + ";" },
-        ].map(function(e) {
-          return '<div class="elevation-card" style="' + e.style + 'border-radius:' + cr.value + ';"><span style="color:' + fg + ';">' + e.name + '</span><span class="elevation-label">' + (e.name === dp.name.split(" ")[0] ? "✓ active" : "") + '</span></div>';
-        }).join("");
+        elvGrid.innerHTML = [64, 48, 36].map(function(size) {
+          return '<div style="width:' + size + 'px;height:' + size + 'px;background:' + surfBg + ';border-radius:' + cr.value + ';box-shadow:' + shadow + ';"></div>';
+        }).join("") + '<div style="width:80px;height:48px;background:' + surfBg + ';border-radius:' + cr.value + ';box-shadow:' + shadow + ';"></div>' +
+        '<div style="width:48px;height:64px;background:' + surfBg + ';border-radius:' + cr.value + ';box-shadow:' + shadow + ';"></div>';
 
         // ── Radius ──
-        var radii = [
-          { name: "none", val: "0px" },
-          { name: "sm", val: "4px" },
-          { name: "md", val: cr.value },
-          { name: "lg", val: Math.max(parseInt(cr.value) * 2, 12) + "px" },
-          { name: "pill", val: "9999px" },
+        var radGrid = document.getElementById("sc-radius-grid");
+        var cards = [
+          { title: "$1,299", sub: "7 nights · all inclusive" },
+          { title: "28°C", sub: "Average summer" },
+          { title: "Oia", sub: "Famous sunset point" },
         ];
-        document.getElementById("sc-radius-grid").innerHTML = radii.map(function(r) {
-          var active = r.val === cr.value ? " border-color:" + ac + ";" : "";
-          return '<div><div class="radius-chip-preview" style="border-radius:' + r.val + ';background:' + (isDark ? "#1a1a1a" : "#f0f0f0") + ';border-color:' + (r.val === cr.value ? ac : "#333") + ';' + active + '"></div><div class="radius-label"><strong>' + r.name + '</strong><br>' + r.val + '</div></div>';
-        }).join("");
+        radGrid.innerHTML = cards.map(function(c) {
+          return '<div style="background:' + surfBg + ';border-radius:' + cr.value + ';padding:20px 24px;min-width:160px;box-shadow:' + shadow + ';">' +
+            '<div style="font-family:\'' + t.headline.family + '\',sans-serif;font-weight:' + t.headline.weight + ';font-size:28px;color:' + ac + ';">' + c.title + '</div>' +
+            '<div style="font-size:13px;color:' + mt + ';margin-top:6px;font-family:\'' + t.body.family + '\',serif;">' + c.sub + '</div></div>';
+        }).join("") +
+        '<div style="background:' + ac + ';color:' + bg + ';border-radius:' + cr.value + ';padding:14px 32px;display:flex;align-items:center;font-family:\'' + t.headline.family + '\',sans-serif;font-weight:' + t.headline.weight + ';font-size:16px;">Book Now</div>' +
+        '<div style="background:transparent;border:1px solid ' + al(fg, 0.12) + ';border-radius:' + cr.value + ';padding:14px 32px;display:flex;align-items:center;font-size:16px;color:' + fg + ';font-family:\'' + t.headline.family + '\',sans-serif;font-weight:' + t.headline.weight + ';">Learn More</div>';
       }
 
       // ── Output ──
