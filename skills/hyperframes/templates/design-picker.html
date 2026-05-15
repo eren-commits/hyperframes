@@ -2142,11 +2142,24 @@
             if (hex.length === 4) hex = "#" + hex[1]+hex[1] + hex[2]+hex[2] + hex[3]+hex[3];
             var r = parseInt(hex.slice(1,3),16)||0, g = parseInt(hex.slice(3,5),16)||0, b = parseInt(hex.slice(5,7),16)||0;
             var lum = (r*0.299 + g*0.587 + b*0.114) / 255 * 100;
+            // Name-based role hinting overrides luminance
+            var vl = v.toLowerCase();
             var target;
-            if (lum > 85) target = opts.bg;
-            else if (lum < 20) target = opts.fg;
-            else if (lum > 60) target = opts.mt;
-            else target = opts.ac;
+            if (vl.match(/accent|sun|ember|coral|pink|highlight|primary|active|brand|neon/)) {
+              target = opts.ac;
+            } else if (vl.match(/bg|paper|canvas|cream|bone|surface|white|offwhite/)) {
+              target = opts.bg;
+            } else if (vl.match(/fg|ink|text|dark|black/)) {
+              target = opts.fg;
+            } else if (vl.match(/mute|gray|grey|line|rule|border|haze|secondary|subtle/)) {
+              target = opts.mt;
+            } else {
+              // Fallback to luminance
+              if (lum > 85) target = opts.bg;
+              else if (lum < 20) target = opts.fg;
+              else if (lum > 60) target = opts.mt;
+              else target = opts.ac;
+            }
             css += "  " + v + ": " + target + " !important;\n";
             return;
           }

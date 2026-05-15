@@ -348,12 +348,23 @@ function applyPal(slug) {
     var orig = cs.getPropertyValue(v).trim();
     if (!orig) return;
     var origL = luminance(orig.indexOf('#') === 0 ? orig : '#888888');
+    var vl = v.toLowerCase();
 
     var target;
-    if (origL > 85) target = p.bg;
-    else if (origL < 20) target = p.fg;
-    else if (origL > 60) target = p.mt;
-    else target = p.ac;
+    if (vl.match(/accent|sun|ember|coral|pink|highlight|primary|active|brand|neon/)) {
+      target = p.ac;
+    } else if (vl.match(/bg|paper|canvas|cream|bone|surface|white|offwhite/)) {
+      target = p.bg;
+    } else if (vl.match(/fg|ink|text|dark|black/)) {
+      target = p.fg;
+    } else if (vl.match(/mute|gray|grey|line|rule|border|haze|secondary|subtle/)) {
+      target = p.mt;
+    } else {
+      if (origL > 85) target = p.bg;
+      else if (origL < 20) target = p.fg;
+      else if (origL > 60) target = p.mt;
+      else target = p.ac;
+    }
 
     css += "  " + v + ": " + target + " !important;\n";
   });
