@@ -21,9 +21,9 @@ Run commands that reference `./scripts` or `./video` from this skill directory.
 **The skill auto-detects branding from the repo.** It never hardcodes project-specific colors, logos, or names. At the start of every run, resolve branding:
 
 1. **Project name** — read `package.json` → `name` field (strip `@scope/` prefix). Fallback: git remote repo name. Fallback: directory name.
-2. **Colors** — read `design.md` or `DESIGN.md` if it exists (check both casings). Extract primary color, background color, accent color. Fallback: neutral palette (`#09090b` text on `#ffffff` background, `#3b82f6` accent).
-3. **Fonts** — from `design.md` if present. Fallback: `"Geist"` for body, `"Geist Mono"` for code.
-4. **Logo** — look for `logo.svg` or `logo.png` in repo root, `public/`, `assets/`, `.github/`. If found, use it in intro/outro. If not found, use the project name as text.
+2. **Colors** — read `design.md` or `DESIGN.md` if it exists (check both casings). Extract these specific tokens: `text` (body text color), `background` (page/slide background), `accent` (primary brand color for highlights/pills/progress). Map the closest values you find — design files vary in format. Fallback: neutral palette (`#09090b` text on `#ffffff` background, `#3b82f6` accent).
+3. **Fonts** — from `design.md` if present. Extract the body/display font and the monospace/code font. Fallback: `"Geist"` for body, `"Geist Mono"` for code.
+4. **Logo** — look for `logo.svg` or `logo.png` in repo root, `public/`, `assets/`, `.github/`. If not found, try `gh api orgs/<org> --jq .avatar_url` to get the org's GitHub avatar. If nothing found, use the project name as text.
 5. **Repo identifier** — parse `git remote get-url origin` for the `org/repo` slug (e.g., `acme/widget`).
 
 Pass these values to `build.mjs` via a `branding` key in the manifest:
@@ -178,6 +178,8 @@ Generate per-segment audio clips with one TTS call per segment:
 ### Step 4: Write the manifest
 
 The manifest is a JSON file that describes every slide in the video. It bridges the narration/audio step and the hyperframes renderer.
+
+**The manifest schema below is the exact format `build.mjs` expects.** Do not invent your own slide structure, nest content in sub-objects, or rename fields. Copy the schema exactly — `build.mjs` reads `slide.type`, `slide.title`, `slide.diff`, `slide.code`, `slide.filename`, `slide.language`, `slide.audio`, `slide.durationInSeconds`, `slide.focus`, `slide.items`, `slide.src`, `slide.subtitle`, and `slide.date` as top-level fields on each slide object.
 
 Read the `durations.json` from step 3 to get the duration (in seconds) for each audio clip. Then write a `manifest.json` alongside the audio files:
 
@@ -436,7 +438,8 @@ Manifest slide type: `outro` with `durationInSeconds: 3`.
 - **Write as the author.** "So the main thing here is..." or "The tricky part was..." are fine.
 - **Avoid redundancy** between intro and first content segment.
 - **Mention files that aren't shown.** If a PR touches 15 files but only 6 are interesting, briefly acknowledge the others.
-- Aim for **5-7 minutes** total narration.
+- **Duration estimation:** professional narration pace is ~2.5 words/second. Count the words in each segment's narration text and divide by 2.5 to get `durationInSeconds`. Add 1-2 seconds for visual-only moments (intro reveal, diff highlight pause). A 50-word segment ≈ 22 seconds.
+- Aim for **5-7 minutes** total narration for large PRs, **1-3 minutes** for small fixes.
 
 ## Checklist
 
