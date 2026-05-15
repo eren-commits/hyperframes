@@ -2368,8 +2368,9 @@
           h += '  mesh.rotation.set(' + (bgpObj.rotX*Math.PI/180).toFixed(3) + ',' + (bgpObj.rotY*Math.PI/180).toFixed(3) + ',' + (bgpObj.rotZ*Math.PI/180).toFixed(3) + ');\n';
           h += '  mesh.position.set(' + (bgpObj.posX||0) + ',' + (bgpObj.posY||0) + ',' + (bgpObj.posZ||0) + ');\n';
           h += '  scene.add(mesh);\n\n';
-          h += '  function animate(){const t=performance.now()*0.001;renderer.setSize(innerWidth,innerHeight,false);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();uniforms.uTime.value=t;renderer.render(scene,camera);requestAnimationFrame(animate);}\n';
-          h += '  animate();\n';
+          h += '  function renderAt(time){renderer.setSize(innerWidth,innerHeight,false);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();uniforms.uTime.value=time;renderer.render(scene,camera);}\n';
+          h += '  window.addEventListener("hf-seek",e=>renderAt(e.detail.time));\n';
+          h += '  renderAt(window.__hfThreeTime||0);\n';
           h += '}\n';
           h += '<\/script>\n\n';
         }
