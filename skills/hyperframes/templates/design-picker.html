@@ -2425,7 +2425,7 @@
               var wrap = document.createElement("div");
               wrap.style.cssText = "grid-column:1/-1;position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;background:#000;border-radius:4px;";
               var ifr = document.createElement("iframe");
-              ifr.src = "templates/" + pick.slug + "/template.html";
+              ifr.src = "../templates/" + pick.slug + "/template.html";
               ifr.sandbox = "allow-same-origin";
               ifr.style.cssText = "width:1920px;height:1080px;border:none;transform-origin:top left;pointer-events:none;";
               wrap.appendChild(ifr);
