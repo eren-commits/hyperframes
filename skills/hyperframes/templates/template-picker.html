@@ -483,6 +483,20 @@ function injectText(slug) {
     return true;
   }
 
+  function pickByLength(pool, idx, origText) {
+    if (!pool.length) return {text: origText, idx: idx};
+    var origWords = origText.split(/\s+/).length;
+    var best = idx % pool.length;
+    var bestDiff = 999;
+    for (var j = 0; j < pool.length; j++) {
+      var w = pool[j].split(/\s+/).length;
+      var d = Math.abs(w - origWords);
+      if (d < bestDiff) { bestDiff = d; best = j; }
+      else if (d === bestDiff && j === idx % pool.length) { best = j; }
+    }
+    return {text: pool[best], idx: idx + 1};
+  }
+
   var slides = doc.querySelectorAll(".slide, deck-stage > section, section.slide");
   if (slides.length === 0) slides = doc.querySelectorAll("section[class]");
   slides.forEach(function(slide) {
@@ -495,34 +509,16 @@ function injectText(slug) {
       if (cs.display === "none" || cs.visibility === "hidden") return;
       var fs = parseFloat(cs.fontSize);
 
-      if (fs >= 60) {
-        el.textContent = display[di % display.length];
-        di++;
-      } else if (fs >= 32) {
-        el.textContent = headlines[hi % headlines.length];
-        hi++;
-      } else if (fs >= 18 && text.length > 20) {
-        el.textContent = body[bi % body.length];
-        bi++;
-      } else if (fs >= 18 && text.length <= 20) {
-        el.textContent = smalls[smi % smalls.length];
-        smi++;
-      } else if (/^\d/.test(text) && text.length < 10) {
-        el.textContent = stats[si % stats.length];
-        si++;
-      } else if (fs < 14 && text.length < 30 && text === text.toUpperCase()) {
-        el.textContent = labels[li % labels.length];
-        li++;
-      } else if (fs < 14) {
-        el.textContent = statLabels[sli % statLabels.length];
-        sli++;
-      } else if (text.length > 20) {
-        el.textContent = body[bi % body.length];
-        bi++;
-      } else {
-        el.textContent = smalls[smi % smalls.length];
-        smi++;
-      }
+      var r;
+      if (fs >= 60) { r = pickByLength(display, di, text); el.textContent = r.text; di = r.idx; }
+      else if (fs >= 32) { r = pickByLength(headlines, hi, text); el.textContent = r.text; hi = r.idx; }
+      else if (fs >= 18 && text.length > 20) { r = pickByLength(body, bi, text); el.textContent = r.text; bi = r.idx; }
+      else if (fs >= 18 && text.length <= 20) { r = pickByLength(smalls, smi, text); el.textContent = r.text; smi = r.idx; }
+      else if (/^\d/.test(text) && text.length < 10) { r = pickByLength(stats, si, text); el.textContent = r.text; si = r.idx; }
+      else if (fs < 14 && text.length < 30 && text === text.toUpperCase()) { r = pickByLength(labels, li, text); el.textContent = r.text; li = r.idx; }
+      else if (fs < 14) { r = pickByLength(statLabels, sli, text); el.textContent = r.text; sli = r.idx; }
+      else if (text.length > 20) { r = pickByLength(body, bi, text); el.textContent = r.text; bi = r.idx; }
+      else { r = pickByLength(smalls, smi, text); el.textContent = r.text; smi = r.idx; }
     });
   });
 }
