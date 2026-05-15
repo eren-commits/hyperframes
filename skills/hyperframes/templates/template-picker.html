@@ -154,6 +154,23 @@ body {
   border: 1px solid #333;
   color: #777;
 }
+.transition-overlay {
+  position: fixed;
+  inset: 0;
+  background: #0e0e0e;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 200;
+  transition: opacity 0.35s ease;
+}
+.transition-overlay.active { opacity: 1; pointer-events: all; }
+.card.selected-exit {
+  position: relative;
+  z-index: 201;
+  transition: transform 0.4s cubic-bezier(0.16,1,0.3,1), opacity 0.3s ease 0.15s;
+  transform: scale(1.05);
+}
+.card.selected-exit.fade { opacity: 0; transform: scale(1.1); }
 .loading-msg {
   position: fixed;
   bottom: 20px;
@@ -183,6 +200,7 @@ body {
   <div class="grid" id="grid"></div>
 </div>
 
+<div class="transition-overlay" id="trans-overlay"></div>
 <div class="loading-msg" id="loading">Loading templates...</div>
 
 <script>
@@ -561,12 +579,23 @@ function selectTemplate(slug) {
     palette: pal ? {bg: pal.bg, fg: pal.fg, accent: pal.ac, muted: pal.mt} : null
   };
 
-  if (window.parent !== window) {
-    window.parent.postMessage(msg, "*");
-  } else {
+  // Animate: fade background, scale card, then send
+  var card = document.getElementById("card-" + slug);
+  var overlay = document.getElementById("trans-overlay");
+  overlay.classList.add("active");
+  if (card) card.classList.add("selected-exit");
+  setTimeout(function() {
+    if (card) card.classList.add("fade");
+  }, 200);
+
+  setTimeout(function() {
+    if (window.parent !== window) {
+      window.parent.postMessage(msg, "*");
+    } else {
     sessionStorage.setItem("templatePick", JSON.stringify(msg));
-    window.location = "pick-design.html";
-  }
+      window.location = "pick-design.html";
+    }
+  }, 450);
 }
 
 buildPalChips();
