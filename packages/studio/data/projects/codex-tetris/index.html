@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1080, height=1920, initial-scale=1.0">
+  <title>Codex Tetris</title>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 1080px;
+      height: 1920px;
+      overflow: hidden;
+      background: #0B0E17;
+      font-family: "JetBrains Mono", monospace;
+      color: #E8E6E3;
+    }
+
+    .scene {
+      position: absolute;
+      inset: 0;
+      width: 1080px;
+      height: 1920px;
+      overflow: hidden;
+      background: #0B0E17;
+    }
+
+    .scanlines {
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent 0px, transparent 2px,
+        rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.1) 4px
+      );
+      pointer-events: none;
+    }
+
+    .glitch-overlay {
+      position: absolute;
+      inset: 0;
+      width: 1080px;
+      height: 1920px;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* ---------- Scene 1: QR Code ---------- */
+    .s1-glow {
+      position: absolute;
+      width: 800px;
+      height: 800px;
+      left: 140px;
+      top: 560px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(0,255,65,0.1) 0%, transparent 70%);
+    }
+
+    .phone-frame {
+      position: absolute;
+      left: 280px;
+      top: 460px;
+      width: 520px;
+      height: 860px;
+      border: 3px solid rgba(0,255,65,0.5);
+      border-radius: 44px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 48px;
+      box-sizing: border-box;
+    }
+
+    .phone-header {
+      font-family: "Press Start 2P", "VT323", monospace;
+      font-size: 20px;
+      color: #00FF41;
+      letter-spacing: 0.04em;
+    }
+
+    .qr-grid {
+      position: relative;
+      width: 312px;
+      height: 312px;
+    }
+
+    .qr-cell {
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      border-radius: 2px;
+    }
+
+    .scan-text {
+      font-family: "Press Start 2P", "VT323", monospace;
+      font-size: 20px;
+      color: #00FF41;
+      letter-spacing: 0.08em;
+    }
+
+    .s1-corner {
+      position: absolute;
+      top: 100px;
+      right: 80px;
+      font-size: 16px;
+      color: rgba(232,230,227,0.25);
+      letter-spacing: 0.06em;
+    }
+
+    .s1-corner-bl {
+      position: absolute;
+      bottom: 100px;
+      left: 80px;
+      font-size: 14px;
+      color: rgba(0,255,65,0.2);
+      letter-spacing: 0.1em;
+    }
+
+    /* ---------- Scene 2: Console Boot ---------- */
+    .s2-glow {
+      position: absolute;
+      width: 900px;
+      height: 900px;
+      left: 90px;
+      top: 510px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(8,247,254,0.08) 0%, transparent 70%);
+    }
+
+    .console-frame {
+      position: absolute;
+      left: 140px;
+      top: 380px;
+      width: 800px;
+      height: 1100px;
+      border: 3px solid rgba(8,247,254,0.4);
+      border-radius: 24px;
+      background: rgba(8,247,254,0.02);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 50px 60px;
+      gap: 50px;
+      box-sizing: border-box;
+    }
+
+    .console-screen {
+      width: 100%;
+      height: 420px;
+      border: 2px solid rgba(0,255,65,0.35);
+      border-radius: 8px;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 36px;
+      padding: 40px;
+      box-sizing: border-box;
+    }
+
+    .boot-title {
+      font-family: "Press Start 2P", "VT323", monospace;
+      font-size: 36px;
+      color: #00FF41;
+    }
+
+    .boot-sub {
+      font-size: 20px;
+      color: rgba(232,230,227,0.5);
+    }
+
+    .loading-bar {
+      width: 420px;
+      height: 28px;
+      border: 2px solid rgba(0,255,65,0.4);
+      border-radius: 4px;
+      overflow: hidden;
+      background: rgba(0,0,0,0.4);
+    }
+
+    .bar-fill {
+      width: 100%;
+      height: 100%;
+      background: #00FF41;
+      transform-origin: left center;
+    }
+
+    .init-text {
+      font-size: 18px;
+      color: rgba(0,255,65,0.6);
+      letter-spacing: 0.06em;
+    }
+
+    .dpad {
+      position: relative;
+      width: 130px;
+      height: 130px;
+      margin-top: 20px;
+      align-self: flex-start;
+      margin-left: 60px;
+    }
+
+    .dpad-h, .dpad-v {
+      position: absolute;
+      background: rgba(232,230,227,0.1);
+      border-radius: 4px;
+    }
+
+    .dpad-h { width: 130px; height: 44px; top: 43px; left: 0; }
+    .dpad-v { width: 44px; height: 130px; top: 0; left: 43px; }
+
+    .console-btns {
+      position: absolute;
+      right: 100px;
+      bottom: 260px;
+      display: flex;
+      gap: 36px;
+    }
+
+    .cbtn {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      background: rgba(232,230,227,0.08);
+      border: 2px solid rgba(232,230,227,0.15);
+    }
+
+    /* ---------- Scene 3: Tetris Gameplay ---------- */
+    .game-title {
+      position: absolute;
+      top: 80px;
+      left: 120px;
+      font-family: "Press Start 2P", "VT323", monospace;
+      font-size: 28px;
+      color: #00FF41;
+      letter-spacing: 0.04em;
+    }
+
+    .game-score-section {
+      position: absolute;
+      top: 80px;
+      right: 120px;
+      text-align: right;
+    }
+
+    .score-label {
+      font-family: "Press Start 2P", "VT323", monospace;
+      font-size: 14px;
+      color: rgba(232,230,227,0.4);
+      margin-bottom: 8px;
+    }
+
+    .score-value {
+      font-family: "Press Start 2P", "VT323", monospace;
+      font-size: 38px;
+      color: #00FF41;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .game-sep {
+      position: absolute;
+      top: 200px;
+      left: 120px;
+      right: 120px;
+      height: 1px;
+      background: rgba(0,255,65,0.15);
+    }
+
+    .tetris-board {
+      position: absolute;
+      width: 440px;
+      height: 880px;
+      left: 120px;
+      top: 280px;
+      border: 2px solid rgba(0,255,65,0.35);
+      background-color: rgba(0,0,0,0.35);
+      background-image:
+        linear-gradient(to right, rgba(26,31,46,0.4) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(26,31,46,0.4) 1px, transparent 1px);
+      background-size: 44px 44px;
+    }
+
+    .block {
+      position: absolute;
+      width: 42px;
+      height: 42px;
+      border-radius: 2px;
+      box-shadow: inset -2px -2px 0 rgba(0,0,0,0.3), inset 2px 2px 0 rgba(255,255,255,0.12);
+    }
+
+    .falling-piece {
+      position: absolute;
+      z-index: 5;
+    }
+
+    .line-flash {
+      position: absolute;
+      left: 0;
+      width: 440px;
+      height: 44px;
+      background: rgba(255,255,255,0.9);
+      opacity: 0;
+      z-index: 8;
+    }
+
+    .penrose-cursor {
+      position: absolute;
+      z-index: 10;
+      filter: drop-shadow(0 0 16px rgba(8,247,254,0.7));
+      opacity: 0;
+    }
+
+    .sidebar-section {
+      position: absolute;
+      left: 620px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .sidebar-label {
+      font-family: "Press Start 2P", "VT323", monospace;
+      font-size: 13px;
+      color: rgba(232,230,227,0.35);
+      letter-spacing: 0.06em;
+    }
+
+    .sidebar-value {
+      font-family: "Press Start 2P", "VT323", monospace;
+      font-size: 26px;
+      color: #E8E6E3;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .ai-badge {
+      position: absolute;
+      left: 620px;
+      top: 280px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 24px;
+      border: 2px solid rgba(255,46,99,0.4);
+      border-radius: 6px;
+    }
+
+    .ai-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #FF2E63;
+    }
+
+    .ai-text {
+      font-family: "Press Start 2P", "VT323", monospace;
+      font-size: 14px;
+      color: #FF2E63;
+      letter-spacing: 0.04em;
+    }
+
+    .next-grid {
+      width: 132px;
+      height: 88px;
+      border: 1px solid rgba(0,255,65,0.15);
+      position: relative;
+      background: rgba(0,0,0,0.2);
+    }
+
+    .s3-glow {
+      position: absolute;
+      width: 500px;
+      height: 500px;
+      left: 50px;
+      top: 700px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(0,255,65,0.06) 0%, transparent 70%);
+    }
+
+    /* ---------- Scene 4: Game Over + Outro ---------- */
+    .s4-content {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 48px;
+      padding: 200px 120px;
+      box-sizing: border-box;
+    }
+
+    .gameover-text {
+      font-family: "Press Start 2P", "VT323", monospace;
+      font-size: 72px;
+      color: #FF2E63;
+      letter-spacing: 0.06em;
+      text-align: center;
+    }
+
+    .final-score-label {
+      font-size: 22px;
+      color: rgba(232,230,227,0.4);
+      letter-spacing: 0.1em;
+    }
+
+    .final-score {
+      font-family: "Press Start 2P", "VT323", monospace;
+      font-size: 90px;
+      color: #00FF41;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .final-stats {
+      display: flex;
+      gap: 60px;
+      margin-top: 20px;
+    }
+
+    .final-stat {
+      font-family: "Press Start 2P", "VT323", monospace;
+      font-size: 16px;
+      color: rgba(232,230,227,0.5);
+      letter-spacing: 0.04em;
+    }
+
+    .s4-sep {
+      width: 400px;
+      height: 1px;
+      background: rgba(0,255,65,0.2);
+      margin-top: 40px;
+    }
+
+    .attr-line {
+      font-size: 20px;
+      color: rgba(232,230,227,0.4);
+    }
+
+    .attr-brand {
+      font-family: "Press Start 2P", "VT323", monospace;
+      font-size: 28px;
+      color: #00FF41;
+      letter-spacing: 0.04em;
+    }
+
+    .attr-user {
+      font-family: "Press Start 2P", "VT323", monospace;
+      font-size: 22px;
+      color: #08F7FE;
+      letter-spacing: 0.04em;
+    }
+
+    .s4-glow {
+      position: absolute;
+      width: 700px;
+      height: 700px;
+      left: 190px;
+      top: 610px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,46,99,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="root" data-composition-id="main" data-width="1080" data-height="1920" data-start="0" data-duration="28">
+
+    <!-- Baked audio tracks (the fix: WebAudio synth → offline WAV files) -->
+    <audio id="bgm" src="bgm.wav" data-start="0" data-duration="28" data-track-index="10" data-volume="0.6"></audio>
+    <audio id="sfx" src="sfx.wav" data-start="0" data-duration="28" data-track-index="11" data-volume="0.85"></audio>
+
+    <!-- ===== Scene 1: QR Code ===== -->
+    <div id="s1" class="scene" style="z-index:1">
+      <div id="s1-glow" class="s1-glow"></div>
+      <div id="s1-phone" class="phone-frame">
+        <div class="phone-header">CODEX://TETRIS</div>
+        <div id="s1-qr" class="qr-grid"></div>
+        <div id="s1-scan" class="scan-text">SCAN TO PLAY</div>
+      </div>
+      <div id="s1-corner" class="s1-corner">SYS.INIT</div>
+      <div id="s1-bl" class="s1-corner-bl">FRAME 001 / 840</div>
+    </div>
+
+    <!-- ===== Scene 2: Console Boot ===== -->
+    <div id="s2" class="scene" style="z-index:2; opacity:0">
+      <div id="s2-glow" class="s2-glow"></div>
+      <div id="s2-console" class="console-frame">
+        <div id="s2-screen" class="console-screen">
+          <div id="s2-title" class="boot-title">CODEX GAMING</div>
+          <div id="s2-sub" class="boot-sub">SYSTEM v2.1</div>
+          <div id="s2-bar-wrap" class="loading-bar">
+            <div id="s2-bar" class="bar-fill"></div>
+          </div>
+          <div id="s2-init" class="init-text">LOADING TETRIS...</div>
+        </div>
+        <div class="dpad"><div class="dpad-h"></div><div class="dpad-v"></div></div>
+        <div class="console-btns">
+          <div class="cbtn"></div>
+          <div class="cbtn"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Scene 3: Tetris Gameplay ===== -->
+    <div id="s3" class="scene" style="z-index:3; opacity:0">
+      <div class="s3-glow"></div>
+
+      <div id="s3-title" class="game-title">CODEX TETRIS</div>
+      <div id="s3-score-sec" class="game-score-section">
+        <div class="score-label">SCORE</div>
+        <div id="s3-score" class="score-value">012400</div>
+      </div>
+      <div id="s3-sep" class="game-sep"></div>
+
+      <!-- AI badge -->
+      <div id="s3-ai" class="ai-badge">
+        <div id="s3-ai-dot" class="ai-dot"></div>
+        <div class="ai-text">AI MODE</div>
+      </div>
+
+      <!-- Next piece -->
+      <div id="s3-next-sec" class="sidebar-section" style="top:380px">
+        <div class="sidebar-label">NEXT</div>
+        <div id="s3-next" class="next-grid"></div>
+      </div>
+
+      <!-- Level -->
+      <div id="s3-level-sec" class="sidebar-section" style="top:540px">
+        <div class="sidebar-label">LEVEL</div>
+        <div id="s3-level" class="sidebar-value">04</div>
+      </div>
+
+      <!-- Lines -->
+      <div id="s3-lines-sec" class="sidebar-section" style="top:660px">
+        <div class="sidebar-label">LINES</div>
+        <div id="s3-lines" class="sidebar-value">024</div>
+      </div>
+
+      <!-- Tetris board (blocks generated by JS below) -->
+      <div id="s3-board" class="tetris-board">
+        <!-- Pre-placed blocks + falling pieces injected by script -->
+        <div id="line-flash-1" class="line-flash" style="top:660px"></div>
+        <div id="line-flash-2" class="line-flash" style="top:616px"></div>
+
+        <!-- Penrose cursor -->
+        <svg id="penrose" class="penrose-cursor" viewBox="0 0 100 87" width="64" height="56" style="left:480px; top:-60px">
+          <polygon points="50,3 97,84 3,84" fill="none" stroke="#08F7FE" stroke-width="5" stroke-linejoin="round"/>
+          <polygon points="50,22 80,72 20,72" fill="none" stroke="#08F7FE" stroke-width="2" opacity="0.4"/>
+        </svg>
+      </div>
+
+      <!-- Speed indicator -->
+      <div id="s3-speed-sec" class="sidebar-section" style="top:800px">
+        <div class="sidebar-label">SPEED</div>
+        <div style="display:flex; gap:3px">
+          <div style="width:18px;height:22px;background:#00FF41;border-radius:2px"></div>
+          <div style="width:18px;height:22px;background:#00FF41;border-radius:2px"></div>
+          <div style="width:18px;height:22px;background:#00FF41;border-radius:2px"></div>
+          <div style="width:18px;height:22px;background:rgba(0,255,65,0.15);border-radius:2px"></div>
+          <div style="width:18px;height:22px;background:rgba(0,255,65,0.15);border-radius:2px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Scene 4: Game Over + Outro ===== -->
+    <div id="s4" class="scene" style="z-index:4; opacity:0">
+      <div class="s4-glow"></div>
+      <div class="s4-content">
+        <div id="s4-go" class="gameover-text">GAME OVER</div>
+        <div id="s4-fsl" class="final-score-label">FINAL SCORE</div>
+        <div id="s4-fs" class="final-score">024800</div>
+        <div id="s4-stats" class="final-stats">
+          <div class="final-stat">LINES 048</div>
+          <div class="final-stat">LEVEL 06</div>
+          <div class="final-stat">TIME 01:47</div>
+        </div>
+        <div id="s4-sep" class="s4-sep"></div>
+        <div id="s4-made" class="attr-line">made by</div>
+        <div id="s4-brand" class="attr-brand">@HyperFrames_</div>
+        <div id="s4-user" class="attr-user">@Miguel07Code</div>
+      </div>
+    </div>
+
+    <!-- Glitch transition overlays -->
+    <div id="gl-r" class="glitch-overlay" style="z-index:80; background:rgba(255,46,99,0.35)"></div>
+    <div id="gl-g" class="glitch-overlay" style="z-index:80; background:rgba(0,255,65,0.35)"></div>
+    <div id="gl-b" class="glitch-overlay" style="z-index:80; background:rgba(8,247,254,0.35)"></div>
+
+    <!-- Global scanlines -->
+    <div class="scanlines" style="z-index:90"></div>
+  </div>
+
+  <script>
+    // ---------------------------------------------------------------
+    // Seeded PRNG (deterministic — no Math.random)
+    // ---------------------------------------------------------------
+    function mulberry32(a) {
+      return function() {
+        a |= 0; a = a + 0x6D2B79F5 | 0;
+        var t = Math.imul(a ^ a >>> 15, 1 | a);
+        t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+      };
+    }
+    var rng = mulberry32(42);
+
+    // ---------------------------------------------------------------
+    // Generate QR code pattern (scene 1)
+    // ---------------------------------------------------------------
+    (function() {
+      var grid = document.getElementById("s1-qr");
+      var SIZE = 11;
+      var CELL = 26;
+      var GAP = 2;
+      for (var r = 0; r < SIZE; r++) {
+        for (var c = 0; c < SIZE; c++) {
+          var el = document.createElement("div");
+          el.className = "qr-cell";
+          el.style.left = c * (CELL + GAP) + "px";
+          el.style.top = r * (CELL + GAP) + "px";
+          el.style.width = CELL + "px";
+          el.style.height = CELL + "px";
+          var isFinder = (r < 3 && c < 3) || (r < 3 && c >= 8) || (r >= 8 && c < 3);
+          var filled = isFinder || rng() > 0.42;
+          el.style.backgroundColor = filled ? "#00FF41" : "rgba(0,255,65,0.06)";
+          grid.appendChild(el);
+        }
+      }
+    })();
+
+    // ---------------------------------------------------------------
+    // Generate pre-placed Tetris blocks (scene 3)
+    // ---------------------------------------------------------------
+    (function() {
+      var board = document.getElementById("s3-board");
+      var CELL = 44;
+      var prefilled = [
+        [0,19,"#08F7FE"],[1,19,"#08F7FE"],
+        [3,19,"#B5179E"],[4,19,"#B5179E"],[5,19,"#B5179E"],
+        [6,19,"#FF9770"],
+        [8,19,"#4E71FF"],[9,19,"#4E71FF"],
+        [0,18,"#08F7FE"],
+        [4,18,"#B5179E"],
+        [5,18,"#0EAD69"],[6,18,"#FF9770"],[7,18,"#FF9770"],
+        [9,18,"#4E71FF"],
+        [2,17,"#FF2E63"],[3,17,"#FF2E63"],
+        [5,17,"#0EAD69"],[6,17,"#0EAD69"],
+        [3,16,"#FF2E63"],[6,16,"#0EAD69"]
+      ];
+      for (var i = 0; i < prefilled.length; i++) {
+        var p = prefilled[i];
+        var el = document.createElement("div");
+        el.className = "block";
+        el.style.left = p[0] * CELL + 1 + "px";
+        el.style.top = p[1] * CELL + 1 + "px";
+        el.style.backgroundColor = p[2];
+        board.appendChild(el);
+      }
+
+      // Falling piece 1: O-piece (yellow, 2x2) → lands row 14-15, cols 4-5
+      var fp1 = document.createElement("div");
+      fp1.id = "fp1";
+      fp1.className = "falling-piece";
+      fp1.style.left = 4 * CELL + "px";
+      fp1.style.top = "-100px";
+      fp1.innerHTML =
+        '<div class="block" style="background:#FFD670;left:1px;top:1px"></div>' +
+        '<div class="block" style="background:#FFD670;left:' + (CELL+1) + 'px;top:1px"></div>' +
+        '<div class="block" style="background:#FFD670;left:1px;top:' + (CELL+1) + 'px"></div>' +
+        '<div class="block" style="background:#FFD670;left:' + (CELL+1) + 'px;top:' + (CELL+1) + 'px"></div>';
+      board.appendChild(fp1);
+
+      // Falling piece 2: I-piece (cyan, horizontal) → lands row 15, cols 0-3
+      var fp2 = document.createElement("div");
+      fp2.id = "fp2";
+      fp2.className = "falling-piece";
+      fp2.style.left = "0px";
+      fp2.style.top = "-100px";
+      fp2.innerHTML =
+        '<div class="block" style="background:#08F7FE;left:1px;top:1px"></div>' +
+        '<div class="block" style="background:#08F7FE;left:' + (CELL+1) + 'px;top:1px"></div>' +
+        '<div class="block" style="background:#08F7FE;left:' + (2*CELL+1) + 'px;top:1px"></div>' +
+        '<div class="block" style="background:#08F7FE;left:' + (3*CELL+1) + 'px;top:1px"></div>';
+      board.appendChild(fp2);
+
+      // Falling piece 3: T-piece (purple) → lands row 14: col 8, row 15: cols 7-9
+      var fp3 = document.createElement("div");
+      fp3.id = "fp3";
+      fp3.className = "falling-piece";
+      fp3.style.left = 7 * CELL + "px";
+      fp3.style.top = "-100px";
+      fp3.innerHTML =
+        '<div class="block" style="background:#B5179E;left:' + (CELL+1) + 'px;top:1px"></div>' +
+        '<div class="block" style="background:#B5179E;left:1px;top:' + (CELL+1) + 'px"></div>' +
+        '<div class="block" style="background:#B5179E;left:' + (CELL+1) + 'px;top:' + (CELL+1) + 'px"></div>' +
+        '<div class="block" style="background:#B5179E;left:' + (2*CELL+1) + 'px;top:' + (CELL+1) + 'px"></div>';
+      board.appendChild(fp3);
+
+      // Falling piece 4: L-piece (orange) → lands row 13-15, col 6
+      var fp4 = document.createElement("div");
+      fp4.id = "fp4";
+      fp4.className = "falling-piece";
+      fp4.style.left = 5 * CELL + "px";
+      fp4.style.top = "-140px";
+      fp4.innerHTML =
+        '<div class="block" style="background:#FF9770;left:' + (CELL+1) + 'px;top:1px"></div>' +
+        '<div class="block" style="background:#FF9770;left:' + (CELL+1) + 'px;top:' + (CELL+1) + 'px"></div>' +
+        '<div class="block" style="background:#FF9770;left:1px;top:' + (2*CELL+1) + 'px"></div>' +
+        '<div class="block" style="background:#FF9770;left:' + (CELL+1) + 'px;top:' + (2*CELL+1) + 'px"></div>';
+      board.appendChild(fp4);
+
+      // Next piece preview (T-piece in the next-grid)
+      var nextGrid = document.getElementById("s3-next");
+      nextGrid.innerHTML =
+        '<div class="block" style="background:#B5179E;left:45px;top:1px;width:40px;height:40px"></div>' +
+        '<div class="block" style="background:#B5179E;left:1px;top:43px;width:40px;height:40px"></div>' +
+        '<div class="block" style="background:#B5179E;left:45px;top:43px;width:40px;height:40px"></div>' +
+        '<div class="block" style="background:#B5179E;left:89px;top:43px;width:40px;height:40px"></div>';
+    })();
+
+    // ---------------------------------------------------------------
+    // GSAP Timeline
+    // ---------------------------------------------------------------
+    window.__timelines = window.__timelines || {};
+    var tl = gsap.timeline({ paused: true });
+    var CELL = 44;
+
+    // === SCENE 1 ENTRANCES (0.2s) ===
+    tl.from("#s1-glow", { scale: 0.4, opacity: 0, duration: 0.7, ease: "power2.out" }, 0.2);
+    tl.from("#s1-phone", { y: 120, opacity: 0, duration: 0.8, ease: "expo.out" }, 0.3);
+    tl.from("#s1-qr", { scale: 0.7, opacity: 0, duration: 0.6, ease: "power3.out" }, 0.7);
+    tl.from("#s1-scan", { opacity: 0, duration: 0.4, ease: "power2.out" }, 1.1);
+    tl.from("#s1-corner", { x: 30, opacity: 0, duration: 0.5, ease: "power2.out" }, 0.5);
+    tl.from("#s1-bl", { x: -30, opacity: 0, duration: 0.5, ease: "power3.out" }, 0.6);
+
+    // Scene 1 ambient: glow breathing + scan text blink
+    tl.to("#s1-glow", { scale: 1.15, duration: 1.8, ease: "sine.inOut", yoyo: true, repeat: 3 }, 1.0);
+    tl.to("#s1-scan", { opacity: 0.2, duration: 0.5, ease: "steps(1)", yoyo: true, repeat: 7 }, 1.5);
+
+    // === GLITCH TRANSITION 1→2 (T=5.0s) ===
+    var T1 = 5.0;
+    tl.set("#gl-r", { opacity: 1, x: 40, y: -10 }, T1);
+    tl.set("#gl-g", { opacity: 1, x: -30, y: 14 }, T1);
+    tl.set("#gl-b", { opacity: 1, x: 18, y: -22 }, T1);
+    tl.set("#s1", { x: -18 }, T1);
+    tl.set("#s1", { x: 35 }, T1 + 0.03);
+    tl.set("#gl-r", { x: -55, y: 16 }, T1 + 0.03);
+    tl.set("#s1", { x: -28 }, T1 + 0.06);
+    tl.set("#gl-b", { x: 45, y: -14 }, T1 + 0.06);
+    tl.set("#s1", { x: 18 }, T1 + 0.09);
+    tl.set("#gl-g", { x: 38, y: -10 }, T1 + 0.09);
+    tl.set("#s1", { x: -42 }, T1 + 0.12);
+    tl.set("#gl-r", { x: -28, y: 22 }, T1 + 0.12);
+    tl.set("#s1", { x: 22 }, T1 + 0.15);
+    tl.set("#gl-b", { x: -38, y: 12 }, T1 + 0.15);
+    // Swap
+    tl.set("#s1", { opacity: 0, x: 0 }, T1 + 0.2);
+    tl.set("#s2", { opacity: 1 }, T1 + 0.2);
+    tl.set("#gl-r", { opacity: 0, x: 0, y: 0 }, T1 + 0.22);
+    tl.set("#gl-g", { opacity: 0, x: 0, y: 0 }, T1 + 0.22);
+    tl.set("#gl-b", { opacity: 0, x: 0, y: 0 }, T1 + 0.22);
+
+    // === SCENE 2 ENTRANCES (5.25s) ===
+    tl.from("#s2-glow", { scale: 0.3, opacity: 0, duration: 0.6, ease: "power2.out" }, 5.25);
+    tl.from("#s2-console", { y: 80, opacity: 0, duration: 0.7, ease: "expo.out" }, 5.3);
+    tl.from("#s2-title", { opacity: 0, letterSpacing: "0.3em", duration: 0.5, ease: "power3.out" }, 5.6);
+    tl.from("#s2-sub", { opacity: 0, duration: 0.4, ease: "power2.out" }, 5.9);
+    tl.from("#s2-bar", { scaleX: 0, duration: 3.2, ease: "power1.inOut" }, 6.0);
+    tl.from("#s2-init", { opacity: 0, duration: 0.3, ease: "power2.out" }, 6.2);
+
+    // === GLITCH TRANSITION 2→3 (T=9.5s) ===
+    var T2 = 9.5;
+    tl.set("#gl-r", { opacity: 1, x: -35, y: 12 }, T2);
+    tl.set("#gl-g", { opacity: 1, x: 28, y: -16 }, T2);
+    tl.set("#gl-b", { opacity: 1, x: -20, y: 24 }, T2);
+    tl.set("#s2", { x: 20 }, T2);
+    tl.set("#s2", { x: -30 }, T2 + 0.03);
+    tl.set("#gl-r", { x: 50, y: -8 }, T2 + 0.03);
+    tl.set("#s2", { x: 25 }, T2 + 0.06);
+    tl.set("#gl-b", { x: -42, y: 10 }, T2 + 0.06);
+    tl.set("#s2", { x: -35 }, T2 + 0.09);
+    tl.set("#gl-g", { x: -30, y: 18 }, T2 + 0.09);
+    tl.set("#s2", { x: 15 }, T2 + 0.12);
+    tl.set("#gl-r", { x: 35, y: -20 }, T2 + 0.12);
+    tl.set("#s2", { x: -20 }, T2 + 0.15);
+    // Swap
+    tl.set("#s2", { opacity: 0, x: 0 }, T2 + 0.2);
+    tl.set("#s3", { opacity: 1 }, T2 + 0.2);
+    tl.set("#gl-r", { opacity: 0, x: 0, y: 0 }, T2 + 0.22);
+    tl.set("#gl-g", { opacity: 0, x: 0, y: 0 }, T2 + 0.22);
+    tl.set("#gl-b", { opacity: 0, x: 0, y: 0 }, T2 + 0.22);
+
+    // === SCENE 3 ENTRANCES (9.75s) ===
+    tl.from("#s3-title", { x: -40, opacity: 0, duration: 0.5, ease: "power3.out" }, 9.75);
+    tl.from("#s3-score-sec", { x: 40, opacity: 0, duration: 0.5, ease: "power3.out" }, 9.8);
+    tl.from("#s3-sep", { scaleX: 0, transformOrigin: "left center", duration: 0.4, ease: "expo.out" }, 9.9);
+    tl.from("#s3-board", { opacity: 0, scale: 0.95, duration: 0.6, ease: "power2.out" }, 9.85);
+    tl.from("#s3-ai", { scale: 0.8, opacity: 0, duration: 0.4, ease: "back.out(2)" }, 10.0);
+    tl.from("#s3-next-sec", { y: 20, opacity: 0, duration: 0.4, ease: "power2.out" }, 10.1);
+    tl.from("#s3-level-sec", { y: 20, opacity: 0, duration: 0.35, ease: "power2.out" }, 10.15);
+    tl.from("#s3-lines-sec", { y: 20, opacity: 0, duration: 0.35, ease: "power3.out" }, 10.2);
+    tl.from("#s3-speed-sec", { y: 20, opacity: 0, duration: 0.35, ease: "power2.out" }, 10.25);
+
+    // AI dot blink (12.25s scene duration, 0.75s per half-cycle = ~16 half-cycles)
+    tl.to("#s3-ai-dot", { opacity: 0.15, duration: 0.75, ease: "power1.inOut", yoyo: true, repeat: 15 }, 10.0);
+
+    // Penrose cursor appears
+    tl.to("#penrose", { opacity: 1, duration: 0.3, ease: "power2.out" }, 10.3);
+
+    // === TETRIS GAMEPLAY ===
+
+    // Piece 1: O-piece drops (10.5s → 12.0s)
+    var fp1Land = 14 * CELL;
+    tl.to("#fp1", { top: fp1Land, duration: 1.5, ease: "power1.in" }, 10.5);
+    tl.to("#penrose", { left: 4 * CELL + 100, top: -40, duration: 0.2, ease: "power2.out" }, 10.3);
+    tl.to("#penrose", { top: fp1Land - 20, duration: 1.5, ease: "power1.in" }, 10.5);
+
+    // Cursor zips back up
+    tl.to("#penrose", { top: -60, left: -10, duration: 0.25, ease: "power3.in" }, 12.1);
+
+    // Piece 2: I-piece drops (12.5s → 14.0s)
+    var fp2Land = 15 * CELL;
+    tl.to("#fp2", { top: fp2Land, duration: 1.5, ease: "power1.in" }, 12.5);
+    tl.set("#penrose", { left: 70, top: -40 }, 12.45);
+    tl.to("#penrose", { top: fp2Land - 20, duration: 1.5, ease: "power1.in" }, 12.5);
+
+    // Cursor zips back
+    tl.to("#penrose", { top: -60, left: 7 * CELL + 50, duration: 0.25, ease: "power3.in" }, 14.1);
+
+    // Piece 3: T-piece drops (14.5s → 16.0s)
+    var fp3Land = 14 * CELL;
+    tl.to("#fp3", { top: fp3Land, duration: 1.5, ease: "power1.in" }, 14.5);
+    tl.set("#penrose", { left: 8 * CELL + 40, top: -40 }, 14.45);
+    tl.to("#penrose", { top: fp3Land - 20, duration: 1.5, ease: "power1.in" }, 14.5);
+
+    // Cursor zips back
+    tl.to("#penrose", { top: -60, left: 5 * CELL + 30, duration: 0.25, ease: "power3.in" }, 16.1);
+
+    // Piece 4: L-piece drops (16.5s → 18.5s)
+    var fp4Land = 13 * CELL;
+    tl.to("#fp4", { top: fp4Land, duration: 2.0, ease: "power1.in" }, 16.5);
+    tl.set("#penrose", { left: 5 * CELL + 80, top: -40 }, 16.45);
+    tl.to("#penrose", { top: fp4Land - 20, duration: 2.0, ease: "power1.in" }, 16.5);
+
+    // Line clear flash #1 at 19.0s (row 15)
+    tl.to("#line-flash-1", { opacity: 1, duration: 0.08, ease: "power4.out" }, 19.0);
+    tl.to("#line-flash-1", { opacity: 0, duration: 0.15, ease: "power2.in" }, 19.12);
+    tl.to("#line-flash-1", { opacity: 0.7, duration: 0.06, ease: "power4.out" }, 19.3);
+    tl.to("#line-flash-1", { opacity: 0, duration: 0.2, ease: "power2.in" }, 19.4);
+
+    // Line clear flash #2 at 19.15s (row 14)
+    tl.to("#line-flash-2", { opacity: 0.8, duration: 0.08, ease: "power4.out" }, 19.15);
+    tl.to("#line-flash-2", { opacity: 0, duration: 0.15, ease: "power2.in" }, 19.27);
+
+    // Penrose cursor shakes on game over approach
+    tl.to("#penrose", { x: 8, duration: 0.04, ease: "none", yoyo: true, repeat: 9 }, 20.5);
+    tl.to("#penrose", { opacity: 0.3, duration: 0.5, ease: "power2.in" }, 21.0);
+
+    // Score counter animation
+    var scoreObj = { val: 12400 };
+    tl.to(scoreObj, {
+      val: 24800,
+      duration: 10,
+      ease: "steps(25)",
+      onUpdate: function() {
+        var el = document.getElementById("s3-score");
+        if (el) el.textContent = String(Math.round(scoreObj.val)).padStart(6, "0");
+      }
+    }, 10.5);
+
+    // Lines counter
+    var linesObj = { val: 24 };
+    tl.to(linesObj, {
+      val: 48,
+      duration: 10,
+      ease: "steps(12)",
+      onUpdate: function() {
+        var el = document.getElementById("s3-lines");
+        if (el) el.textContent = String(Math.round(linesObj.val)).padStart(3, "0");
+      }
+    }, 10.5);
+
+    // Level counter
+    var levelObj = { val: 4 };
+    tl.to(levelObj, {
+      val: 6,
+      duration: 10,
+      ease: "steps(2)",
+      onUpdate: function() {
+        var el = document.getElementById("s3-level");
+        if (el) el.textContent = String(Math.round(levelObj.val)).padStart(2, "0");
+      }
+    }, 10.5);
+
+    // === CHROMATIC ABERRATION TRANSITION 3→4 (T=22.0s) ===
+    var T3 = 22.0;
+    tl.fromTo("#gl-r", { opacity: 0.6, x: 0, y: 0 }, { x: -80, opacity: 0.8, duration: 0.15, ease: "power2.in" }, T3);
+    tl.fromTo("#gl-b", { opacity: 0.6, x: 0, y: 0 }, { x: 80, opacity: 0.8, duration: 0.15, ease: "power2.in" }, T3);
+    tl.fromTo("#gl-g", { opacity: 0.6, x: 0, y: 0 }, { y: 35, opacity: 0.6, duration: 0.15, ease: "power2.in" }, T3);
+    // Swap
+    tl.set("#s3", { opacity: 0 }, T3 + 0.15);
+    tl.set("#s4", { opacity: 1 }, T3 + 0.15);
+    // Converge
+    tl.to("#gl-r", { x: 0, opacity: 0, duration: 0.15, ease: "power2.out" }, T3 + 0.15);
+    tl.to("#gl-b", { x: 0, opacity: 0, duration: 0.15, ease: "power2.out" }, T3 + 0.15);
+    tl.to("#gl-g", { y: 0, opacity: 0, duration: 0.15, ease: "power2.out" }, T3 + 0.15);
+
+    // === SCENE 4 ENTRANCES (22.3s) ===
+    tl.from("#s4-go", { scale: 1.4, opacity: 0, duration: 0.6, ease: "back.out(1.5)" }, 22.35);
+    tl.from("#s4-fsl", { y: 20, opacity: 0, duration: 0.4, ease: "power2.out" }, 22.7);
+    tl.from("#s4-fs", { opacity: 0, duration: 0.5, ease: "power3.out" }, 22.9);
+    tl.from("#s4-stats", { y: 30, opacity: 0, duration: 0.5, ease: "power2.out" }, 23.2);
+    tl.from("#s4-sep", { scaleX: 0, duration: 0.4, ease: "expo.out" }, 23.5);
+    tl.from("#s4-made", { opacity: 0, duration: 0.3, ease: "power2.out" }, 23.8);
+    tl.from("#s4-brand", { x: -20, opacity: 0, duration: 0.5, ease: "power3.out" }, 24.0);
+    tl.from("#s4-user", { x: 20, opacity: 0, duration: 0.5, ease: "expo.out" }, 24.2);
+
+    // Final score counter animation
+    var fsObj = { val: 0 };
+    tl.to(fsObj, {
+      val: 24800,
+      duration: 1.5,
+      ease: "power2.out",
+      onUpdate: function() {
+        var el = document.getElementById("s4-fs");
+        if (el) el.textContent = String(Math.round(fsObj.val)).padStart(6, "0");
+      }
+    }, 22.9);
+
+    // Scene 4 glow breathing
+    tl.from(".s4-glow", { scale: 0.5, opacity: 0, duration: 0.8, ease: "power2.out" }, 22.4);
+    tl.to(".s4-glow", { scale: 1.15, duration: 2.0, ease: "sine.inOut", yoyo: true, repeat: 1 }, 23.5);
+
+    // Final scene fade out (only scene 4 gets exit animations)
+    tl.to("#s4-go", { opacity: 0, y: -20, duration: 0.8, ease: "power2.in" }, 26.5);
+    tl.to("#s4-fsl", { opacity: 0, duration: 0.6, ease: "power2.in" }, 26.6);
+    tl.to("#s4-fs", { opacity: 0, duration: 0.7, ease: "power2.in" }, 26.7);
+    tl.to("#s4-stats", { opacity: 0, duration: 0.5, ease: "power2.in" }, 26.8);
+    tl.to("#s4-sep", { opacity: 0, duration: 0.4, ease: "power2.in" }, 26.9);
+    tl.to("#s4-made", { opacity: 0, duration: 0.4, ease: "power2.in" }, 27.0);
+    tl.to("#s4-brand", { opacity: 0, duration: 0.4, ease: "power2.in" }, 27.1);
+    tl.to("#s4-user", { opacity: 0, duration: 0.4, ease: "power2.in" }, 27.2);
+    tl.to(".s4-glow", { opacity: 0, duration: 0.6, ease: "power2.in" }, 27.0);
+
+    window.__timelines["main"] = tl;
+  </script>
+</body>
+</html>
