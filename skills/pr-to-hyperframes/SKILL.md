@@ -1,31 +1,78 @@
 ---
 name: pr-to-hyperframes
 description: |
-  Generate a short visual walkthrough video for a pull request and embed it in the PR description. Use when: (1) the user is about to create or has just created a PR with visual/UI changes, (2) the user asks for a PR demo video, walkthrough, or visual summary, (3) you detect the current branch has changes to UI components, styles, layouts, or frontend code and a PR is being created. Triggers on: "create a PR video", "add a walkthrough", "make a demo for this PR", "record the changes", or when `gh pr create` is about to run on a branch with visual diffs.
+  Create a narrated video walkthrough of a pull request with code slides, diff visualization, and audio narration. Pulls branding from the repo automatically. Use when: (1) the user asks for a PR walkthrough, PR video, or demo video, (2) you're about to create a PR with visual/UI changes and want to suggest a video, (3) the user says "make a PR video", "add a walkthrough", "record a demo for this PR". Triggers on: PR creation with visual diffs, explicit walkthrough requests, or when `gh pr create` is about to run on a branch with UI changes.
 ---
 
-# PR to HyperFrames
+# PR walkthrough video
 
-Generate a short video walkthrough of a pull request's visual changes and embed it in the PR body. Reviewers see the changes in motion instead of reading diffs — faster reviews, fewer misunderstandings.
+Create a narrated walkthrough video for a pull request. This provides the same benefit as a Loom video from the PR author — walking through the code changes, explaining what was done and why, so reviewers understand the PR quickly.
 
-## When to use
+**Input:** A GitHub pull request URL, PR number, or the current branch (auto-detects the PR).
 
-**Explicit invocation:**
+**Output:** An MP4 video at 1280x720 (30 fps) with audio narration, whisper-timed captions, and branded intro/outro slides, saved to `out/pr-<number>-walkthrough.mp4`.
 
-- User says "make a PR video", "add a walkthrough video to my PR", "record a demo of these changes"
+All intermediate files (audio, manifest, scripts) go in `tmp/pr-<number>/` relative to this skill directory. This directory is gitignored. Only the final `.mp4` lives at `out/`.
 
-**Ambient suggestion (proactive):**
+Run commands that reference `./scripts` or `./video` from this skill directory.
 
-- You're about to run `gh pr create` or the user asks you to open a PR
-- The branch diff touches visual files (see detection rules below)
-- Suggest: _"This PR has visual changes — want me to generate a quick HyperFrames walkthrough video to embed in the description?"_
-- If the user declines, proceed with the normal PR. Never push.
+## Branding
 
-## Detection rules
+**The skill auto-detects branding from the repo.** It never hardcodes project-specific colors, logos, or names. At the start of every run, resolve branding:
 
-A diff counts as "visual" if it touches any of:
+1. **Project name** — read `package.json` → `name` field (strip `@scope/` prefix). Fallback: git remote repo name. Fallback: directory name.
+2. **Colors** — read `design.md` or `DESIGN.md` if it exists (check both casings). Extract primary color, background color, accent color. Fallback: neutral palette (`#09090b` text on `#ffffff` background, `#3b82f6` accent).
+3. **Fonts** — from `design.md` if present. Fallback: `"Geist"` for body, `"Geist Mono"` for code.
+4. **Logo** — look for `logo.svg` or `logo.png` in repo root, `public/`, `assets/`, `.github/`. If found, use it in intro/outro. If not found, use the project name as text.
+5. **Repo identifier** — parse `git remote get-url origin` for the `org/repo` slug (e.g., `acme/widget`).
 
-- `*.tsx`, `*.jsx`, `*.vue`, `*.svelte` files that contain JSX/template markup (not pure logic files)
+Pass these values to `build.mjs` via a `branding` key in the manifest:
+
+```json
+{
+  "branding": {
+    "name": "widget",
+    "org": "acme",
+    "repo": "acme/widget",
+    "logo": null,
+    "colors": {
+      "text": "#09090b",
+      "background": "#ffffff",
+      "accent": "#3b82f6",
+      "caption": "#ffd800",
+      "captionBg": "#09090b"
+    },
+    "fonts": {
+      "body": "Geist",
+      "mono": "Geist Mono"
+    }
+  }
+}
+```
+
+The **outro slide** shows the project logo/name and a subtle attribution line:
+
+```
+[Project Logo or Name]
+PR Walkthrough · #NNN
+Made with HyperFrames
+```
+
+The **footer bar** shows the project mark + name on the left, and `PR #NNN` on the right. The **PR body** attribution reads:
+
+```html
+<sub>Walkthrough by [HyperFrames](https://hyperframes.dev) — write HTML, render video.</sub>
+```
+
+This is the only HyperFrames mention. Everything else is the repo's own branding.
+
+## When to suggest (ambient mode)
+
+When you're about to run `gh pr create` or the user asks you to open a PR, check if the branch diff touches visual files:
+
+**Visual file patterns:**
+
+- `*.tsx`, `*.jsx`, `*.vue`, `*.svelte` with JSX/template markup
 - `*.css`, `*.scss`, `*.less`, `*.module.css`, `*.styled.*`
 - `*.html` files
 - Image assets (`*.png`, `*.jpg`, `*.svg`, `*.gif`, `*.webp`)
@@ -33,156 +80,372 @@ A diff counts as "visual" if it touches any of:
 - Storybook stories (`*.stories.*`)
 - Component library files
 
-**Skip suggestion** if the diff is purely:
+**Skip suggestion** if the diff is purely backend, tests, docs, or dependency bumps.
 
-- Backend/API changes, migrations, configs
-- Test files only
-- Documentation only
-- Dependency bumps
+If visual changes are detected, suggest: _"This PR has visual changes — want me to generate a quick walkthrough video to embed in the description?"_
 
----
+If the user declines, proceed with the normal PR. Never push.
+
+## Philosophy
+
+**This is a walkthrough from the author's perspective.** The goal is the same as if the PR author sat down with a reviewer and walked them through the changes — showing specific code, explaining what changed and why, in an order that builds understanding.
+
+This means:
+
+- **The narration drives everything.** Write the walkthrough narration first, as a continuous explanation of the PR. Then figure out what should be on screen at each moment.
+- **Show the code.** The default visual is a code diff or source file. Text slides are the exception (intro, brief transitions, outro), not the rule.
+- **Walk through changes in a logical order**, not necessarily file order or commit order — always anchored to concrete code.
+- **Explain the "why", not just the "what".** The code on screen shows what changed. The narration adds the reasoning.
 
 ## Workflow
 
-### Step 1: Analyze the diff
+### Step 1: Understand the PR
+
+Read the PR commits, diff, and description. Understand the narrative arc:
+
+- What problem does this solve?
+- What's the approach?
+- What are the key mechanisms?
 
 ```bash
-git diff main...HEAD --stat
-git diff main...HEAD --name-only
+gh pr view <number> --json title,body,commits
+git log main..HEAD --oneline
+git diff main..HEAD --stat
 ```
 
-Identify:
+**Skip generated files.** When reading the diff, ignore auto-generated files:
 
-1. Which files changed and what kind of changes (new component, restyled existing, layout shift, new page)
-2. The narrative: what's the story of this PR in 10-15 seconds?
-3. Key visual moments worth highlighting
+- Lockfiles (`yarn.lock`, `package-lock.json`, `bun.lockb`)
+- Generated docs, API reports, changelogs
+- Build output, bundled assets, source maps
+- Snapshots, schema dumps
 
-Read the changed files to understand the actual UI changes. Don't guess from filenames.
+If unsure whether a file is generated, check for a "DO NOT EDIT" header. Filter these out when picking which files to feature.
 
-### Step 2: Capture before/after states
+**Resolve branding.** Read `package.json`, `design.md`, check for logos, parse git remote. Build the `branding` object for the manifest.
 
-If the project has a dev server or Storybook:
+### Step 2: Write the narration
 
-**Before state** — capture from `main`:
+Write the narration as continuous text, broken into logical segments. Each segment is a beat of the walkthrough. Save this as `tmp/pr-<number>/SCRIPT.md`.
+
+The narration should read like the author explaining the PR to a colleague: "So here's what we're doing... The core problem was X... The approach I took was Y... If you look at this function here..."
+
+Structure: intro → context/problem → code walkthrough → summary. See **Script structure** below.
+
+Avoid redundancy between intro and first content segment.
+
+### Step 3: Generate audio and timestamps
+
+Generate per-segment audio clips with one TTS call per segment:
 
 ```bash
-git stash # if needed
-git checkout main
-# start dev server, capture screenshots/recordings of affected pages
-npx hyperframes browser capture --url <dev-url> --output before/
-git checkout -  # back to feature branch
-git stash pop   # if needed
+./scripts/generate-audio.sh narration.json tmp/pr-<number>/
 ```
 
-**After state** — capture from the feature branch:
+**API key:** Sourced from `.env` file (`GEMINI_API_KEY`).
 
-```bash
-# start dev server, capture screenshots/recordings of affected pages
-npx hyperframes browser capture --url <dev-url> --output after/
+#### Narration JSON format
+
+```json
+{
+  "style": "Read the following walkthrough narration in a calm, steady, professional tone. Speak at a measured pace as if the author of a pull request were walking a colleague through the code changes.",
+  "voice": "Iapetus",
+  "slides": [
+    "This pull request adds group-aware binding resolution...",
+    "The core problem was that arrow bindings broke when...",
+    "If you look at the getBindingTarget method..."
+  ]
+}
 ```
 
-If no dev server is available, compose the video from the diff itself — show code snippets, annotated screenshots, or architectural diagrams. A code-walkthrough video still beats a wall of diff text.
+- **`style`** — Voice persona and pacing instructions. Keep it short and specific.
+- **`voice`** — Gemini voice name (default: `Iapetus`).
+- **`slides`** — Array of narration text, one entry per segment.
 
-### Step 3: Compose the video
+#### How it works
 
-Initialize and build the walkthrough composition:
+1. For each segment, the script builds a prompt: style preamble + segment text.
+2. One API call to `gemini-2.5-pro-tts` per segment generates a WAV clip directly.
+3. Each clip is validated (duration sanity check vs word count) and retried automatically if the output is bad.
+4. Leading/trailing silence is trimmed from each clip.
 
-```bash
-npx hyperframes init pr-walkthrough --non-interactive
+**Output:** Per-segment audio clips (`audio-00.wav`, ...) and a `durations.json` file mapping each audio filename to its duration in seconds.
+
+**Dependencies:** ffmpeg / ffprobe. No Python packages required beyond the standard library.
+
+**Do NOT use** `[pause long]` or `[pause medium]` markup tags — the model may read them aloud literally.
+
+### Step 4: Write the manifest
+
+The manifest is a JSON file that describes every slide in the video. It bridges the narration/audio step and the hyperframes renderer.
+
+Read the `durations.json` from step 3 to get the duration (in seconds) for each audio clip. Then write a `manifest.json` alongside the audio files:
+
+```json
+{
+  "pr": 142,
+  "branding": {
+    "name": "widget",
+    "org": "acme",
+    "repo": "acme/widget",
+    "logo": null,
+    "colors": {
+      "text": "#09090b",
+      "background": "#ffffff",
+      "accent": "#3b82f6",
+      "caption": "#ffd800",
+      "captionBg": "#09090b"
+    },
+    "fonts": { "body": "Geist", "mono": "Geist Mono" }
+  },
+  "slides": [
+    {
+      "type": "intro",
+      "title": "Fix canvas z-index layering #142",
+      "date": "May 15, 2026",
+      "audio": "audio-00.wav",
+      "durationInSeconds": 3.2
+    },
+    {
+      "type": "diff",
+      "filename": "packages/editor/editor.css",
+      "language": "css",
+      "diff": "@@ -12,7 +12,7 @@\n   --z-canvas: 100;\n-  --z-canvas-front: 600;\n+  --z-canvas-front: 250;",
+      "audio": "audio-01.wav",
+      "durationInSeconds": 25.8
+    },
+    {
+      "type": "code",
+      "filename": "packages/editor/src/Editor.ts",
+      "language": "typescript",
+      "code": "function getZIndex() {\n  return 250\n}",
+      "audio": "audio-02.wav",
+      "durationInSeconds": 13.5
+    },
+    {
+      "type": "text",
+      "title": "Summary",
+      "subtitle": "Moved canvas-in-front from z-index 600 to 250.",
+      "audio": "audio-07.wav",
+      "durationInSeconds": 7.4
+    },
+    {
+      "type": "outro",
+      "durationInSeconds": 3
+    }
+  ]
+}
 ```
 
-**Read:** The `hyperframes` skill (load it for composition rules).
+#### Slide types
 
-Build a composition that tells the PR story. Typical structure:
+| Type      | Required fields                                              | Description                     |
+| --------- | ------------------------------------------------------------ | ------------------------------- |
+| `intro`   | `title`, `date`, `audio`, `durationInSeconds`                | Project name + title + date     |
+| `diff`    | `filename`, `language`, `diff`, `audio`, `durationInSeconds` | Syntax-highlighted unified diff |
+| `code`    | `filename`, `language`, `code`, `audio`, `durationInSeconds` | Syntax-highlighted source code  |
+| `text`    | `title`, `audio`, `durationInSeconds`                        | Title + optional `subtitle`     |
+| `list`    | `title`, `items`, `audio`, `durationInSeconds`               | Title + numbered items          |
+| `image`   | `src`, `audio`, `durationInSeconds`                          | Pre-rendered image (fallback)   |
+| `segment` | `title`, `durationInSeconds`                                 | Silent title card between parts |
+| `outro`   | `durationInSeconds`                                          | Project branding + attribution  |
 
-| Beat    | Duration | Content                                             |
-| ------- | -------- | --------------------------------------------------- |
-| Title   | 2-3s     | PR title + one-liner description                    |
-| Context | 2-3s     | What area of the app changed (screenshot/highlight) |
-| Before  | 3-4s     | Previous state (if available)                       |
-| After   | 3-4s     | New state with annotations pointing out changes     |
-| Summary | 2s       | Key takeaway + PR number                            |
+#### Animated scroll with `focus`
 
-Adapt the structure to what makes sense. A CSS-only fix might just be a before/after split. A new feature might need a full walkthrough. A layout change might use an animated overlay.
+For longer diffs or code (more than ~30 lines), the renderer keeps the font at a readable 16px and uses an animated viewport that scrolls between focus points. Add a `focus` array to `diff` or `code` slides:
 
-**Design guidelines:**
-
-- Keep it under 20 seconds. Reviewers are busy.
-- Use the project's brand colors if `design.md` exists, otherwise use a clean neutral palette.
-- Annotate changes — arrows, highlights, zoom-ins on the specific things that changed.
-- End card should read: `PR #<number> — <title>`
-
-### Step 4: Render
-
-```bash
-cd pr-walkthrough
-npx hyperframes lint
-npx hyperframes render -o ../pr-walkthrough.mp4
+```json
+{
+  "type": "diff",
+  "filename": "src/lib/Editor.ts",
+  "language": "typescript",
+  "diff": "... 60-line diff ...",
+  "focus": [
+    { "line": 3, "at": 0 },
+    { "line": 25, "at": 0.4 },
+    { "line": 50, "at": 0.8 }
+  ],
+  "audio": "audio-03.wav",
+  "durationInSeconds": 30
+}
 ```
 
-### Step 5: Upload and embed
+- **`line`** — The line number (0-indexed) to center on screen.
+- **`at`** — When to arrive at this position, as a fraction of the slide's duration (0 = start, 1 = end).
 
-Upload the video and embed it in the PR body:
+**When to use focus:** Any diff or code slide with more than ~30 lines.
+**When to omit focus:** Short diffs (<=30 lines) fit on screen and don't need scrolling.
+
+#### Writing diff fields
+
+For `diff` slides, paste the **unified diff** for the relevant hunk(s) — the output of `git diff` for that section, including the `@@` hunk header and `+`/`-`/` ` line prefixes. The renderer parses these to apply green/red backgrounds.
 
 ```bash
-# Upload to a public host or use GitHub's drag-drop
-# Then add to PR body:
+git diff main..HEAD -- path/to/file.ts
+```
+
+Include only the relevant hunks. Strip the `diff --git` and `---`/`+++` header lines — start from `@@`.
+
+#### Segment title slides
+
+Insert a **`segment` slide** before each content segment to introduce it — except before the intro and context segments. Each segment slide is **3 seconds of silence** with the segment title centered.
+
+```json
+{
+  "type": "segment",
+  "title": "State machine refactor",
+  "durationInSeconds": 3
+}
+```
+
+#### Segment title labels on code/diff slides
+
+Add a `title` field to `code` and `diff` slides to show a small label in the top-left corner identifying the current segment. Use the same title as the preceding `segment` slide.
+
+### Step 5: Render the video
+
+Run the `render.sh` script:
+
+```bash
+./video/render.sh \
+  tmp/pr-<number>/manifest.json \
+  out/pr-<number>-walkthrough.mp4
+```
+
+The script:
+
+1. Copies referenced audio/image files into `video/assets/`.
+2. Runs whisper transcription on each audio file → `video/transcripts/audio-NN.json` (idempotent).
+3. Runs `build.mjs <manifest>` to generate `video/index.html` — a hyperframes composition with timed clips, GSAP timeline for transitions and code-focus pans, and captions derived from whisper transcripts.
+4. Lints and renders 1920x1080 frames via `npx hyperframes render`.
+5. Downscales to 1280x720 / 30fps and recompresses with ffmpeg (CRF 26 + AAC 96k).
+
+**Dependencies:** Node.js 22+, ffmpeg, Python 3. `hyperframes` is invoked via `npx --yes`.
+
+### Step 6: Embed in PR
+
+After rendering, embed the video in the PR body:
+
+```bash
+# Add to existing PR:
 gh pr edit <number> --body "$(gh pr view <number> --json body -q .body)
 
 ## Visual Walkthrough
 
-https://user-images.githubusercontent.com/<video-url>
+<video src=\"out/pr-<number>-walkthrough.mp4\"></video>
 
-<sub>Walkthrough generated with [HyperFrames](https://github.com/nichochar/hyperframes-oss) — write HTML, render video.</sub>
+<sub>Walkthrough by [HyperFrames](https://hyperframes.dev) — write HTML, render video.</sub>
 "
 ```
 
-If creating a new PR, include the video section in the initial `gh pr create --body`.
+Or include the video section in the initial `gh pr create --body` when creating a new PR.
 
-The attribution line is a single `<sub>` tag at the end of the walkthrough section. It links to the repo — useful for reviewers who want to make their own walkthrough videos.
+#### Caption sync via whisper
 
----
+Captions appear as colored text on a solid dark pill at the bottom. Start/end times come from word-level whisper transcripts grouped into 5-7 word chunks, breaking on natural pauses (>450ms gaps). Whisper may transcribe brand names phonetically — acceptable for captions.
 
-## Composition tips
+#### File size knobs
 
-### Before/after split
+Default targets ~30-60 MB for an 8-minute video. To tune:
 
-For style changes, use a vertical or horizontal split with a wipe transition:
+- `--crf <n>` in the ffmpeg step: 22 is near-lossless, 26 is default, 30+ is smaller.
 
-- Left/top = before, right/bottom = after
-- Animate a divider line sweeping across to reveal the change
-- Label each side clearly
+## File organization
 
-### Feature walkthrough
+```
+pr-to-hyperframes/
+├── SKILL.md                    # This file
+├── scripts/                    # CLI tools (checked in)
+│   ├── generate-audio.sh       # narration.json → per-slide WAVs + durations.json
+│   └── make-video.sh           # Static slide + audio assembly fallback
+├── video/                      # Hyperframes project (checked in)
+│   ├── hyperframes.json        # hyperframes config
+│   ├── meta.json               # project meta
+│   ├── build.mjs               # manifest.json → index.html composition
+│   ├── render.sh               # manifest.json → 720p MP4 (full pipeline)
+│   ├── assets/                 # Auto-populated at render time (gitignored)
+│   ├── transcripts/            # Whisper word-level JSON (gitignored, cached)
+│   └── renders/                # Intermediate 1080p renders (gitignored)
+├── out/                        # Final outputs (gitignored)
+│   └── pr-XXXX-walkthrough.mp4
+└── tmp/                        # Intermediate files (gitignored)
+    └── pr-XXXX/
+        ├── SCRIPT.md           # Narration script
+        ├── narration.json      # Input to generate-audio.sh
+        ├── durations.json      # Audio durations
+        ├── manifest.json       # Input to render.sh
+        └── audio-XX.wav        # Per-segment audio clips
+```
 
-For new features, simulate user interaction:
+## API configuration
 
-- Show the page loading
-- Highlight the new element with a pulse or glow
-- Show the interaction flow (click → result)
-- Use cursor animation to guide the eye
+- **Gemini API key:** Stored as `GEMINI_API_KEY` in the project root `.env`.
+- **TTS model:** `gemini-2.5-pro-tts`
+- **TTS voice:** `Iapetus` (default)
 
-### Code-only fallback
+## Script structure
 
-When no UI can be captured:
+The walkthrough follows a consistent narrative arc. 8-12 segments total, with the vast majority showing code.
 
-- Show the key files changed (syntax-highlighted code blocks)
-- Highlight the specific lines that changed (green for additions, red for removals)
-- Zoom into the important parts
-- Add brief text annotations explaining the change
+### Intro (1 segment)
 
----
+The intro card: project logo/name + PR title + date. The narration should be a single sentence framing what the PR does at a high level.
 
-## Examples
+Manifest slide type: `intro`.
 
-**Simple CSS fix:**
+### Context (0-1 segments)
 
-> 5-second video: before screenshot → wipe transition → after screenshot → "Fixed padding on mobile nav — PR #142"
+Brief orientation before diving into code. What was the situation before this PR? What problem motivated the work?
 
-**New component:**
+- Be concrete: "Arrow bindings broke when the target was inside a group" not "There were issues with bindings"
+- Name the area of the codebase affected
 
-> 12-second video: title card → component in isolation → component in context → interaction demo → end card
+If context can be explained while showing the first piece of code, skip the standalone context segment.
 
-**Refactor with visual changes:**
+Manifest slide type: `text` or `diff`.
 
-> 15-second video: title card → 3 before/after pairs cycling through affected pages → summary of what changed → end card
+### Code walkthrough (6-10 segments)
+
+The bulk of the video. Walk through actual code changes, showing diffs and files while explaining what was done and why.
+
+**Every segment should show code.** Use `diff` slides for changes and `code` slides for unchanged reference code.
+
+- **Name files and functions.** Every segment should reference at least one specific file or function.
+- **Show the diff.** Use `git diff main..HEAD -- path/to/file` and extract relevant hunks.
+- **Order by understanding, not by file.** Present changes in the order that builds comprehension.
+- **Explain the "why", not just the "what".**
+- **Skip boilerplate, but mention it.** "There are also some type exports added in `index.ts`."
+- **Group related small changes.** If three files got the same one-line fix, one segment covers all three.
+
+### Summary (1 segment)
+
+Brief recap of what the PR accomplished. A sentence or two summarizing the change, mentioning known limitations or follow-up work.
+
+Manifest slide type: `text`.
+
+### Outro (1 segment, silent)
+
+The project logo/name, a subtle "Made with HyperFrames" line, 3 seconds of silence.
+
+Manifest slide type: `outro` with `durationInSeconds: 3`.
+
+## Narration writing tips
+
+- **Be specific about code.** Say "In `BindingUtil.ts`, the `onAfterChange` handler now checks for group ancestors" — not "The binding system was updated."
+- **Each segment = one change or closely related group.**
+- **Write as the author.** "So the main thing here is..." or "The tricky part was..." are fine.
+- **Avoid redundancy** between intro and first content segment.
+- **Mention files that aren't shown.** If a PR touches 15 files but only 6 are interesting, briefly acknowledge the others.
+- Aim for **5-7 minutes** total narration.
+
+## Checklist
+
+- [ ] Resolve repo branding (name, colors, fonts, logo)
+- [ ] Read all PR commits and understand the full diff
+- [ ] Write narration in SCRIPT.md (8-12 segments)
+- [ ] Generate per-segment audio (Iapetus voice)
+- [ ] Read durations.json to get per-segment durations
+- [ ] Write manifest.json with slide types, diffs/code, audio refs, and branding
+- [ ] Render video with render.sh
+- [ ] Verify final output: 1280x720 / 30 fps, audio synced, captions readable, outro present
+- [ ] Embed video in PR body with HyperFrames attribution
