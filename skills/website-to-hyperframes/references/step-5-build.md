@@ -201,9 +201,11 @@ ANY code, read these — targeted reads only, not full files:
 Brand values are in the BRAND VALUES section above — no need to read DESIGN.md.
 
 ═══ RULES ═══
+- SCRIPT PLACEMENT: scripts MUST be inside the <template> element, not after </template>. The <template> content is inert until HyperFrames injects it — scripts outside see no DOM, every querySelector returns null, GSAP silently does nothing. This is the single most common cause of "all compositions completely static."
+- STYLE PLACEMENT: CSS <style> blocks inside <template> elements are unreliable after injection. Use inline style="" attributes on elements, or set backgrounds/colors on the host divs in index.html instead.
 - ASSET PATHS: always project-root-relative. capture/assets/file.png ✅  ../capture/assets/file.png ❌
 - FONTS: if brand fonts are listed above with a capture/assets/fonts/ path, add @font-face at the top of your CSS. Without it everything falls back to system-ui.
-- QUERYSELECTOR: never use document.querySelector("#host #child") to reach elements inside a beat host div — the host isn't in the main DOM at script time. Use document.getElementById("child") with null guards.
+- QUERYSELECTOR: never use document.querySelector("#host #child") — the host isn't in main DOM at script time. Use document.getElementById("child") with null guards. Never call .getTotalLength() or any DOM method without a null check first — one uncaught TypeError crashes the entire beat script before the timeline registers.
 - If you want to place text over a screenshot: VIEW it first
 - Use captured screenshots at full size, NOT CSS recreations unless you
   can recreate something almost pixel perfect
