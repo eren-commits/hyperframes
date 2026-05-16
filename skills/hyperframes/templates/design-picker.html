@@ -517,11 +517,16 @@
         padding: 6px 16px 16px;
       }
 
+      .opt-grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+      }
+
       /* ── Option cards ── */
       .opt {
         border: 1px solid #1e1e1e;
         border-radius: 10px;
-        margin-bottom: 6px;
         cursor: pointer;
         transition: border-color 0.12s;
         overflow: hidden;
@@ -1175,14 +1180,6 @@
     <!-- Phase 2: Fine-tune -->
     <div class="phase" id="phase-tune" style="flex-direction: row">
       <div class="panel-left">
-        <!-- Theme -->
-        <div class="section-card">
-          <div class="section-header">
-            <div class="section-icon">◐</div>
-            <div class="section-title">Theme</div>
-          </div>
-          <div class="section-body"><div class="chips" id="theme-options"></div></div>
-        </div>
         <!-- Background / Shader Editor -->
         <div class="section-card" id="bg-section">
           <div class="section-header">
@@ -1190,7 +1187,7 @@
             <div class="section-title">Background</div>
           </div>
           <div class="section-body">
-            <div class="chips" id="bg-options"></div>
+            <div class="opt-grid-2" id="bg-options"></div>
             <div id="shader-editor" style="display:none;margin-top:10px;">
               <div style="display:flex;gap:8px;margin-bottom:8px;">
                 <label style="flex:1;font-size:10px;color:#666;">
@@ -1213,22 +1210,13 @@
             </div>
           </div>
         </div>
-        <!-- Structure -->
-        <div class="section-card">
-          <div class="section-header">
-            <div class="section-icon">▦</div>
-            <div class="section-title">Structure</div>
-            <div class="section-meta" id="arch-meta"></div>
-          </div>
-          <div class="section-body" id="arch-options"></div>
-        </div>
         <!-- Palette -->
         <div class="section-card">
           <div class="section-header">
             <div class="section-icon">◉</div>
             <div class="section-title">Color</div>
           </div>
-          <div class="section-body" id="pal-options"></div>
+          <div class="section-body"><div class="opt-grid-2" id="pal-options"></div></div>
         </div>
         <!-- Typography -->
         <div class="section-card">
@@ -1576,9 +1564,8 @@
         var thIdx = THEMES.findIndex(function (t) {
           return t.id === (mb.theme || "dark");
         });
-        if (thIdx >= 0) chipSel("theme", thIdx, document.getElementById("theme-options"));
-        if (mb.arch_index != null)
-          sel("arch", mb.arch_index, document.getElementById("arch-options"));
+        if (thIdx >= 0) picks.theme = thIdx;
+        picks.arch = mb.arch_index || 0;
         var palIdx = overridePalette !== null ? overridePalette : mb.palette_index;
         if (palIdx != null) sel("palette", palIdx, document.getElementById("pal-options"));
         if (mb.type_index != null)
@@ -1597,7 +1584,7 @@
             if (BG_PRESETS[si].name === arch.bg_preset) { bgIdx = si; break; }
           }
         }
-        chipSel("bg_mode", bgIdx, document.getElementById("bg-options"));
+        sel("bg_mode", bgIdx, document.getElementById("bg-options"));
         shaderEditor.style.display = bgIdx > 0 ? "block" : "none";
         renderBgControls(bgIdx > 0 ? BG_PRESETS[bgIdx] : null);
 
@@ -1615,108 +1602,148 @@
 
       // ── Phase 2: Build options ──
 
-      // Architecture cards
-      var archOpts = document.getElementById("arch-options");
-      ARCHITECTURES.forEach(function (a, i) {
-        var el = document.createElement("div");
-        el.className = "opt";
-        el.innerHTML =
-          '<div class="opt-inner"><div class="opt-name">' +
-          a.name +
-          '</div><div class="opt-desc">' +
-          a.description +
-          '</div><div class="opt-tag">' +
-          a.tag +
-          "</div></div>";
-        el.onclick = function () {
-          sel("arch", i, archOpts);
-        };
-        archOpts.appendChild(el);
-      });
 
-      // Palette cards with ramp
       var palOpts = document.getElementById("pal-options");
-      PALETTES.forEach(function (p, i) {
-        var el = document.createElement("div");
-        el.className = "opt";
-        el.innerHTML =
-          '<div class="opt-inner"><div class="pal-strip"><div style="background:' +
-          p.primary +
-          ';"></div><div style="background:' +
-          p.secondary +
-          ';"></div><div style="background:' +
-          p.tertiary +
-          ';"></div><div style="background:' +
-          p.accent +
-          ';"></div></div><div class="opt-name">' +
-          p.name +
-          '</div><div class="opt-desc">' +
-          (p.desc || "") +
-          "</div></div>";
-        el.onclick = function () {
-          sel("palette", i, palOpts);
-        };
-        palOpts.appendChild(el);
-      });
+      function buildPalOpts() {
+        var prevSelected = picks.palette;
+        palOpts.innerHTML = "";
+        PALETTES.forEach(function (p, i) {
+          var el = document.createElement("div");
+          el.className = "opt" + (i === prevSelected ? " selected" : "");
+          el.innerHTML =
+            '<div class="opt-inner"><div class="pal-strip"><div style="background:' +
+            p.primary +
+            ';"></div><div style="background:' +
+            p.secondary +
+            ';"></div><div style="background:' +
+            p.tertiary +
+            ';"></div><div style="background:' +
+            p.accent +
+            ';"></div></div><div class="opt-name">' +
+            p.name +
+            '</div><div class="opt-desc">' +
+            (p.desc || "") +
+            "</div></div>";
+          el.onclick = function () {
+            sel("palette", i, palOpts);
+          };
+          palOpts.appendChild(el);
+        });
+      }
+      buildPalOpts();
+
+      function updateDefaultPaletteFromIframe(ifr) {
+        if (!ifr || !ifr.contentWindow) return;
+        var cs = ifr.contentWindow.getComputedStyle(ifr.contentDocument.documentElement);
+        var primary = cs.getPropertyValue("--tp-primary").trim();
+        var secondary = cs.getPropertyValue("--tp-secondary").trim();
+        var tertiary = cs.getPropertyValue("--tp-tertiary").trim();
+        var accent = cs.getPropertyValue("--tp-accent").trim();
+        if (primary && secondary) {
+          PALETTES[0].primary = primary;
+          PALETTES[0].secondary = secondary;
+          PALETTES[0].tertiary = tertiary || "#555";
+          PALETTES[0].accent = accent || "#888";
+          PALETTES[0].name = "Template Default";
+          buildPalOpts();
+        }
+      }
 
       // Typography cards with specimen
       var typeOpts = document.getElementById("type-options");
-      TYPEPAIRS.forEach(function (tp, i) {
-        var letters = "AaBbCcDdEeFfGgHh";
-        var el = document.createElement("div");
-        el.className = "opt";
-        el.innerHTML =
-          '<div class="type-specimen"><div class="type-headline" style="font-family:\'' +
-          tp.headline.family +
-          "',sans-serif;font-weight:" +
-          tp.headline.weight +
-          ';font-size:24px;">' +
-          tp.preview +
-          '</div><div class="type-body" style="font-family:\'' +
-          tp.body.family +
-          "',monospace;font-weight:" +
-          tp.body.weight +
-          ';">' +
-          tp.body_preview +
-          '</div></div><div class="type-meta"><div class="type-families">' +
-          tp.headline.family +
-          " " +
-          tp.headline.weight +
-          " · " +
-          tp.body.family +
-          " " +
-          tp.body.weight +
-          '</div><div class="type-letters" style="font-family:\'' +
-          tp.headline.family +
-          "',sans-serif;font-weight:" +
-          tp.headline.weight +
-          ';">' +
-          letters +
-          "</div></div>";
-        el.onclick = function () {
-          sel("type", i, typeOpts);
-        };
-        typeOpts.appendChild(el);
-      });
+      function buildTypeOpts() {
+        var prevSelected = picks.type;
+        typeOpts.innerHTML = "";
+        TYPEPAIRS.forEach(function (tp, i) {
+          var letters = "AaBbCcDdEeFfGgHh";
+          var el = document.createElement("div");
+          el.className = "opt" + (i === prevSelected ? " selected" : "");
+          el.innerHTML =
+            '<div class="type-specimen"><div class="type-headline" style="font-family:\'' +
+            tp.headline.family +
+            "',sans-serif;font-weight:" +
+            tp.headline.weight +
+            ';font-size:24px;">' +
+            tp.preview +
+            '</div><div class="type-body" style="font-family:\'' +
+            tp.body.family +
+            "',monospace;font-weight:" +
+            tp.body.weight +
+            ';">' +
+            tp.body_preview +
+            '</div></div><div class="type-meta"><div class="type-families">' +
+            tp.headline.family +
+            " " +
+            tp.headline.weight +
+            " · " +
+            tp.body.family +
+            " " +
+            tp.body.weight +
+            '</div><div class="type-letters" style="font-family:\'' +
+            tp.headline.family +
+            "',sans-serif;font-weight:" +
+            tp.headline.weight +
+            ';">' +
+            letters +
+            "</div></div>";
+          el.onclick = function () {
+            sel("type", i, typeOpts);
+          };
+          typeOpts.appendChild(el);
+        });
+      }
+      buildTypeOpts();
 
-      // Theme chips
-      var themeOpts = document.getElementById("theme-options");
-      THEMES.forEach(function (th, i) {
-        var el = document.createElement("div");
-        el.className = "chip theme-chip";
-        el.innerHTML =
-          '<div class="theme-swatch" style="background:' +
-          th.bg +
-          ';"></div><div class="chip-label">' +
-          th.name +
-          '</div><div class="chip-sub">' +
-          th.desc +
-          "</div>";
-        el.onclick = function () {
-          chipSel("theme", i, themeOpts);
-        };
-        themeOpts.appendChild(el);
-      });
+      function updateDefaultTypeFromIframe(ifr) {
+        if (!ifr || !ifr.contentDocument) return;
+        var doc = ifr.contentDocument;
+        // Extract fonts from Google Fonts link in the template
+        var fonts = [];
+        doc.querySelectorAll('link[href*="fonts.googleapis.com"]').forEach(function(link) {
+          var matches = link.href.match(/family=([^&]+)/g);
+          if (matches) matches.forEach(function(m) {
+            var parts = m.replace("family=", "").split(":");
+            var family = decodeURIComponent(parts[0]).replace(/\+/g, " ");
+            var weight = 400;
+            if (parts[1]) {
+              var wMatch = parts[1].match(/(\d{3,4})/);
+              if (wMatch) weight = parseInt(wMatch[1]);
+            }
+            fonts.push({ family: family, weight: weight });
+          });
+        });
+        // Also check inline @font-face or font-family in stylesheets
+        if (fonts.length === 0) {
+          doc.querySelectorAll("style").forEach(function(st) {
+            var ff = st.textContent.match(/font-family:\s*['"]([^'"]+)['"]/g);
+            if (ff) ff.forEach(function(m) {
+              var name = m.match(/font-family:\s*['"]([^'"]+)['"]/)[1];
+              if (name && fonts.findIndex(function(f) { return f.family === name; }) === -1) {
+                fonts.push({ family: name, weight: 400 });
+              }
+            });
+          });
+        }
+        if (fonts.length >= 1) {
+          var hFont = fonts[0];
+          var bFont = fonts.length >= 2 ? fonts[1] : { family: hFont.family, weight: Math.min(hFont.weight, 400) };
+          TYPEPAIRS[0] = {
+            name: "Template Default",
+            headline: { family: hFont.family, weight: hFont.weight },
+            body: { family: bFont.family, weight: bFont.weight },
+            preview: (PROMPT && PROMPT.headline) || "TITLE",
+            body_preview: "Template typography.",
+            desc: "Original fonts"
+          };
+          var link = document.createElement("link");
+          link.rel = "stylesheet";
+          link.href = "https://fonts.googleapis.com/css2?family=" +
+            hFont.family.replace(/ /g, "+") + ":wght@" + hFont.weight +
+            "&family=" + bFont.family.replace(/ /g, "+") + ":wght@" + bFont.weight + "&display=swap";
+          document.head.appendChild(link);
+          buildTypeOpts();
+        }
+      }
 
       // Corner chips
       var cornerOpts = document.getElementById("corner-options");
@@ -2197,13 +2224,13 @@
 
       BG_PRESETS.forEach(function(p, i) {
         var el = document.createElement("div");
-        el.className = "chip";
-        var dot = i > 0 ? '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#0ae448;margin-right:6px;"></span>' : '';
-        el.innerHTML = '<div><div class="chip-label">' + dot + p.name + '</div><div class="chip-sub">' + p.desc + '</div></div>';
+        el.className = "opt";
+        el.innerHTML = '<div class="opt-inner"><div class="opt-name">' + p.name + '</div><div class="opt-desc">' + p.desc + '</div></div>';
         el.onclick = function() {
-          chipSel("bg_mode", i, bgOpts);
+          sel("bg_mode", i, bgOpts);
           shaderEditor.style.display = i > 0 ? "block" : "none";
           renderBgControls(i > 0 ? p : null);
+          window._lastBgKey = null;
           if (typeof window._sgUpdateBg === "function") window._sgUpdateBg();
         };
         bgOpts.appendChild(el);
@@ -2413,6 +2440,9 @@
             "  --tp-shadow: " + shadow + ";\n" +
             "}\n";
 
+          // Typography: override fonts via JS (CSS can't catch all custom classes)
+          window._fontOverride = (picks.type !== null && picks.type > 0) ? { hf: t.headline.family, hw: t.headline.weight, bf: t.body.family, bw: t.body.weight } : null;
+
           // Corners: override border-radius on interactive/card elements
           overrideCss +=
             "[class*='card'], [class*='btn'], [class*='button'], [class*='tag'], [class*='badge'], " +
@@ -2438,14 +2468,51 @@
 
           document.querySelectorAll("#sc-scene-grid iframe, #sc-specimen-grid iframe").forEach(function(ifr) {
             if (!ifr.contentDocument) return;
-            var style = ifr.contentDocument.getElementById("tp-finetune-override");
-            if (!style) { style = ifr.contentDocument.createElement("style"); style.id = "tp-finetune-override"; ifr.contentDocument.head.appendChild(style); }
+            var doc = ifr.contentDocument;
+            var win = ifr.contentWindow;
+            var style = doc.getElementById("tp-finetune-override");
+            if (!style) { style = doc.createElement("style"); style.id = "tp-finetune-override"; doc.head.appendChild(style); }
             style.textContent = overrideCss;
+            // Font override via JS — force every element
+            var fo = window._fontOverride;
+            if (fo && win) {
+              // Load fonts in iframe
+              var fontLink = doc.getElementById("tp-font-link");
+              if (!fontLink) { fontLink = doc.createElement("link"); fontLink.id = "tp-font-link"; fontLink.rel = "stylesheet"; doc.head.appendChild(fontLink); }
+              fontLink.href = "https://fonts.googleapis.com/css2?family=" +
+                fo.hf.replace(/ /g,"+") + ":wght@" + fo.hw +
+                "&family=" + fo.bf.replace(/ /g,"+") + ":wght@" + fo.bw + "&display=swap";
+              // Apply after short delay for font load
+              setTimeout(function() {
+                doc.querySelectorAll("*").forEach(function(el) {
+                  try {
+                    var fs = parseFloat(win.getComputedStyle(el).fontSize);
+                    if (fs >= 32) {
+                      el.style.setProperty("font-family", '"' + fo.hf + '", serif', "important");
+                      el.style.setProperty("font-weight", String(fo.hw), "important");
+                    } else {
+                      el.style.setProperty("font-family", '"' + fo.bf + '", sans-serif', "important");
+                      el.style.setProperty("font-weight", String(fo.bw), "important");
+                    }
+                  } catch(e) {}
+                });
+              }, 100);
+            } else {
+              // Remove font overrides — restore template defaults
+              doc.querySelectorAll("*").forEach(function(el) {
+                el.style.removeProperty("font-family");
+                el.style.removeProperty("font-weight");
+              });
+              var fontLink = doc.getElementById("tp-font-link");
+              if (fontLink) fontLink.remove();
+            }
           });
         }
 
-        // ── Animate template with selected easing ──
-        if (window._templatePreviewInline && easeObj) {
+        // ── Animate template only on easing change or first load ──
+        var _easeKey = picks.easing;
+        if (window._templatePreviewInline && easeObj && window._lastEaseKey !== _easeKey) {
+          window._lastEaseKey = _easeKey;
           tpAnimateHero(easeObj);
         }
 
@@ -2948,8 +3015,11 @@
             ifr.addEventListener("load", function() {
               tpOnIframeLoad(pick.slug, ifr);
               tpPreloadGsap(ifr);
+              updateDefaultPaletteFromIframe(ifr);
+              updateDefaultTypeFromIframe(ifr);
               var scale = wrap.offsetWidth / 1920;
               ifr.style.transform = "scale(" + scale + ")";
+              renderPreview();
               // Build specimen grid with ALL slides (including first)
               var doc = ifr.contentDocument;
               if (!doc) return;
@@ -3037,6 +3107,7 @@
     <!-- Three.js shader gradient backgrounds (ES module) -->
     <script type="module">
     import * as THREE from 'three';
+    window.THREE = THREE;
 
     const vertexShader = `
 vec3 mod289(vec3 x){return x-floor(x*(1.0/289.0))*289.0;}
