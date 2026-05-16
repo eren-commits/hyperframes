@@ -40,13 +40,43 @@ New required check after mapping timestamps: compare real audio duration against
 
 The `drawElementImage` API detail (build-time knowledge) was duplicated in the storyboard reference file. Kept the planning section ("name it in the storyboard, Step 5 builds it"), removed the implementation details.
 
+### v3 run results (same 7 sites, same prompts, completed May 16 2026)
+
+All 7 videos rendered and in eval arena at: https://www.heygenverse.com/a/c927789b-7d96-4acb-b011-8b337e4cd5e3
+
+**New P0 found and fixed in v3:**
+
+1. **`data-start="0"` on all beats → beats go blank** — Engine seeks each beat's sub-comp to `global_time - data_start`. With all data-start=0, a 5.5s GSAP timeline is seeked to t=7 at global t=7 — past its end, engine marks it invisible. Fix: sequential data-start per transition point, data-duration = beat's GSAP length, all data-track-index="1". Verified with arc re-render. Commit `f74beb83`.
+
+2. **Scripts outside `<template>` → all GSAP null** — querySelector runs at page load when template content is inert. GSAP silently accepts null targets. All compositions static. Documented in RULES. Commit `a2ccc1e6`.
+
+3. **CSS `<style>` inside `<template>` unreliable** — Use inline `style=""` or set on host divs in index.html. Commit `a2ccc1e6`.
+
+4. **Transcript CLI writes to CWD, not next to audio file** — Fixed in `transcribe.ts`: defaults `dir` to `dirname(inputPath)`. Commit `a2ccc1e6`.
+
+**Full commit list on `feat/pipeline-quality-v2` (newest first):**
+
+```
+ba9aa4c7 docs: data-start rule in sub-agent RULES, v3 feedback with arc root cause
+f74beb83 fix(pipeline): document data-start/data-duration rule for HyperShader beats
+a2ccc1e6 fix(pipeline): transcript CWD footgun and template script/style rules
+ca4c5cc1 docs: add v3 agent feedback with root cause analysis
+8db7300b docs: mark v3-prep fixes in agent feedback status table
+36953172 fix(pipeline): sfx timing rules, font wiring, asset paths, captions, kokoro
+65533efa docs: update HANDOFF and feedback doc with v2 run fixes and status
+f8e733b9 fix(pipeline): snapshot wait, SFX ownership, VO timing, optional shader
+f4f67395 docs: add HANDOFF.md, agent feedback, and CLAUDE.md session header
+309a641c chore: gitignore review-package and scratch files; fix SKILL.md step-1 gate
+```
+
 ### What's still open
 
-- **PR #886** for the shader changes is now redundant on this branch (changes applied directly). The PR can be closed or updated to target main separately.
-- **v3 runs**: All 7 websites need re-runs with the same prompts to verify fixes hold. New runs will go into fresh directories; update the eval arena after.
-- **HeyGen TTS API shape mismatch**: `data.voices` vs direct list — still needs verification and step-4-vo.md update.
-- **Font filename hashing**: captured `.woff2` files have no readable mapping to font family names. Needs a capture pipeline fix.
-- **`ReferenceError: outputDir is not defined`** in capture CLI during AGENTS.md generation — CLI bug, not yet fixed.
+- **PR #886** now redundant — shader changes already on this branch. Can be closed.
+- **HeyGen TTS API shape mismatch** — `data.voices` vs direct list, still wrong in docs.
+- **Font filename hashing** — no family→filename mapping in capture pipeline.
+- **`ReferenceError: outputDir is not defined`** in capture CLI — minor, non-blocking.
+- **Transcription CLI hangs** — whisper fallback documented but underlying issue unfixed.
+- **Overengineering / reading burden** — agents spending 40% of session reading docs. Needs consolidation pass.
 
 ---
 
