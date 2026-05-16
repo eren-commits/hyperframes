@@ -30,17 +30,17 @@ After lint and validate pass, capture snapshot frames to SEE your own output. **
 Scale snapshot count to the video — not a fixed number. Formula: `max(beats × 3, ceil(duration_seconds / 2))`. A 3-beat 10s video: max(9, 5) = 9 frames. An 8-beat 60s video: max(24, 30) = 30 frames. Aim for at least 3 frames per beat: entrance, hold, and near-exit.
 
 ```bash
-# Use the local CLI (includes 3-col contact sheet fix):
+# Standard snapshot — Gemini vision runs automatically if GEMINI_API_KEY is set:
 npx tsx packages/cli/src/cli.ts snapshot <project-dir> --frames <N>
+
+# Pass a custom question to Gemini instead of the default prompt:
+npx tsx packages/cli/src/cli.ts snapshot <project-dir> --frames <N> \
+  --describe "Is the brand logo visible in every beat? Is any beat showing a black or blank frame?"
 ```
 
-Or for precise control at key moments:
+Output lands in `<project-dir>/snapshots/`. Gemini writes `snapshots/descriptions.md` automatically.
 
-```bash
-npx tsx packages/cli/src/cli.ts snapshot <project-dir> --at 1,3,5,7,9,11,13,15,17,19,21,23,25,27,29
-```
-
-Output lands in `<project-dir>/snapshots/` with filenames like `frame-00-at-1.0s.png`.
+**Read `descriptions.md` before viewing the contact sheet.** It gives you an objective written description of every frame — what Gemini sees in each one. A description saying "black screen" or "loading overlay visible" for a content beat is a bug to fix. Compare every line against your storyboard spec before declaring the video done.
 
 **Start with the contact sheet.** The snapshot command generates `snapshots/contact-sheet.jpg` (and `contact-sheet-2.jpg` etc. if you took many frames). View that first — it gives you the full picture of the video in one grid so you can spot obvious problems immediately (black frames, missing content, layout breaks). Then drill into individual frames for the beats that need closer inspection.
 

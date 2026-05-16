@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { defineCommand } from "citty";
-import { existsSync, mkdtempSync, readFileSync, mkdirSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve, join, relative, isAbsolute } from "node:path";
 import { resolveProject } from "../utils/project.js";
@@ -463,6 +463,11 @@ export default defineCommand({
       description: "Ms to wait for runtime to initialize (default: 5000)",
       default: "5000",
     },
+    describe: {
+      type: "string",
+      description:
+        "Ask Gemini vision to describe every frame. Pass true for default analysis, or a custom question (e.g. --describe 'Is the logo visible in every beat?')",
+    },
   },
   async run({ args }) {
     const project = resolveProject(args.dir);
@@ -474,6 +479,9 @@ export default defineCommand({
           .map((s) => parseFloat(s.trim()))
           .filter((n) => !isNaN(n))
       : undefined;
+    // --describe is opt-in for a custom question, but Gemini analysis always
+    // runs by default (silently skipped if GEMINI_API_KEY is not set).
+    const describeArg = args.describe ? String(args.describe) : "true";
 
     const label = atTimestamps
       ? `${atTimestamps.length} frames at [${atTimestamps.map((t) => t.toFixed(1) + "s").join(", ")}]`
@@ -510,6 +518,105 @@ export default defineCommand({
         }
       } catch {
         /* non-critical */
+      }
+
+      // Optional Gemini vision descriptions (--describe flag).
+      // Not run automatically — agents invoke it when they want an objective
+      // written analysis of each frame. Pass --describe for the default prompt,
+      // or --describe "custom question" to ask Gemini something specific.
+      if (describeArg) {
+        try {
+          const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+          if (!geminiKey) {
+            console.log(`   ${c.dim("--describe: GEMINI_API_KEY not set, skipping")}`);
+          } else if (paths.length > 0) {
+            console.log(`   ${c.dim("Describing frames with Gemini vision...")}`);
+            const { GoogleGenAI } = await import("@google/genai");
+            const ai = new GoogleGenAI({ apiKey: geminiKey });
+            const model = process.env.HYPERFRAMES_GEMINI_MODEL || "gemini-3.1-flash-lite-preview";
+            const snapshotDir = join(project.dir, "snapshots");
+
+            const customQuestion =
+              describeArg === "true"
+                ? "Describe this video composition frame in 1-2 sentences. Be specific and factual: what elements are visible, what text appears, is the frame blank/black/loading, what is the composition. Flag any obvious problems."
+                : describeArg;
+
+            const descriptions: string[] = [
+              `# Snapshot Frame Descriptions`,
+              ``,
+              `**Question asked:** ${customQuestion}`,
+              ``,
+              `Compare each description against your storyboard spec. A "black frame" or "loading screen" for a content beat is a bug.`,
+              ``,
+            ];
+
+            // Scale down PNGs before sending to stay under Gemini's 4 MB inline
+            // limit. Full 1920×1080 PNGs are typically 3-6 MB. Use sharp if
+            // available; otherwise skip files over the limit.
+            type SharpFn = (buf: Buffer) => {
+              resize: (w: number) => { jpeg: () => { toBuffer: () => Promise<Buffer> } };
+            };
+            let sharpFn: SharpFn | null = null;
+            try {
+              const s = await import("sharp");
+              sharpFn = (s.default ?? s) as unknown as SharpFn;
+            } catch {
+              /* sharp not installed — fall back to size check */
+            }
+
+            const results = await Promise.allSettled(
+              paths.map(async (p) => {
+                const filename = p.replace("snapshots/", "");
+                const filePath = join(snapshotDir, filename);
+                if (!existsSync(filePath)) return { filename, desc: "file not found" };
+                const raw = readFileSync(filePath);
+                let imageData: Buffer;
+                let mimeType = "image/png";
+                if (sharpFn) {
+                  imageData = await sharpFn(raw).resize(960).jpeg().toBuffer();
+                  mimeType = "image/jpeg";
+                } else {
+                  if (raw.length > 3_800_000)
+                    return {
+                      filename,
+                      desc: "file too large for Gemini — install sharp to enable auto-resize",
+                    };
+                  imageData = raw;
+                }
+                const base64 = imageData.toString("base64");
+                const response = await ai.models.generateContent({
+                  model,
+                  contents: [
+                    {
+                      role: "user",
+                      parts: [{ inlineData: { mimeType, data: base64 } }, { text: customQuestion }],
+                    },
+                  ],
+                  config: { maxOutputTokens: 250 },
+                });
+                return { filename, desc: response.text?.trim() || "no description" };
+              }),
+            );
+
+            for (const result of results) {
+              if (result.status === "fulfilled") {
+                descriptions.push(`## ${result.value.filename}`, `${result.value.desc}`, ``);
+              } else {
+                // Log first failure so Gemini issues are visible rather than silent
+                const errMsg =
+                  result.reason instanceof Error ? result.reason.message : String(result.reason);
+                descriptions.push(`## (error)`, `Gemini call failed: ${errMsg.slice(0, 120)}`, ``);
+              }
+            }
+
+            const descPath = join(snapshotDir, "descriptions.md");
+            writeFileSync(descPath, descriptions.join("\n"));
+            console.log(`   ${c.dim("descriptions.md")} (Gemini frame analysis)`);
+          }
+        } catch (descErr) {
+          const msg = descErr instanceof Error ? descErr.message : String(descErr);
+          console.log(`   ${c.dim(`--describe failed: ${msg.slice(0, 80)}`)}`);
+        }
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);

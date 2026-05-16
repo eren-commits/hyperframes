@@ -128,6 +128,7 @@ Never sit idle for 10 minutes hoping a stuck process will finish.
 - Product names with unusual spelling: test the first sentence first and listen. Common failure: "Vercel" → "versatile", "WorkOS" → "work O S", "One API" → "Wanna PI"
 - If a name sounds wrong: write it phonetically in `narration.txt` (e.g., `Vercel` → `Ver-sell`, `Supabase` → `Soopa-base`)
 - Always generate a short test clip with the first 2 sentences before generating the full audio
+- **No SSML tags** — Kokoro reads them as literal text. `<break time="1s"/>` is spoken as "break time equals one slash." Use blank lines or `...` for pauses in `narration.txt`
 
 For ElevenLabs and HeyGen TTS, substitutions are usually unnecessary — they handle product names correctly.
 

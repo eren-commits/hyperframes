@@ -10,7 +10,9 @@ Capture a website, then produce a professional video from it — collaboratively
 
 **Take your time on thinking and reviewing.** Quality matters more than speed. Read every reference file the steps point to. Look at every snapshot carefully. If a composition looks weak, revise it before moving on. A polished video is worth more than a rushed one delivered 5 minutes faster. That said: don't sit idle on stuck commands — escalate immediately if a process hangs (see Step 4 for escalation order).
 
-**This is a collaborative workflow.** You don't make all the creative decisions alone. At key moments (marked 💬), you stop and ask the user what they want, show them what's possible, and refine based on their feedback. The user is part of the process — not a passive recipient.
+**This is a collaborative workflow by default.** At key moments (marked 💬), you stop and ask the user what they want and refine based on their feedback.
+
+**Autonomous mode exception:** If the user says "decide for me", "just build it", "surprise me", or gives any signal they don't want to be asked questions — skip ALL 💬 gates. Make all creative decisions yourself (video type, style, voice, storyboard), and present the finished result for feedback at the end. Do not ask four separate questions across four separate steps. Read the room once and commit.
 
 **This skill requires image-viewing capability** for the validate step (Step 6). If your agent cannot view PNG files, the snapshot review will be blind. Contact sheets (Step 0 and Step 6) are designed to minimize the number of images needed — but some visual verification is unavoidable.
 
