@@ -7,13 +7,6 @@
 - **Copyright:** (c) 2026 Zara Zhang
 - **Usage:** 34 HTML presentation templates used as design picker options. Templates are stored in `templates/presentations/` with `--tp-*` CSS variable tokens added for palette switching.
 
-## shadergradient
-
-- **Source:** https://github.com/ruucm/shadergradient
-- **License:** MIT
-- **Copyright:** MIT © [ruucm](https://github.com/ruucm), [stone-skipper](https://github.com/stone-skipper)
-- **Usage:** HalftonePass post-processing technique used for shader background grain effect in the design picker. The halftone parameters (shape, radius, scatter, blending) are derived from shadergradient's PostProcessing implementation. Three.js's built-in HalftonePass is used (not a code copy).
-
 ---
 
 MIT License

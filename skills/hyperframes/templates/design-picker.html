@@ -1194,6 +1194,11 @@
           <div class="section-body">
             <div class="opt-grid-2" id="bg-options"></div>
             <div id="shader-editor" style="display:none;margin-top:10px;">
+              <div id="shader-editor-toggle" style="font-size:11px;color:#666;cursor:pointer;display:flex;align-items:center;gap:6px;margin-bottom:8px;" onclick="var b=document.getElementById('shader-editor-body');var a=this.querySelector('span');if(b.style.display==='none'){b.style.display='';a.textContent='▾';}else{b.style.display='none';a.textContent='▸';}">
+                <span style="font-size:18px;position:relative;top:-4px;">▸</span> Configure
+              </div>
+              <div id="shader-editor-body" style="display:none;">
+              <div style="font-size:9px;color:#444;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Colors</div>
               <div style="display:flex;gap:8px;margin-bottom:8px;">
                 <label style="flex:1;font-size:10px;color:#666;">
                   Color 1
@@ -1211,7 +1216,13 @@
               <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:10px;color:#666;margin-bottom:8px;">
                 <input type="checkbox" id="se-use-palette" checked style="accent-color:#fff;"> Use palette colors
               </label>
+              <div style="font-size:9px;color:#444;text-transform:uppercase;letter-spacing:0.1em;margin:10px 0 6px;border-top:1px solid #222;padding-top:8px;">Grain</div>
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:10px;color:#666;margin-bottom:8px;">
+                <input type="checkbox" id="se-grain" checked style="accent-color:#fff;"> Enable
+              </label>
+              <div id="se-grain-controls"></div>
               <div id="se-controls"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -2274,6 +2285,10 @@
         if (!preset) return;
         // Preset-specific controls
         if (preset.controls) {
+          var shapeLabel = document.createElement("div");
+          shapeLabel.style.cssText = "font-size:9px;color:#444;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;";
+          shapeLabel.textContent = "Animation";
+          seControls.appendChild(shapeLabel);
           preset.controls.forEach(function(c) {
             makeSlider(seControls, c.label, c.key, c.min, c.max, c.step, preset);
           });
@@ -2293,6 +2308,26 @@
         }
         makeSlider(seControls, "Angle", "camAz", 0, 360, 5, preset);
         makeSlider(seControls, "Tilt", "camPol", 30, 170, 5, preset);
+
+        // Rendering controls
+        var renderLabel = document.createElement("div");
+        renderLabel.style.cssText = "font-size:9px;color:#444;text-transform:uppercase;letter-spacing:0.1em;margin:10px 0 6px;border-top:1px solid #222;padding-top:8px;";
+        renderLabel.textContent = "Rendering";
+        seControls.appendChild(renderLabel);
+
+        if (!preset._render) preset._render = { brightness: 1.0, contrast: 1.0, saturation: 1.0, grainRadius: 2, grainScatter: 1, grainBlending: 1 };
+        makeSlider(seControls, "Brightness", "brightness", 0.2, 2.0, 0.05, preset._render);
+        makeSlider(seControls, "Contrast", "contrast", 0.5, 2.0, 0.05, preset._render);
+        makeSlider(seControls, "Saturation", "saturation", 0.0, 2.0, 0.05, preset._render);
+
+        // Grain controls rendered separately
+        var grainBox = document.getElementById("se-grain-controls");
+        grainBox.innerHTML = "";
+        if (document.getElementById("se-grain").checked) {
+          makeSlider(grainBox, "Size", "grainRadius", 1, 6, 0.5, preset._render);
+          makeSlider(grainBox, "Scatter", "grainScatter", 0, 2, 0.1, preset._render);
+          makeSlider(grainBox, "Blend", "grainBlending", 0, 1, 0.05, preset._render);
+        }
       }
 
       BG_PRESETS.forEach(function(p, i) {
@@ -2323,6 +2358,19 @@
           seC1.value = p.secondary; seC2.value = p.accent; seC3.value = p.tertiary;
         }
         if (typeof window._sgUpdateBg === "function") window._sgUpdateBg();
+      });
+      document.getElementById("se-grain").addEventListener("change", function() {
+        if (typeof window._sgToggleGrain === "function") window._sgToggleGrain(!this.checked);
+        var grainBox = document.getElementById("se-grain-controls");
+        grainBox.innerHTML = "";
+        if (this.checked && picks.bg_mode > 0) {
+          var preset = BG_PRESETS[picks.bg_mode];
+          if (preset && preset._render) {
+            makeSlider(grainBox, "Size", "grainRadius", 1, 6, 0.5, preset._render);
+            makeSlider(grainBox, "Scatter", "grainScatter", 0, 2, 0.1, preset._render);
+            makeSlider(grainBox, "Blend", "grainBlending", 0, 1, 0.05, preset._render);
+          }
+        }
       });
       [seC1, seC2, seC3].forEach(function(el) {
         el.addEventListener("input", function() {
@@ -2714,7 +2762,14 @@
             colors: bgColors, density: bgpObj.density, speed: bgpObj.speed, strength: bgpObj.strength,
             rotation: [bgpObj.rotX, bgpObj.rotY, bgpObj.rotZ],
             camera: { distance: bgpObj.camDist, azimuth: bgpObj.camAz, polar: bgpObj.camPol, zoom: bgpObj.zoom || 1 },
-            position: [bgpObj.posX || 0, bgpObj.posY || 0, bgpObj.posZ || 0]
+            position: [bgpObj.posX || 0, bgpObj.posY || 0, bgpObj.posZ || 0],
+            rendering: bgpObj._render ? { brightness: bgpObj._render.brightness, contrast: bgpObj._render.contrast, saturation: bgpObj._render.saturation } : null,
+            grain: document.getElementById("se-grain").checked ? {
+              enabled: true,
+              radius: bgpObj._render ? bgpObj._render.grainRadius : 2,
+              scatter: bgpObj._render ? bgpObj._render.grainScatter : 1,
+              blending: bgpObj._render ? bgpObj._render.grainBlending : 1
+            } : { enabled: false }
           } : null,
           density: { level: dn.name, desc: dn.desc },
           dos: [
@@ -2751,7 +2806,7 @@
         h += '</style>\n';
         if (bgpObj) {
           h += '<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"><\/script>\n';
-          h += '<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.167.0/build/three.module.js"}}<\/script>\n';
+          h += '<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.167.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.167.0/examples/jsm/"}}<\/script>\n';
         }
         h += '</head>\n<body>\n\n';
 
@@ -2766,6 +2821,9 @@
           h += '<canvas id="design-bg" style="position:fixed;inset:0;width:100%;height:100%;z-index:-1;"><\/canvas>\n';
           h += '<script type="module" id="design-background">\n';
           h += 'import * as THREE from "three";\n';
+          h += 'import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";\n';
+          h += 'import { RenderPass } from "three/addons/postprocessing/RenderPass.js";\n';
+          h += 'import { HalftonePass } from "three/addons/postprocessing/HalftonePass.js";\n';
           h += 'const spec = JSON.parse(document.getElementById("design-spec").textContent);\n';
           h += 'const bg = spec.background;\n';
           h += 'if (bg) {\n';
@@ -2797,7 +2855,9 @@
           h += '    uTime:{value:0}, uSpeed:{value:' + bgpObj.speed + '}, uDensity:{value:' + bgpObj.density + '}, uStrength:{value:' + bgpObj.strength + '},\n';
           h += '    uColor1:{value:new THREE.Color("' + bgColors[0] + '")},\n';
           h += '    uColor2:{value:new THREE.Color("' + bgColors[1] + '")},\n';
-          h += '    uColor3:{value:new THREE.Color("' + bgColors[2] + '")}\n';
+          h += '    uColor3:{value:new THREE.Color("' + bgColors[2] + '")},\n';
+          var _r = bgpObj._render || { brightness:1, contrast:1, saturation:1 };
+          h += '    uBrightness:{value:' + _r.brightness + '}, uContrast:{value:' + _r.contrast + '}, uSaturation:{value:' + _r.saturation + '}\n';
           h += '  };\n';
           h += '  const material = new THREE.ShaderMaterial({vertexShader, fragmentShader, uniforms, side:THREE.DoubleSide});\n';
           h += '  const geometry = isSphere ? new THREE.SphereGeometry(1,256,256) : new THREE.PlaneGeometry(10,10,128,128);\n';
@@ -2805,7 +2865,15 @@
           h += '  mesh.rotation.set(' + (bgpObj.rotX*Math.PI/180).toFixed(3) + ',' + (bgpObj.rotY*Math.PI/180).toFixed(3) + ',' + (bgpObj.rotZ*Math.PI/180).toFixed(3) + ');\n';
           h += '  mesh.position.set(' + (bgpObj.posX||0) + ',' + (bgpObj.posY||0) + ',' + (bgpObj.posZ||0) + ');\n';
           h += '  scene.add(mesh);\n\n';
-          h += '  function renderAt(time){renderer.setSize(innerWidth,innerHeight,false);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();uniforms.uTime.value=time;renderer.render(scene,camera);}\n';
+          // HalftonePass grain
+          var _grainEnabled = document.getElementById("se-grain").checked;
+          var _gr = bgpObj._render || { grainRadius:2, grainScatter:1, grainBlending:1 };
+          h += '  const composer = new EffectComposer(renderer);\n';
+          h += '  composer.addPass(new RenderPass(scene, camera));\n';
+          if (_grainEnabled) {
+            h += '  composer.addPass(new HalftonePass(innerWidth, innerHeight, {shape:1, radius:' + _gr.grainRadius + ', rotateR:Math.PI/12, rotateG:(Math.PI/12)*2, rotateB:(Math.PI/12)*3, scatter:' + _gr.grainScatter + ', blending:' + _gr.grainBlending + ', blendingMode:1, greyscale:false}));\n';
+          }
+          h += '  function renderAt(time){renderer.setSize(innerWidth,innerHeight,false);composer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();uniforms.uTime.value=time;composer.render();}\n';
           h += '  window.addEventListener("hf-seek",e=>renderAt(e.detail.time));\n';
           h += '  renderAt(window.__hfThreeTime||0);\n';
           h += '}\n';
@@ -3196,6 +3264,8 @@
                         }
                         var easeObj = picks.easing !== null ? EASINGS[picks.easing] : null;
                         if (easeObj) tpAnimateHero(easeObj);
+                        // Shader transparency is handled by CSS override on --tp-secondary
+                        // No re-application needed on slide switch
                       }
                     });
                     specIfr.addEventListener("load", function() {
@@ -3278,17 +3348,20 @@ void main(){
   gl_Position=projectionMatrix*mvPos;
 }`;
 
-    const GRAIN_GLSL = `
-float grain(vec2 co, float t){return fract(sin(dot(co+t,vec2(12.9898,78.233)))*43758.5453);}
-vec3 halftoneGrain(vec2 fragCoord, float t) {
-  float r = grain(fragCoord * 0.8, t + 0.0) * 0.12 - 0.06;
-  float g = grain(fragCoord * 0.8, t + 1.7) * 0.12 - 0.06;
-  float b = grain(fragCoord * 0.8, t + 3.1) * 0.12 - 0.06;
-  return vec3(r, g, b);
+    const COLOR_ADJUST_GLSL = `
+uniform float uBrightness;
+uniform float uContrast;
+uniform float uSaturation;
+vec3 adjustColor(vec3 col) {
+  col *= uBrightness;
+  col = mix(vec3(0.5), col, uContrast);
+  float lum = dot(col, vec3(0.299, 0.587, 0.114));
+  col = mix(vec3(lum), col, uSaturation);
+  return clamp(col, 0.0, 1.0);
 }`;
 
     const FRAG_DEFAULTS = `varying vec3 vPos;varying vec3 vNormal;varying vec3 vViewPos;uniform vec3 uColor1;uniform vec3 uColor2;uniform vec3 uColor3;uniform float uTime;
-${GRAIN_GLSL}
+${COLOR_ADJUST_GLSL}
 void main(){
   vec3 base=mix(mix(uColor1,uColor2,smoothstep(-3.0,3.0,vPos.x)),uColor3,smoothstep(-2.0,2.0,vPos.z));
   vec3 n=normalize(vNormal);vec3 v=normalize(-vViewPos);
@@ -3297,11 +3370,12 @@ void main(){
   float spec=pow(max(dot(n,normalize(l1+v)),0.0),64.0)*0.25+pow(max(dot(n,normalize(l2+v)),0.0),48.0)*0.15;
   float fresnel=pow(1.0-max(dot(n,v),0.0),4.0);
   vec3 col=base*(0.65+diff)+vec3(spec)+mix(base,vec3(1),0.3)*fresnel*0.2;
+  col=adjustColor(col);
   gl_FragColor=vec4(col,1.0);
 }`;
 
     const FRAG_COSMIC = `varying vec3 vPos;varying vec3 vNormal;varying vec3 vViewPos;uniform vec3 uColor1;uniform vec3 uColor2;uniform vec3 uColor3;uniform float uTime;uniform float uSpeed;
-${GRAIN_GLSL}
+${COLOR_ADJUST_GLSL}
 float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123);}
 float noise2D(vec2 p){vec2 i=floor(p);vec2 f=fract(p);vec2 u=f*f*(3.0-2.0*f);return mix(mix(hash(i),hash(i+vec2(1,0)),u.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),u.x),u.y);}
 void main(){
@@ -3322,11 +3396,12 @@ void main(){
   float spec=pow(max(dot(n,normalize(l1+v)),0.0),64.0)*0.3+pow(max(dot(n,normalize(l2+v)),0.0),48.0)*0.15;
   float fresnel=pow(1.0-max(dot(n,v),0.0),4.0);
   col=col*(0.7+diff)+vec3(spec)+mix(col,vec3(1),0.3)*fresnel*0.25;
+  col=adjustColor(col);
   gl_FragColor=vec4(col,1.0);
 }`;
 
     const FRAG_GLASS = `varying vec3 vPos;varying vec3 vNormal;varying vec3 vViewPos;uniform vec3 uColor1;uniform vec3 uColor2;uniform vec3 uColor3;uniform float uTime;
-${GRAIN_GLSL}
+${COLOR_ADJUST_GLSL}
 void main(){
   vec3 base=mix(mix(uColor1,uColor2,smoothstep(-3.0,3.0,vPos.x)),uColor3,smoothstep(-2.0,2.0,vPos.z));
   vec3 n=normalize(vNormal);vec3 v=normalize(-vViewPos);
@@ -3336,11 +3411,12 @@ void main(){
   float spec=pow(max(dot(n,normalize(l1+v)),0.0),128.0)*0.5+pow(max(dot(n,normalize(l2+v)),0.0),96.0)*0.25;
   vec3 col=mix(base,base*0.85+vec3(0.08),fresnel*0.6);
   col=col*(0.75+diff)+vec3(spec)+mix(base,vec3(1),0.4)*fresnel*0.25;
+  col=adjustColor(col);
   gl_FragColor=vec4(col,1.0);
 }`;
 
     const FRAG_FOG = `varying vec3 vPos;varying vec3 vNormal;varying vec3 vViewPos;uniform vec3 uColor1;uniform vec3 uColor2;uniform vec3 uColor3;uniform float uTime;uniform float uSpeed;uniform float uDensity;uniform float uStrength;
-${GRAIN_GLSL}
+${COLOR_ADJUST_GLSL}
 vec3 mod289v3(vec3 x){return x-floor(x*(1.0/289.0))*289.0;}
 vec4 mod289v4(vec4 x){return x-floor(x*(1.0/289.0))*289.0;}
 vec4 perm(vec4 x){return mod289v4(((x*34.0)+1.0)*x);}
@@ -3375,6 +3451,7 @@ void main(){
   col=mix(col,mix(uColor2,uColor3,0.5),rim*0.2);
   float diff=max(dot(n,normalize(vec3(1,1,0.5))),0.0)*0.08;
   col+=diff;
+  col=adjustColor(col);
   gl_FragColor=vec4(col,1.0);
 }`;
 
@@ -3389,6 +3466,14 @@ void main(){
       activeRenderers.forEach(r => { r.renderer.dispose(); r.renderer.forceContextLoss(); });
       activeRenderers = [];
     }
+
+    window._sgToggleGrain = function(disable) {
+      activeRenderers.forEach(s => {
+        if (s.htPass && s.htPass.uniforms && s.htPass.uniforms.disable) {
+          s.htPass.uniforms.disable.value = disable;
+        }
+      });
+    };
 
     let _sgDebounce = null;
     window._sgUpdateBg = function() {
@@ -3414,25 +3499,16 @@ void main(){
         iDoc.body.appendChild(tmp);
         var secRgb = iWin.getComputedStyle(tmp).backgroundColor;
         tmp.remove();
-        if (hasShader && secRgb) {
+        var shaderStyle = iDoc.getElementById('tp-shader-bg');
+        if (!shaderStyle) { shaderStyle = iDoc.createElement('style'); shaderStyle.id = 'tp-shader-bg'; iDoc.head.appendChild(shaderStyle); }
+        if (hasShader) {
+          shaderStyle.textContent = ':root { --tp-secondary: transparent !important; } html, body, *, *::before, *::after { --tp-secondary: transparent !important; }';
           iDoc.documentElement.style.setProperty('background', 'transparent', 'important');
           iDoc.body.style.setProperty('background', 'transparent', 'important');
-          iDoc.querySelectorAll('*').forEach(el => {
-            try {
-              var bg = iWin.getComputedStyle(el).backgroundColor;
-              if (bg === secRgb) {
-                el.style.setProperty('background-color', 'transparent', 'important');
-                el.dataset.tpShaderBg = '1';
-              }
-            } catch(e) {}
-          });
         } else {
+          shaderStyle.textContent = '';
           iDoc.documentElement.style.removeProperty('background');
           iDoc.body.style.removeProperty('background');
-          iDoc.querySelectorAll('[data-tp-shader-bg]').forEach(el => {
-            el.style.removeProperty('background-color');
-            delete el.dataset.tpShaderBg;
-          });
         }
       });
 
@@ -3480,7 +3556,10 @@ void main(){
           uStrength: { value: preset.strength },
           uColor1: { value: new THREE.Color(colors[0]) },
           uColor2: { value: new THREE.Color(colors[1]) },
-          uColor3: { value: new THREE.Color(colors[2]) }
+          uColor3: { value: new THREE.Color(colors[2]) },
+          uBrightness: { value: preset._render ? preset._render.brightness : 1.0 },
+          uContrast: { value: preset._render ? preset._render.contrast : 1.0 },
+          uSaturation: { value: preset._render ? preset._render.saturation : 1.0 }
         };
 
         const material = new THREE.ShaderMaterial({ vertexShader, fragmentShader: frag, uniforms, side: THREE.DoubleSide });
@@ -3496,13 +3575,16 @@ void main(){
 
         const composer = new EffectComposer(renderer);
         composer.addPass(new RenderPass(scene, camera));
-        composer.addPass(new HalftonePass(canvas.offsetWidth||640, canvas.offsetHeight||360, {
+        var grainOn = document.getElementById('se-grain');
+        var htPass = new HalftonePass(canvas.offsetWidth||640, canvas.offsetHeight||360, {
           shape: 1, radius: 2,
           rotateR: Math.PI/12, rotateG: (Math.PI/12)*2, rotateB: (Math.PI/12)*3,
-          scatter: 1, blending: 1, blendingMode: 1, greyscale: false
-        }));
+          scatter: 1, blending: 1, blendingMode: 1, greyscale: false,
+          disable: grainOn && !grainOn.checked
+        });
+        composer.addPass(htPass);
 
-        activeRenderers.push({ renderer, scene, camera, uniforms, canvas, composer });
+        activeRenderers.push({ renderer, scene, camera, uniforms, canvas, composer, htPass, preset });
       });
 
       if (!window._sgAnimating) {
@@ -3517,6 +3599,16 @@ void main(){
             s.camera.aspect = w / h;
             s.camera.updateProjectionMatrix();
             s.uniforms.uTime.value = t;
+            if (s.preset && s.preset._render) {
+              s.uniforms.uBrightness.value = s.preset._render.brightness;
+              s.uniforms.uContrast.value = s.preset._render.contrast;
+              s.uniforms.uSaturation.value = s.preset._render.saturation;
+              if (s.htPass && s.htPass.uniforms) {
+                s.htPass.uniforms.radius.value = s.preset._render.grainRadius;
+                s.htPass.uniforms.scatter.value = s.preset._render.grainScatter;
+                s.htPass.uniforms.blending.value = s.preset._render.grainBlending;
+              }
+            }
             s.composer.render();
           });
           requestAnimationFrame(animate);
