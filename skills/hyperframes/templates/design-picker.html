@@ -2537,7 +2537,9 @@
           h = h.replace(/__BG_DENSITY__/g, String(bg.density));
           h = h.replace(/__BG_SPEED__/g, String(bg.speed));
           h = h.replace(/__BG_STRENGTH__/g, String(bg.strength));
-          h = h.replace(/__BG_GRAIN__/g, "2 \xb7 scatter 1");
+          var _grainCheck = document.getElementById("se-grain").checked;
+          var _grV = bg._render || { grainRadius:2, grainScatter:1 };
+          h = h.replace(/__BG_GRAIN__/g, _grainCheck ? _grV.grainRadius + " \xb7 scatter " + _grV.grainScatter : "off");
           h = h.replace(/__SHADER_CONFIG__/g, JSON.stringify({ type: bg.type, density: bg.density, speed: bg.speed, strength: bg.strength, colors: [p.secondary, p.accent, p.tertiary || "#888"] }));
         } else {
           h = h.replace(/__BG_HEADLINE__/g, "none."); h = h.replace(/__BG_LEDE__/g, "No shader."); h = h.replace(/__BG_BADGE__/g, "none");
@@ -2580,8 +2582,12 @@
           ss += 'const m=new THREE.Mesh(new THREE.' + (isSphere ? 'SphereGeometry(1,128,128)' : 'PlaneGeometry(10,10,128,128)') + ',mat);\n';
           ss += 'm.rotation.set(' + ((bg.rotX||0)*Math.PI/180).toFixed(3) + ',' + ((bg.rotY||0)*Math.PI/180).toFixed(3) + ',' + ((bg.rotZ||0)*Math.PI/180).toFixed(3) + ');';
           ss += 'm.position.set(' + (bg.posX||0) + ',' + (bg.posY||0) + ',' + (bg.posZ||0) + ');s.add(m);\n';
+          var _grainOn = document.getElementById("se-grain").checked;
+          var _gr = bg._render || { grainRadius:2, grainScatter:1, grainBlending:1 };
           ss += 'const comp=new EffectComposer(r);comp.addPass(new RenderPass(s,cam));\n';
-          ss += 'comp.addPass(new HalftonePass(innerWidth,innerHeight,{shape:1,radius:2,rotateR:Math.PI/12,rotateG:Math.PI/6,rotateB:Math.PI/4,scatter:1,blending:1,blendingMode:1,greyscale:!1}));\n';
+          if (_grainOn) {
+            ss += 'comp.addPass(new HalftonePass(innerWidth,innerHeight,{shape:1,radius:' + _gr.grainRadius + ',rotateR:Math.PI/12,rotateG:Math.PI/6,rotateB:Math.PI/4,scatter:' + _gr.grainScatter + ',blending:' + _gr.grainBlending + ',blendingMode:1,greyscale:!1}));\n';
+          }
           ss += 'function rs(){r.setSize(innerWidth,innerHeight,!1);comp.setSize(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix()}\n';
           ss += 'addEventListener("resize",rs);rs();\n';
           ss += 'const t0=performance.now();\n';
