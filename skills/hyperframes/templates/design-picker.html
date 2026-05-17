@@ -2549,6 +2549,9 @@
         }
         // Fill shader GLSL + renderer script
         var _sg = window._sgShaders || {};
+        if (bg && bg.type) {
+          if (!bg._render) bg._render = { brightness:1, contrast:1, saturation:1, grainRadius:2, grainScatter:1, grainBlending:1 };
+        }
         if (bg && bg.type && _sg.vertex) {
           var vtxSrc = _sg.vertex || '';
           var fragSrc = bg.fragmentShader || _sg[bg.shader] || _sg.defaults || '';
