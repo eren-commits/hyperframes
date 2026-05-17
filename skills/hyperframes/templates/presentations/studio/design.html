@@ -5,301 +5,434 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>__NAME__ — Design System</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
-<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700;800;900&family=IBM+Plex+Mono:wght@300;400;500;600;700;800;900__FONT_LINK_EXTRA__&display=swap" rel="stylesheet" />
-<script type="importmap">
-{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.167.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.167.0/examples/jsm/"}}
-</script>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
 <style id="ds-tokens">
 :root{
   --primary:__PRIMARY__; --secondary:__SECONDARY__; --tertiary:__TERTIARY__; --accent:__ACCENT__;
-  --hairline:color-mix(in srgb,var(--primary) 12%,transparent);
-  --f-disp:"Barlow",sans-serif; --f-mono:"IBM Plex Mono",monospace;
-  --pad-x:clamp(24px,5vw,88px); --pad-y:clamp(40px,6vh,100px);
+  --bg-2:#1A1A1A;
+  --ink-dim:#9A9A9A;
+  --ink-fade:#5A5A5A;
+  --hairline:#262626;
+  --f-disp:"Anton",sans-serif;
+  --f-head:"Inter",sans-serif;
+  --f-mono:"JetBrains Mono",monospace;
+  --pad-x:clamp(28px,5vw,80px); --pad-y:clamp(48px,7vh,120px);
 }
 </style>
+
 <style>
 *,*::before,*::after{box-sizing:border-box}
 html,body{margin:0;padding:0;background:var(--secondary)}
-body{color:var(--primary);font:400 14px/1.6 "IBM Plex Mono",monospace;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body{color:var(--primary);font:500 14px/1.55 var(--f-head);-webkit-font-smoothing:antialiased;overflow-x:hidden}
 ::selection{background:var(--accent);color:var(--secondary)}
 
-#design-bg{position:fixed;inset:0;width:100%;height:100%;z-index:-2;opacity:.55;pointer-events:none}
-#bg-veil{position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at 30% 20%,transparent 0%,var(--secondary) 75%)}
-
-.rail{position:fixed;top:0;left:0;right:0;height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 var(--pad-x);background:color-mix(in srgb,var(--secondary) 78%,transparent);backdrop-filter:blur(14px);border-bottom:1px solid rgba(128,128,128,.15);z-index:100;font:500 11px/1 "IBM Plex Mono",monospace;letter-spacing:.14em;text-transform:uppercase}
-.rail .brand{color:var(--accent);display:inline-flex;align-items:center;gap:10px;font:900 14px/1 "Barlow",sans-serif}
-.rail .brand .dot{width:9px;height:9px;background:var(--accent);}
-.rail nav{display:flex;gap:28px}
-.rail nav a{color:var(--primary);text-decoration:none;transition:all .15s}
+.rail{position:fixed;top:0;left:0;right:0;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 var(--pad-x);background:var(--secondary);border-bottom:1px solid var(--hairline);z-index:100;font:600 11px/1 var(--f-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--ink-dim)}
+.rail .brand{display:inline-flex;align-items:center;gap:14px;color:var(--accent)}
+.rail .brand b{font-family:var(--f-disp);font-weight:400;letter-spacing:.005em;text-transform:uppercase;font-size:24px;color:var(--accent)}
+.rail .brand .square{width:14px;height:14px;background:var(--accent);display:inline-block}
+.rail nav{display:flex;gap:24px}
+.rail nav a{color:var(--ink-dim);text-decoration:none;transition:color .15s}
 .rail nav a:hover{color:var(--accent)}
-@media(max-width:880px){.rail nav{display:none}}
+.rail .meta{padding:6px 12px;border:1px solid var(--hairline);color:var(--primary)}
+@media(max-width:760px){.rail nav{display:none}}
 
 section{position:relative;padding:var(--pad-y) var(--pad-x)}
-.section-head{display:grid;grid-template-columns:9em 1fr;gap:clamp(24px,4vw,56px);align-items:baseline;border-top:1px solid rgba(128,128,128,.15);padding-top:28px;margin-bottom:clamp(36px,5vh,64px)}
-.section-head .num{font:500 12px/1 "IBM Plex Mono",monospace;letter-spacing:.18em;text-transform:uppercase;color:var(--accent)}
-.section-head h2{font:900 clamp(36px,6vw,84px)/.92 "Barlow",sans-serif;letter-spacing:-.035em;margin:0;text-transform:lowercase}
-.section-head .lede{grid-column:2;max-width:60ch;margin-top:18px;font-size:15px;line-height:1.6color:var(--primary);opacity:.65}
+.section-head{display:grid;grid-template-columns:11em 1fr;gap:clamp(24px,4vw,56px);align-items:end;border-top:1px solid var(--hairline);padding-top:32px;margin-bottom:clamp(40px,6vh,72px)}
+.section-head .num{display:inline-block;font:600 11px/1 var(--f-mono);letter-spacing:.18em;text-transform:uppercase;color:var(--accent);padding:8px 14px;border:1px solid var(--accent);justify-self:start;background:var(--secondary)}
+.section-head h2{margin:0;font:400 clamp(56px,11vw,176px)/.9 var(--f-disp);letter-spacing:.005em;text-transform:uppercase;color:var(--primary)}
+.section-head h2 em{font-style:normal;color:var(--accent);background:var(--secondary);box-shadow:0 0 0 1px var(--accent)}
+.section-head .lede{grid-column:2;max-width:54ch;margin-top:18px;font:500 15px/1.65 var(--f-head);color:var(--ink-dim)}
 
-.cover{background:var(--accent);color:var(--secondary)};min-height:100vh;padding:80px var(--pad-x) 48px;display:grid;grid-template-rows:auto 1fr auto}
-.cover-headline{align-self:end;margin:0;font:900 clamp(80px,17vw,280px)/.82 "Barlow",sans-serif;letter-spacing:-.04em;text-transform:lowercase}
-.cover-foot{margin-top:48px;padding-top:20px;border-top:1px solid rgba(128,128,128,.15);display:grid;grid-template-columns:repeat(4,1fr);gap:24px}
-.cover-foot .cell{display:flex;flex-direction:column;gap:6px}
-.cover-foot .k{font:500 10px/1 "IBM Plex Mono",monospace;letter-spacing:.1em;text-transform:uppercase;opacity:.55}
-.cover-foot .v{font:500 13px/1.4 "IBM Plex Mono",monospace}
-.cover-foot .v.big{font:800 28px/1 "Barlow",sans-serif;letter-spacing:-.02em}
+/* Cover */
+.cover{min-height:100vh;padding:96px var(--pad-x) 56px;display:grid;grid-template-rows:auto 1fr auto;position:relative;overflow:hidden}
+.cover::before{content:"";position:absolute;top:0;left:0;right:0;height:6px;background:var(--accent)}
+.cover-chrome{display:flex;justify-content:space-between;font:600 11px/1 var(--f-mono);letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim)}
+.cover-chrome .accent{color:var(--accent)}
+.cover-headline{align-self:end;margin:0;font:400 clamp(96px,21vw,360px)/.85 var(--f-disp);letter-spacing:.002em;text-transform:uppercase;color:var(--primary)}
+.cover-headline em{font-style:normal;color:var(--secondary);background:var(--accent);padding:0 .04em;display:inline-block;line-height:.85}
+.cover-foot{margin-top:64px;display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid var(--accent)}
+.cover-foot .cell{padding:22px 26px;border-right:1px solid var(--hairline);display:flex;flex-direction:column;gap:8px}
+.cover-foot .cell:last-child{border-right:0}
+.cover-foot .cell:nth-child(3n+1){background:var(--accent);color:var(--secondary)}
+.cover-foot .k{font:600 10px/1.4 var(--f-mono);letter-spacing:.18em;text-transform:uppercase}
+.cover-foot .v{font:400 28px/1 var(--f-disp);letter-spacing:.005em;text-transform:uppercase}
+.cover-foot .v.plain{font:600 14px/1.4 var(--f-head);letter-spacing:.04em;text-transform:none}
 @media(max-width:760px){.cover-foot{grid-template-columns:1fr 1fr}}
 
-.manifesto{padding:clamp(60px,9vh,120px) var(--pad-x);border-bottom:1px solid rgba(128,128,128,.15)}
-.manifesto-grid{display:grid;grid-template-columns:9em 1fr;gap:clamp(24px,4vw,56px);align-items:start;max-width:1400px;margin:0 auto}
-.manifesto-grid .num{font:500 12px/1 "IBM Plex Mono",monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
-.manifesto p{font:700 clamp(28px,3.8vw,56px)/1.05 "Barlow",sans-serif;letter-spacing:-.025em;max-width:22ch;margin:0;text-transform:lowercase}
-.manifesto p em{font-style:normal;color:var(--accent)}
+/* Manifesto */
+.manifesto{padding:clamp(60px,9vh,120px) var(--pad-x);border-top:1px solid var(--accent);border-bottom:1px solid var(--accent);background:var(--accent);color:var(--secondary)}
+.manifesto-grid{display:grid;grid-template-columns:11em 1fr;gap:clamp(24px,4vw,56px);align-items:start}
+.manifesto-grid .num{display:inline-block;font:600 11px/1 var(--f-mono);letter-spacing:.18em;text-transform:uppercase;color:var(--secondary);padding:8px 14px;border:1px solid var(--secondary);justify-self:start;background:var(--accent)}
+.manifesto p{font:400 clamp(40px,6vw,96px)/.95 var(--f-disp);letter-spacing:.005em;text-transform:uppercase;max-width:18ch;margin:0;color:var(--secondary)}
+.manifesto p em{font-style:normal;background:var(--secondary);color:var(--accent);padding:0 .08em;display:inline-block}
 
-.palette{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;background:rgba(128,128,128,.1);border:1px solid rgba(128,128,128,.15)}
-.swatch{padding:28px 24px;aspect-ratio:3/4;display:flex;flex-direction:column;justify-content:space-between;border-radius:0;transition:all .2s}
-.swatch:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.15)}
-.swatch .role{font:500 11px/1 "IBM Plex Mono",monospace;letter-spacing:.1em;text-transform:uppercase}
-.swatch .name{font:900 clamp(28px,3.4vw,48px)/.92 "Barlow",sans-serif;letter-spacing:-.025em;text-transform:lowercase;margin-top:auto}
-.swatch .hex{font:500 12px/1 "IBM Plex Mono",monospace;margin-top:8px}
-.swatch .usage{font:400 11px/1.5 "IBM Plex Mono",monospace;margin-top:6px;opacity:.65}
-.swatch--primary{background:var(--primary);color:var(--secondary)}
-.swatch--secondary{background:var(--secondary);color:var(--primary)}
-.swatch--tertiary{background:var(--tertiary);color:var(--primary)}
-.swatch--accent{background:var(--accent);color:var(--secondary)}
-@media(max-width:880px){.palette{grid-template-columns:repeat(2,1fr)}}
+/* Palette */
+.palette{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid var(--accent)}
+.swatch{aspect-ratio:3/4;padding:24px;display:flex;flex-direction:column;justify-content:space-between;border-right:1px solid var(--hairline);transition:transform .15s}
+.swatch:last-child{border-right:0}
+.swatch:hover{transform:scale(1.02)}
+.swatch .role{font:600 11px/1 var(--f-mono);letter-spacing:.18em;text-transform:uppercase;padding:6px 10px;border:1px solid currentColor;align-self:flex-start}
+.swatch .name{font:400 clamp(36px,4.5vw,72px)/.95 var(--f-disp);letter-spacing:.005em;text-transform:uppercase;margin-top:auto}
+.swatch .hex{font:500 12px/1 var(--f-mono);letter-spacing:.06em;margin-top:10px}
+.swatch .usage{font:500 13px/1.55 var(--f-head);margin-top:6px;opacity:.8;max-width:22ch}
+.swatch--paper{background:var(--primary);color:var(--secondary)}
+.swatch--void{background:var(--secondary);color:var(--primary)}
+.swatch--grey{background:var(--tertiary);color:var(--secondary)}
+.swatch--volt{background:var(--accent);color:var(--secondary)}
+@media(max-width:880px){.palette{grid-template-columns:repeat(2,1fr)}.swatch:nth-child(2){border-right:0}.swatch:nth-child(-n+2){border-bottom:1px solid var(--hairline)}}
 
-.specimen{max-width:1400px;margin:0 auto;display:flex;flex-direction:column}
-.spec-row{display:grid;grid-template-columns:11em 1fr;gap:32px;padding:28px 0;border-top:1px solid rgba(128,128,128,.15);align-items:baseline}
-.spec-row:first-child{border:0;padding-top:0}
-.spec-row .meta{font:500 11px/1.4 "IBM Plex Mono",monospace;letter-spacing:.1em;text-transform:uppercase;display:flex;flex-direction:column;gap:4px;color:var(--primary);opacity:.4}
-.spec-row .meta b{color:var(--accent);font:400 22px/1 "Barlow",sans-serif}
-.spec-display{font:900 clamp(56px,10vw,152px)/.88 "Barlow",sans-serif;letter-spacing:-.04em;text-transform:lowercase}
-.spec-h1{font:800 clamp(40px,7vw,104px)/.9 "Barlow",sans-serif;letter-spacing:-.03em;text-transform:lowercase}
-.spec-h2{font:700 clamp(28px,4.2vw,64px)/1 "Barlow",sans-serif;letter-spacing:-.02em}
-.spec-lead{font:500 clamp(18px,2vw,26px)/1.45 "Barlow",sans-serif}
-.spec-body{font:400 17px/1.65 "Barlow",sans-serif;max-width:60ch}
-.spec-label{font:500 13px/1 "IBM Plex Mono",monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+/* Type specimen */
+.specimen{display:flex;flex-direction:column;border:1px solid var(--hairline)}
+.spec-row{display:grid;grid-template-columns:14em 1fr;gap:32px;padding:32px 36px;border-bottom:1px solid var(--hairline);align-items:baseline}
+.spec-row:last-child{border:0}
+.spec-row .meta{font:600 11px/1.5 var(--f-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--ink-dim);display:flex;flex-direction:column;gap:6px}
+.spec-row .meta b{color:var(--accent);font-weight:600}
+.spec-display{font:400 clamp(72px,13vw,200px)/.9 var(--f-disp);letter-spacing:.005em;text-transform:uppercase;color:var(--primary)}
+.spec-display em{font-style:normal;background:var(--accent);color:var(--secondary);padding:0 .05em}
+.spec-h1{font:400 clamp(48px,8vw,128px)/.95 var(--f-disp);letter-spacing:.005em;text-transform:uppercase;color:var(--accent)}
+.spec-h2{font:400 clamp(32px,5vw,80px)/1 var(--f-disp);letter-spacing:.005em;text-transform:uppercase;color:var(--primary)}
+.spec-lead{font:600 clamp(20px,2.2vw,32px)/1.4 var(--f-head);color:var(--primary)}
+.spec-body{font:500 16px/1.65 var(--f-head);color:var(--primary);max-width:60ch}
+.spec-label{font:600 12px/1 var(--f-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
 
-.surface-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:48px;max-width:1400px;margin:0 auto}
+/* Surface */
+.surface-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:32px}
 @media(max-width:880px){.surface-grid{grid-template-columns:1fr}}
-.demo-card{background:var(--primary);color:var(--secondary);border-radius:0;padding:28px;box-shadow:0 4px 16px rgba(0,0,0,.12);display:flex;flex-direction:column;gap:18px}
-.demo-card .tag{align-self:flex-start;font:500 10px/1 "IBM Plex Mono",monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);border:1px solid var(--accent);padding:4px 8px}
-.demo-card h3{margin:0;font:900 36px/1 "Barlow",sans-serif;letter-spacing:-.02em;text-transform:lowercase}
-.demo-card p{margin:0;font:400 15px/1.6 "Barlow",sans-serif;opacity:.7}
-.tokens{list-style:none;padding:0;margin:0;border-top:1px solid rgba(128,128,128,.15)}
-.tokens li{display:grid;grid-template-columns:1fr auto auto;gap:18px;align-items:center;padding:18px 0;border-bottom:1px solid rgba(128,128,128,.15)}
+.demo-card{background:var(--primary);color:var(--secondary);padding:32px;display:flex;flex-direction:column;gap:18px;position:relative;border:1px solid var(--accent)}
+.demo-card .marker{position:absolute;top:0;right:0;background:var(--accent);color:var(--secondary);padding:6px 14px;font:600 11px/1 var(--f-mono);letter-spacing:.16em;text-transform:uppercase}
+.demo-card .tag{align-self:flex-start;font:600 11px/1 var(--f-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--secondary);padding:6px 12px;background:var(--accent)}
+.demo-card h3{margin:0;font:400 48px/.95 var(--f-disp);letter-spacing:.005em;text-transform:uppercase}
+.demo-card p{margin:0;font:500 14px/1.65 var(--f-head);color:#4A4A4A}
+.demo-card .num-stat{font:400 96px/.95 var(--f-disp);color:var(--secondary);letter-spacing:.005em}
+.demo-card .num-stat em{font-style:normal;color:var(--accent);background:var(--secondary);padding:0 .08em;display:inline-block}
+.tokens{list-style:none;padding:0;margin:0;border:1px solid var(--hairline)}
+.tokens li{display:grid;grid-template-columns:1fr auto auto;gap:18px;align-items:center;padding:18px 24px;border-bottom:1px solid var(--hairline)}
 .tokens li:last-child{border:0}
-.tokens .name{font:500 12px/1 "IBM Plex Mono",monospace;letter-spacing:.1em;text-transform:uppercase;opacity:.6}
-.tokens .val{font:800 20px/1 "Barlow",sans-serif}
+.tokens .name{font:600 12px/1 var(--f-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--ink-dim)}
+.tokens .val{font:400 24px/1 var(--f-disp);letter-spacing:.005em;text-transform:uppercase;color:var(--accent)}
 .tokens .bar{height:6px;background:var(--accent)}
 
-.two-col{display:grid;grid-template-columns:1fr 1fr;gap:48px;max-width:1400px;margin:0 auto}
+/* Motion */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:32px}
 @media(max-width:880px){.two-col{grid-template-columns:1fr}}
-.panel{border:1px solid rgba(128,128,128,.15);background:color-mix(in srgb,var(--secondary) 70%,transparent)};padding:36px;border-radius:0;display:flex;flex-direction:column;gap:22px}
-.panel .label-row{font:500 11px/1 "IBM Plex Mono",monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
-.panel h4{margin:0;font:800 32px/1 "Barlow",sans-serif;text-transform:lowercase}
-.panel p{margin:0;font:400 13px/1.7 "Barlow",sans-serif;opacity:.65;max-width:38ch}
+.panel{background:var(--bg-2);border:1px solid var(--hairline);padding:32px;display:flex;flex-direction:column;gap:18px}
+.panel .label-row{font:600 11px/1 var(--f-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--accent);align-self:flex-start;padding:6px 12px;background:var(--secondary);border:1px solid var(--accent)}
+.panel h4{margin:0;font:400 40px/.95 var(--f-disp);letter-spacing:.005em;text-transform:uppercase;color:var(--primary)}
+.panel h4 em{font-style:normal;background:var(--accent);color:var(--secondary);padding:0 .08em;display:inline-block}
+.panel p{margin:0;font:500 14px/1.65 var(--f-head);color:var(--ink-dim);max-width:42ch}
+.panel pre{margin:0;padding:14px 18px;border:1px solid var(--hairline);background:var(--secondary);font:500 12px/1.6 var(--f-mono);color:var(--accent);overflow-x:auto}
 
-.bg-preview{border:1px solid rgba(128,128,128,.15);aspect-ratio:4/3;position:relative;overflow:hidden;background:var(--secondary);border-radius:0}
-.bg-preview canvas{width:100%;height:100%;display:block}
-.bg-preview .badge{position:absolute;bottom:12px;left:12px;font:500 10px/1 "IBM Plex Mono",monospace;letter-spacing:.1em;text-transform:uppercase;background:color-mix(in srgb,var(--secondary) 75%,transparent);padding:6px 10px;backdrop-filter:blur(8px)}
-
-details.code-block{border:1px solid rgba(128,128,128,.15);background:color-mix(in srgb,var(--secondary) 60%,transparent)};margin-top:12px;border-radius:0}
-details.code-block summary{cursor:pointer;padding:14px 18px;list-style:none;font:500 11px/1 "IBM Plex Mono",monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);display:flex;justify-content:space-between}
-details.code-block summary::-webkit-details-marker{display:none}
-details.code-block summary::after{content:"+";font:900 18px/1 "Barlow",sans-serif;color:var(--accent)}
-details.code-block[open] summary::after{content:"\2212"}
-details.code-block pre{margin:0;padding:16px;border-top:1px solid rgba(128,128,128,.15);font:11px/1.6 "IBM Plex Mono",monospace;color:var(--primary);opacity:.65;background:transparent;overflow-x:auto;white-space:pre-wrap;word-break:break-word;max-height:320px;overflow-y:auto}
-
-.rules-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px;max-width:1400px;margin:0 auto}
+/* Guidelines */
+.rules-grid{display:grid;grid-template-columns:1fr 1fr;gap:32px}
 @media(max-width:880px){.rules-grid{grid-template-columns:1fr}}
-.rules-col{}
-.rules-col.do{}
-.rules-col.dont{}
-.rules-col h3{font:900 56px/1 "Barlow",sans-serif;letter-spacing:-.03em;margin:0 0 28px;text-transform:lowercase}
+.rules-col{border:1px solid;padding:32px;background:var(--bg-2)}
+.rules-col.do{border-color:var(--accent)}
+.rules-col.dont{border-color:var(--hairline)}
+.rules-col h3{font:400 64px/.95 var(--f-disp);margin:0 0 24px;letter-spacing:.005em;text-transform:uppercase}
 .rules-col.do h3{color:var(--accent)}
-.rules-col.dont h3{opacity:.4}
-.rules-col ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:0px}
-.rules-col li{display:grid;grid-template-columns:2em 1fr;gap:8px;padding:16px 0;border-top:1px solid rgba(128,128,128,.15);font:500 18px/1.45 "Barlow",sans-serif}
-.rules-col li::before{font:800 22px/1.2 "Barlow",sans-serif;align-self:start;}
-.rules-col.do li::before{content:"+";color:var(--accent)}
-.rules-col.dont li::before{content:"\2014";opacity:.4}
+.rules-col.dont h3{color:var(--ink-fade)}
+.rules-col ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.rules-col li{display:grid;grid-template-columns:2.2em 1fr;gap:14px;padding:14px 16px;background:var(--secondary);border:1px solid var(--hairline);font:500 15px/1.5 var(--f-head);color:var(--primary)}
+.rules-col li::before{font:600 14px/1 var(--f-mono);align-self:center;text-align:center;letter-spacing:.04em;padding:6px 0}
+.rules-col.do li::before{content:"YES";color:var(--accent)}
+.rules-col.dont li::before{content:"NO";color:var(--ink-fade)}
 
-.templates-wrap{background:color-mix(in srgb,var(--secondary) 96%,var(--accent))}
-.templates-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;max-width:1400px;margin:0 auto}
+/* Templates */
+.templates-wrap{background:var(--bg-2);border-top:1px solid var(--hairline)}
+.templates-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
 @media(max-width:1100px){.templates-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:720px){.templates-grid{grid-template-columns:1fr}}
-.tmpl{background:var(--secondary);border:1px solid rgba(128,128,128,.15);overflow:hidden;border-radius:0;transition:all .2s}
+.tmpl{background:var(--secondary);border:1px solid var(--hairline);overflow:hidden;transition:border-color .2s,transform .25s cubic-bezier(.16,1,.3,1)}
 .tmpl:hover{border-color:var(--accent);transform:translateY(-2px)}
-.tmpl-thumb{width:100%;aspect-ratio:16/9;overflow:hidden;position:relative;background:#050505;border-bottom:1px solid rgba(128,128,128,.15)}
+.tmpl-thumb{width:100%;aspect-ratio:16/9;overflow:hidden;position:relative;background:#050505}
 .tmpl-thumb .scale-wrap{width:1920px;height:1080px;transform-origin:top left}
-.tmpl-foot{display:flex;justify-content:space-between;padding:14px 18px;font:500 11px/1 "IBM Plex Mono",monospace;letter-spacing:.14em;text-transform:uppercase}
-.tmpl-foot .idx{color:var(--accent)}
+.tmpl-foot{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;font:600 11px/1 var(--f-mono);letter-spacing:.14em;text-transform:uppercase}
+.tmpl-foot .name{color:var(--primary);font-family:var(--f-disp);font-weight:400;font-size:20px;letter-spacing:.005em}
+.tmpl-foot .idx{color:var(--secondary);background:var(--accent);padding:4px 10px;font-weight:600}
 
-footer.endcap{background:var(--accent);color:var(--secondary);padding:80px var(--pad-x) 60px;display:grid;grid-template-columns:1fr auto;gap:48px;align-items:end}
-footer.endcap .endmark{font:900 clamp(60px,13vw,220px)/.85 "Barlow",sans-serif;letter-spacing:-.04em;text-transform:lowercase;margin:0}
-footer.endcap .meta{font:500 12px/2 "IBM Plex Mono",monospace;letter-spacing:.1em;text-transform:uppercase;opacity:.6;text-align:right}
-footer.endcap .meta b{opacity:1;color:var(--accent)}
+/* Endcap */
+footer.endcap{padding:80px var(--pad-x) 56px;background:var(--accent);color:var(--secondary);display:grid;grid-template-columns:1fr auto;gap:48px;align-items:end}
+footer.endcap .endmark{font:400 clamp(60px,14vw,240px)/.85 var(--f-disp);letter-spacing:.005em;text-transform:uppercase;margin:0;color:var(--secondary)}
+footer.endcap .endmark em{font-style:normal;color:var(--accent);background:var(--secondary);padding:0 .08em;display:inline-block}
+footer.endcap .meta{font:600 11px/2 var(--f-mono);letter-spacing:.18em;text-transform:uppercase;text-align:right;color:var(--secondary)}
+footer.endcap .meta b{color:var(--secondary);background:var(--secondary);color:var(--accent);padding:2px 8px}
 </style>
+
 <style id="template-css">
-__TEMPLATE_CSS__
+.ds-slide-frame{
+  --t-bg:#050505; --t-fg:#FAFAF7; --t-volt:#F6FF1F; --t-grey:#ABABAB;
+  --t-dim:#9A9A9A;
+  --t-fade:#5A5A5A;
+  --t-line:#262626;
+  --t-bg-2:#1A1A1A;
+  --t-f-disp:"Anton",sans-serif;
+  --t-f-head:"Inter",sans-serif;
+  --t-f-mono:"JetBrains Mono",monospace;
+  width:1920px;height:1080px;position:relative;overflow:hidden
+}
+.ds-slide-frame *{box-sizing:border-box}
+.ds-slide-frame .slide{width:1920px;height:1080px;position:relative;padding:80px;display:grid;grid-template-rows:auto 1fr auto;overflow:hidden;background:var(--t-bg);color:var(--t-fg);font-family:var(--t-f-head)}
+.ds-slide-frame .slide-chrome,.ds-slide-frame .slide-foot{display:flex;justify-content:space-between;align-items:center;font:600 18px/1 var(--t-f-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--t-dim)}
+.ds-slide-frame .slide-chrome{padding-bottom:18px;border-bottom:1px solid var(--t-line);margin-bottom:36px}
+.ds-slide-frame .slide-foot{padding-top:18px;border-top:1px solid var(--t-line);margin-top:36px}
+.ds-slide-frame .slide-chrome .accent,.ds-slide-frame .slide-foot .accent{color:var(--t-volt)}
+.ds-slide-frame .display{font:400 280px/.88 var(--t-f-disp);letter-spacing:.002em;text-transform:uppercase;color:var(--t-fg)}
+.ds-slide-frame .display em{font-style:normal;background:var(--t-volt);color:var(--t-bg);padding:0 .04em;display:inline-block;line-height:.88}
+.ds-slide-frame .h1{font:400 168px/.92 var(--t-f-disp);letter-spacing:.005em;text-transform:uppercase;color:var(--t-volt)}
+.ds-slide-frame .h2{font:400 104px/1 var(--t-f-disp);letter-spacing:.005em;text-transform:uppercase;color:var(--t-fg)}
+.ds-slide-frame .h2 em{font-style:normal;background:var(--t-volt);color:var(--t-bg);padding:0 .06em;display:inline-block;line-height:1}
+.ds-slide-frame .h3{font:400 60px/1.05 var(--t-f-disp);letter-spacing:.005em;text-transform:uppercase;color:var(--t-volt)}
+.ds-slide-frame .lead{font:600 36px/1.45 var(--t-f-head);color:var(--t-fg)}
+.ds-slide-frame .body{font:500 26px/1.6 var(--t-f-head);color:var(--t-fg)}
+.ds-slide-frame .label{font:600 16px/1 var(--t-f-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--t-volt);background:var(--t-bg);padding:6px 12px;border:1px solid var(--t-volt);display:inline-block}
+.ds-slide-frame .accent{color:var(--t-volt)}
+.ds-slide-frame .muted{color:var(--t-dim)}
+
+.ds-slide-frame .slide--cover .slide-chrome,.ds-slide-frame .slide--cover .slide-foot{display:none}
+.ds-slide-frame .slide--cover{display:flex;flex-direction:column;justify-content:flex-end;padding:80px}
+.ds-slide-frame .slide--cover::before{content:"";position:absolute;top:0;left:0;right:0;height:8px;background:var(--t-volt)}
+.ds-slide-frame .cover-top{display:flex;justify-content:space-between;align-items:flex-start;font:600 18px/1 var(--t-f-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--t-dim);margin-bottom:auto;margin-top:24px}
+.ds-slide-frame .cover-top .accent{color:var(--t-volt)}
+.ds-slide-frame .cover-body{display:flex;flex-direction:column;gap:32px}
+
+.ds-slide-frame .slide--chapter .slide-chrome,.ds-slide-frame .slide--chapter .slide-foot{display:none}
+.ds-slide-frame .slide--chapter{display:flex;flex-direction:column;justify-content:center;gap:32px;padding:80px 160px;background:var(--t-volt);color:var(--t-bg)}
+.ds-slide-frame .slide--chapter .chap-num{font:600 18px/1 var(--t-f-mono);letter-spacing:.18em;text-transform:uppercase;color:var(--t-bg);background:var(--t-bg);color:var(--t-volt);padding:8px 14px;align-self:flex-start}
+.ds-slide-frame .slide--chapter .h1{color:var(--t-bg)}
+.ds-slide-frame .slide--chapter .lead{color:var(--t-bg)}
+
+.ds-slide-frame .slide--statement .slide-body{display:flex;flex-direction:column;justify-content:center;gap:32px}
+
+.ds-slide-frame .slide--split .slide-body{display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center;padding-top:32px}
+.ds-slide-frame .split-text{display:flex;flex-direction:column;gap:24px}
+.ds-slide-frame .split-plate{aspect-ratio:1;width:100%;background:var(--t-bg-2);border:1px solid var(--t-line);display:flex;align-items:center;justify-content:center;font:600 18px/1 var(--t-f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--t-dim);position:relative}
+.ds-slide-frame .split-plate::after{content:"";position:absolute;top:24px;right:24px;width:48px;height:48px;background:var(--t-volt)}
+
+.ds-slide-frame .slide--stats .slide-body{display:flex;flex-direction:column;justify-content:center;gap:48px;padding-top:32px}
+.ds-slide-frame .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid var(--t-volt)}
+.ds-slide-frame .stat-card{padding:32px 28px;border-right:1px solid var(--t-line);display:flex;flex-direction:column;gap:12px}
+.ds-slide-frame .stat-card:last-child{border-right:0}
+.ds-slide-frame .stat-card:nth-child(2n){background:var(--t-bg-2)}
+.ds-slide-frame .stat-card .v{font:400 120px/.95 var(--t-f-disp);letter-spacing:.005em;color:var(--t-volt)}
+.ds-slide-frame .stat-card .l{font:500 22px/1.45 var(--t-f-head);color:var(--t-fg)}
+.ds-slide-frame .stat-card .n{font:600 14px/1 var(--t-f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--t-dim);margin-top:auto}
+
+.ds-slide-frame .slide--list .slide-body{display:grid;grid-template-columns:1fr 1.6fr;gap:80px;align-items:start;padding-top:32px}
+.ds-slide-frame .list-head{display:flex;flex-direction:column;gap:22px}
+.ds-slide-frame .list-items{list-style:none;padding:0;margin:0;counter-reset:idx}
+.ds-slide-frame .list-items li{display:grid;grid-template-columns:3.5em 1fr;gap:24px;padding:24px 0;border-top:1px solid var(--t-line);counter-increment:idx;align-items:baseline}
+.ds-slide-frame .list-items li::before{content:counter(idx,decimal-leading-zero);font:400 52px/1 var(--t-f-disp);color:var(--t-volt);letter-spacing:.005em}
+.ds-slide-frame .list-items .h{font:400 44px/1.1 var(--t-f-disp);letter-spacing:.005em;text-transform:uppercase;color:var(--t-fg);display:block;margin-bottom:6px}
+.ds-slide-frame .list-items .d{font:500 22px/1.5 var(--t-f-head);color:var(--t-dim);display:block}
+
+.ds-slide-frame .slide--quote .slide-chrome,.ds-slide-frame .slide--quote .slide-foot{display:none}
+.ds-slide-frame .slide--quote{display:flex;flex-direction:column;justify-content:center;padding:96px 200px;gap:48px}
+.ds-slide-frame .quote-mark{font:400 240px/.5 var(--t-f-disp);color:var(--t-volt);height:120px}
+.ds-slide-frame .quote-text{font:400 84px/1.05 var(--t-f-disp);letter-spacing:.005em;text-transform:uppercase;color:var(--t-fg)}
+.ds-slide-frame .quote-text em{font-style:normal;background:var(--t-volt);color:var(--t-bg);padding:0 .04em;display:inline-block;line-height:1.05}
+.ds-slide-frame .quote-attr{display:flex;flex-direction:column;gap:8px;padding-top:24px;border-top:1px solid var(--t-line);max-width:480px}
+.ds-slide-frame .quote-attr .nm{font:400 36px/1 var(--t-f-disp);letter-spacing:.005em;text-transform:uppercase;color:var(--t-volt)}
+.ds-slide-frame .quote-attr .src{font:600 16px/1 var(--t-f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--t-dim)}
+
+.ds-slide-frame .slide--end .slide-chrome,.ds-slide-frame .slide--end .slide-foot{display:none}
+.ds-slide-frame .slide--end{display:flex;flex-direction:column;justify-content:center;padding:120px 144px;gap:48px;background:var(--t-volt);color:var(--t-bg)}
+.ds-slide-frame .slide--end .end-mark{font:400 280px/.88 var(--t-f-disp);letter-spacing:.005em;text-transform:uppercase}
+.ds-slide-frame .slide--end .end-mark em{font-style:normal;background:var(--t-bg);color:var(--t-volt);padding:0 .04em;display:inline-block;line-height:.88}
+.ds-slide-frame .slide--end .end-meta{display:flex;gap:48px;font:600 14px/1 var(--t-f-mono);letter-spacing:.16em;text-transform:uppercase;padding-top:24px;border-top:1px solid var(--t-bg)}
 </style>
+
 </head>
 <body>
-<canvas id="design-bg"></canvas>
-<div id="bg-veil"></div>
 
 <div class="rail">
-  <div class="brand"><span class="dot"></span>__NAME__</div>
-  <nav><a href="#palette">01</a><a href="#type">02</a><a href="#surface">03</a><a href="#motion">04</a><a href="#background">05</a><a href="#guidelines">06</a><a href="#templates">07</a></nav>
+  <div class="brand"><span class="square"></span><b>STUDIO</b></div>
+  <nav>
+    <a href="#palette">01</a><a href="#type">02</a><a href="#surface">03</a><a href="#motion">04</a><a href="#guidelines">05</a><a href="#templates">06</a>
+  </nav>
+  <div class="meta">V 1.0</div>
 </div>
 
-<header class="cover">
-  <h1 class="cover-headline">__NAME_LINE1____NAME_LINE2__.</h1>
+<header class="cover" data-screen-label="00 Cover">
+  <div class="cover-chrome">
+    <div>DESIGN SYSTEM · № 007</div>
+    <div class="accent">▶ STUDIO 2026</div>
+  </div>
+  <h1 class="cover-headline">STU<em>DIO</em>.</h1>
   <div class="cover-foot">
-    <div class="cell"><span class="k">Template</span><span class="v">studio</span></div>
-    <div class="cell"><span class="k">Type</span><span class="v big">Barlow</span></div>
-    <div class="cell"><span class="k">Accent</span><span class="v">__ACCENT_LABEL__</span></div>
-    <div class="cell"><span class="k">Doc</span><span class="v">07 sections · __SLIDE_COUNT__ templates</span></div>
+    <div class="cell"><span class="k">DISCIPLINE</span><span class="v">Studio · Agency · Brand</span></div>
+    <div class="cell"><span class="k">DISPLAY</span><span class="v">Anton</span></div>
+    <div class="cell"><span class="k">SIGNAL</span><span class="v">Volt #F6FF1F</span></div>
+    <div class="cell"><span class="k">BUILD</span><span class="v plain">06 sections · 08 frames</span></div>
   </div>
 </header>
 
-<section class="manifesto">
+<section class="manifesto" data-screen-label="00 Manifesto">
   <div class="manifesto-grid">
-    <div class="num">&#8212; Manifesto</div>
-    <p>Black canvas with electric-yellow type; high-voltage design studio aesthetic.</p>
+    <div class="num">— MANIFESTO</div>
+    <p>The page <em>shouts</em>. Type is <em>weapon</em>. Volt is one voice — but it is loud.</p>
   </div>
 </section>
 
-<section id="palette">
+<section id="palette" data-screen-label="01 Palette">
   <div class="section-head">
-    <div class="num">01 &#8212; Palette</div>
-    <h2>four colors.</h2>
-    <p class="lede">__PALETTE_LEDE__</p>
+    <div class="num">01 — PALETTE</div>
+    <h2>FOUR<br/><em>VOLTS.</em></h2>
+    <p class="lede">Black canvas. Off-white type. Grey for chrome. Electric yellow as the only voice — and it is the loudest in any room it enters.</p>
   </div>
   <div class="palette">
-    <div class="swatch swatch--primary"><div class="role">Primary</div><div><div class="name">__PRIMARY_NAME__</div><div class="hex">__PRIMARY__</div><div class="usage">Ink on dark.</div></div></div>
-    <div class="swatch swatch--secondary"><div class="role">Secondary</div><div><div class="name">__SECONDARY_NAME__</div><div class="hex">__SECONDARY__</div><div class="usage">Canvas.</div></div></div>
-    <div class="swatch swatch--tertiary"><div class="role">Tertiary</div><div><div class="name">__TERTIARY_NAME__</div><div class="hex">__TERTIARY__</div><div class="usage">Muted. Borders.</div></div></div>
-    <div class="swatch swatch--accent"><div class="role">Accent</div><div><div class="name">__ACCENT_NAME__</div><div class="hex">__ACCENT__</div><div class="usage">Signal. Reserved.</div></div></div>
+    <div class="swatch swatch--paper"><div class="role">01 // PAPER</div><div><div class="name">white.</div><div class="hex">__PRIMARY__</div><div class="usage">Off-white body type on black.</div></div></div>
+    <div class="swatch swatch--void"><div class="role">02 // VOID</div><div><div class="name">black.</div><div class="hex">__SECONDARY__</div><div class="usage">The canvas. Near-pure, never grey.</div></div></div>
+    <div class="swatch swatch--grey"><div class="role">03 // GREY</div><div><div class="name">grey.</div><div class="hex">__TERTIARY__</div><div class="usage">Chrome and muted labels.</div></div></div>
+    <div class="swatch swatch--volt"><div class="role">04 // VOLT</div><div><div class="name">volt.</div><div class="hex">__ACCENT__</div><div class="usage">The signal. One element per slide.</div></div></div>
   </div>
 </section>
 
-<section id="type">
+<section id="type" data-screen-label="02 Type">
   <div class="section-head">
-    <div class="num">02 &#8212; Typography</div>
-    <h2>type scale.</h2>
+    <div class="num">02 — TYPE</div>
+    <h2>ANTON<br/><em>UP.</em></h2>
+    <p class="lede">Anton handles every headline — tall, condensed, always uppercase. Inter does body in 500 weight. JetBrains Mono runs chrome.</p>
   </div>
   <div class="specimen">
-    <div class="spec-row"><div class="meta"><span>Display</span><b>Barlow</b></div><div class="spec-display">hello world.</div></div>
-    <div class="spec-row"><div class="meta"><span>H1</span><b>Barlow</b></div><div class="spec-h1">chapter one</div></div>
-    <div class="spec-row"><div class="meta"><span>H2</span><b>Barlow</b></div><div class="spec-h2">Slide headlines.</div></div>
-    <div class="spec-row"><div class="meta"><span>Body</span><b>Barlow</b></div><p class="spec-body">Body copy below 24px is forbidden in video compositions.</p></div>
-    <div class="spec-row"><div class="meta"><span>Label</span><b>IBM Plex Mono</b></div><div class="spec-label">// chrome · labels · metadata</div></div>
+    <div class="spec-row"><div class="meta"><span>DISPLAY</span><b>Anton 400</b><span>13vw · uppercase</span></div><div class="spec-display">HELLO <em>WORLD</em>.</div></div>
+    <div class="spec-row"><div class="meta"><span>H1</span><b>Anton 400</b><span>8vw · volt</span></div><div class="spec-h1">CHAPTER ONE</div></div>
+    <div class="spec-row"><div class="meta"><span>H2</span><b>Anton 400</b><span>5vw</span></div><div class="spec-h2">SLIDE HEADLINES.</div></div>
+    <div class="spec-row"><div class="meta"><span>LEAD</span><b>Inter 600</b><span>2vw</span></div><div class="spec-lead">The lead carries the brief in one decisive line.</div></div>
+    <div class="spec-row"><div class="meta"><span>BODY</span><b>Inter 500</b><span>16px · 60ch</span></div><p class="spec-body">Pack my box with five dozen liquor jugs. Body type stays sentence-case Inter 500. Never bold; the page is already loud enough. Body copy below 24px is forbidden in video compositions — measured at 1080p.</p></div>
+    <div class="spec-row"><div class="meta"><span>LABEL</span><b>JetBrains Mono 600</b><span>12px · 0.16em</span></div><div class="spec-label">// SECTION · LABEL · METADATA</div></div>
   </div>
 </section>
 
-<section id="surface">
+<section id="surface" data-screen-label="03 Surface">
   <div class="section-head">
-    <div class="num">03 &#8212; Surface</div>
-    <h2>corners. depth.</h2>
+    <div class="num">03 — SURFACE</div>
+    <h2>HARD<br/><em>EDGES.</em></h2>
+    <p class="lede">Surfaces are 1px sharp. No corners. No shadows. Volt blocks frame the type, never decorate it.</p>
   </div>
   <div class="surface-grid">
     <div class="demo-card">
-      <span class="tag">// example</span>
-      <h3>example card.</h3>
-      <p>Configured corners, padding, shadow.</p>
+      <span class="marker">№ 1</span>
+      <span class="tag">▶ CARD · EXAMPLE</span>
+      <h3>EXAMPLE CARD.</h3>
+      <p>Hard 1px border. Zero radius. One volt block carries the meaning. Everything else stays out of the way.</p>
+      <div class="num-stat">+<em>42</em>%</div>
     </div>
     <ul class="tokens">
-      <li><span class="name">Corners</span><span class="val">__CORNER_RADIUS__</span><span class="bar" style="width:8px"></span></li>
-      <li><span class="name">Padding</span><span class="val">__PADDING__</span><span class="bar" style="width:32px"></span></li>
-      <li><span class="name">Gap</span><span class="val">__GAP__</span><span class="bar" style="width:32px"></span></li>
-      <li><span class="name">Elevation</span><span class="val">__ELEVATION__</span><span class="bar" style="width:18px"></span></li>
-      <li><span class="name">Density</span><span class="val">__DENSITY__</span><span class="bar" style="width:48px"></span></li>
+      <li><span class="name">// BORDER</span><span class="val">1 PX</span><span class="bar" style="width:24px"></span></li>
+      <li><span class="name">// RADIUS</span><span class="val">0 PX</span><span class="bar" style="width:6px"></span></li>
+      <li><span class="name">// SHADOW</span><span class="val">NONE</span><span class="bar" style="width:0;opacity:.2"></span></li>
+      <li><span class="name">// PADDING</span><span class="val">32 PX</span><span class="bar" style="width:36px"></span></li>
+      <li><span class="name">// DENSITY</span><span class="val">HIGH</span><span class="bar" style="width:52px"></span></li>
     </ul>
   </div>
 </section>
 
-<section id="motion">
+<section id="motion" data-screen-label="04 Motion">
   <div class="section-head">
-    <div class="num">04 &#8212; Motion</div>
-    <h2>__EASING_HEADLINE__</h2>
-    <p class="lede">__EASING_LEDE__</p>
+    <div class="num">04 — MOTION</div>
+    <h2>FAST.<br/><em>HARD.</em></h2>
+    <p class="lede">Motion arrives fast and stops hard. No bounce, no overshoot — every entrance is a cut, not a fade.</p>
   </div>
   <div class="two-col">
     <div class="panel">
-      <div class="label-row">// easing</div>
-      <h4>__EASING_NAME__</h4>
-      <p>__EASING_DESC__</p>
-      <pre>__EASING_VALUE__</pre>
+      <span class="label-row">▶ EASING</span>
+      <h4>SNAP <em>OUT.</em></h4>
+      <p>Aggressive head, hard stop. Use for headlines, volt blocks, any element that wants to land like a hammer.</p>
+      <pre>cubic-bezier(0.32, 0, 0.16, 1)</pre>
     </div>
     <div class="panel">
-      <div class="label-row">// duration</div>
-      <h4>__DURATION_DEFAULT__</h4>
-      <p>__DURATION_DESC__</p>
-      <pre>__DURATION_VALUES__</pre>
+      <span class="label-row">▶ DURATION</span>
+      <h4>0.4 <em>SECONDS.</em></h4>
+      <p>Slides cut in 0.4 seconds. Elements 0.25. Hovers 0.1. Studio runs fast.</p>
+      <pre>--dur-slide: 0.4s
+--dur-enter: 0.25s
+--dur-hover: 0.1s</pre>
     </div>
   </div>
 </section>
 
-<section id="background">
+<section id="guidelines" data-screen-label="05 Guidelines">
   <div class="section-head">
-    <div class="num">05 &#8212; Background</div>
-    <h2>__BG_HEADLINE__</h2>
-    <p class="lede">__BG_LEDE__</p>
-  </div>
-  <div class="two-col">
-    <div class="bg-preview"><canvas id="bg-preview-canvas"></canvas><span class="badge">// __BG_BADGE__</span></div>
-    <div style="display:flex;flex-direction:column;gap:8px">
-      <ul class="tokens" style="border-top:none">
-        <li><span class="name">Geometry</span><span class="val">__BG_TYPE__</span><span class="bar" style="width:36px"></span></li>
-        <li><span class="name">Density</span><span class="val">__BG_DENSITY__</span><span class="bar" style="width:42px"></span></li>
-        <li><span class="name">Speed</span><span class="val">__BG_SPEED__</span><span class="bar" style="width:18px"></span></li>
-        <li><span class="name">Strength</span><span class="val">__BG_STRENGTH__</span><span class="bar" style="width:52px"></span></li>
-        <li><span class="name">Grain</span><span class="val">__BG_GRAIN__</span><span class="bar" style="width:24px"></span></li>
-      </ul>
-      <details class="code-block"><summary>// shader config</summary>
-<pre>__SHADER_CONFIG__</pre>
-      </details>
-      <details class="code-block"><summary>// vertex shader</summary>
-<pre id="vtx-src">__SHADER_VERTEX__</pre>
-      </details>
-      <details class="code-block"><summary>// fragment shader</summary>
-<pre id="frg-src">__SHADER_FRAGMENT__</pre>
-      </details>
-    </div>
-  </div>
-</section>
-
-<section id="guidelines">
-  <div class="section-head">
-    <div class="num">06 &#8212; Guidelines</div>
-    <h2>do and don’t.</h2>
+    <div class="num">05 — RULES</div>
+    <h2>YES.<br/><em>NO.</em></h2>
+    <p class="lede">The studio runs on these. Break any and the voltage drops.</p>
   </div>
   <div class="rules-grid">
-    <div class="rules-col do"><h3>do.</h3><ul>__DOS__</ul></div>
-    <div class="rules-col dont"><h3>don't.</h3><ul>__DONTS__</ul></div>
+    <div class="rules-col do">
+      <h3>YES.</h3>
+      <ul>
+        <li>Volt one element per slide — never two.</li>
+        <li>Set every headline in Anton, uppercase.</li>
+        <li>Run body in Inter 500. Never bold.</li>
+        <li>Keep all borders 1px sharp, zero radius.</li>
+        <li>Motion is fast (0.25–0.4s) and never bouncy.</li>
+      </ul>
+    </div>
+    <div class="rules-col dont">
+      <h3>NO.</h3>
+      <ul>
+        <li>Introduce a second accent. Volt is the only voice.</li>
+        <li>Use rounded corners or any radius greater than 0.</li>
+        <li>Apply shadows, gradients, or glows.</li>
+        <li>Set headlines in serif or lowercase.</li>
+        <li>Use easings with overshoot — Studio doesn't bounce.</li>
+      </ul>
+    </div>
   </div>
 </section>
 
-<section id="templates" class="templates-wrap">
+<section id="templates" class="templates-wrap" data-screen-label="06 Templates">
   <div class="section-head">
-    <div class="num">07 &#8212; Templates</div>
-    <h2>__SLIDE_COUNT_WORD__<br/>frames.</h2>
+    <div class="num">06 — TEMPLATES</div>
+    <h2>EIGHT<br/><em>FRAMES.</em></h2>
+    <p class="lede">The full library at 1920×1080. Each thumbnail is the live slide, scaled.</p>
   </div>
   <div class="templates-grid" id="templates-grid"></div>
 </section>
 
 <template id="tmpl-source">
-__SLIDE_CARDS__
+
+<div class="tmpl" data-idx="01"><div class="tmpl-thumb"><div class="scale-wrap"><div class="ds-slide-frame">
+<section class="slide slide--cover"><div class="cover-top"><span>{{label}}</span><span class="accent">▶ {{label}}</span></div><div class="cover-body"><h1 class="display">{{headline}}</h1><p class="lead">{{body}}</p></div></section>
+</div></div></div><div class="tmpl-foot"><span class="name">cover</span><span class="idx">01/08</span></div></div>
+
+<div class="tmpl" data-idx="02"><div class="tmpl-thumb"><div class="scale-wrap"><div class="ds-slide-frame">
+<section class="slide slide--chapter"><span class="chap-num">{{label}}</span><h2 class="h1">{{headline}}</h2><p class="lead">{{body}}</p></section>
+</div></div></div><div class="tmpl-foot"><span class="name">chapter</span><span class="idx">02/08</span></div></div>
+
+<div class="tmpl" data-idx="03"><div class="tmpl-thumb"><div class="scale-wrap"><div class="ds-slide-frame">
+<section class="slide slide--statement"><header class="slide-chrome"><span>{{label}}</span><span class="accent">{{label}}</span></header><div class="slide-body"><span class="label">{{label}}</span><h2 class="h1">{{headline}}</h2><p class="lead">{{body}}</p></div><footer class="slide-foot"><span>{{label}}</span><span>{{number}}</span></footer></section>
+</div></div></div><div class="tmpl-foot"><span class="name">statement</span><span class="idx">03/08</span></div></div>
+
+<div class="tmpl" data-idx="04"><div class="tmpl-thumb"><div class="scale-wrap"><div class="ds-slide-frame">
+<section class="slide slide--quote"><div class="quote-mark">"</div><div class="quote-text">{{body}}</div><div class="quote-attr"><span class="nm">— {{text}}</span><span class="src">{{label}}</span></div></section>
+</div></div></div><div class="tmpl-foot"><span class="name">quote</span><span class="idx">04/08</span></div></div>
+
+<div class="tmpl" data-idx="05"><div class="tmpl-thumb"><div class="scale-wrap"><div class="ds-slide-frame">
+<section class="slide slide--split"><header class="slide-chrome"><span>{{label}}</span><span class="accent">{{label}}</span></header><div class="slide-body"><div class="split-text"><span class="label">{{label}}</span><h2 class="h2">{{headline}}</h2><p class="body">{{body}}</p></div><div class="split-plate">{{text}}</div></div><footer class="slide-foot"><span>{{label}}</span><span>{{number}}</span></footer></section>
+</div></div></div><div class="tmpl-foot"><span class="name">split</span><span class="idx">05/08</span></div></div>
+
+<div class="tmpl" data-idx="06"><div class="tmpl-thumb"><div class="scale-wrap"><div class="ds-slide-frame">
+<section class="slide slide--stats"><header class="slide-chrome"><span>{{label}}</span><span class="accent">{{label}}</span></header><div class="slide-body"><h2 class="h2">{{headline}}</h2><div class="stats-grid"><div class="stat-card"><span class="v">{{number}}</span><span class="l">{{body}}</span><span class="n">{{label}}</span></div><div class="stat-card"><span class="v">{{number}}</span><span class="l">{{body}}</span><span class="n">{{label}}</span></div><div class="stat-card"><span class="v">{{number}}</span><span class="l">{{body}}</span><span class="n">{{label}}</span></div><div class="stat-card"><span class="v">{{number}}</span><span class="l">{{body}}</span><span class="n">{{label}}</span></div></div></div><footer class="slide-foot"><span>{{label}}</span><span>{{number}}</span></footer></section>
+</div></div></div><div class="tmpl-foot"><span class="name">stats</span><span class="idx">06/08</span></div></div>
+
+<div class="tmpl" data-idx="07"><div class="tmpl-thumb"><div class="scale-wrap"><div class="ds-slide-frame">
+<section class="slide slide--list"><header class="slide-chrome"><span>{{label}}</span><span class="accent">{{label}}</span></header><div class="slide-body"><div class="list-head"><span class="label">{{label}}</span><h3 class="h3">{{headline}}</h3><p class="body muted">{{body}}</p></div><ul class="list-items"><li><div><span class="h">{{headline}}</span><span class="d">{{body}}</span></div></li><li><div><span class="h">{{headline}}</span><span class="d">{{body}}</span></div></li><li><div><span class="h">{{headline}}</span><span class="d">{{body}}</span></div></li></ul></div><footer class="slide-foot"><span>{{label}}</span><span>{{number}}</span></footer></section>
+</div></div></div><div class="tmpl-foot"><span class="name">list</span><span class="idx">07/08</span></div></div>
+
+<div class="tmpl" data-idx="08"><div class="tmpl-thumb"><div class="scale-wrap"><div class="ds-slide-frame">
+<section class="slide slide--end"><h2 class="end-mark">{{headline}}</h2><p class="lead">{{body}}</p><div class="end-meta"><span>{{label}}</span><span>{{label}}</span><span>{{label}}</span></div></section>
+</div></div></div><div class="tmpl-foot"><span class="name">end</span><span class="idx">08/08</span></div></div>
+
 </template>
 
-<footer class="endcap">
-  <h2 class="endmark">end.</h2>
+<footer class="endcap" data-screen-label="07 End">
+  <h2 class="endmark">END <em>.</em></h2>
   <div class="meta">
-    <div><b>__NAME__</b> · v1</div>
-    <div>Barlow / IBM Plex Mono</div>
-    <div>__DATE__</div>
+    <div><b>STUDIO</b> · V 1.0</div>
+    <div>ANTON / INTER</div>
+    <div>BUILD MMXXVI.05</div>
   </div>
 </footer>
 
@@ -311,8 +444,6 @@ __SLIDE_CARDS__
   if(document.fonts&&document.fonts.ready)document.fonts.ready.then(rescale);
 })();
 </script>
-
-__SHADER_SCRIPT__
 
 </body>
 </html>
