@@ -6,7 +6,7 @@
     <title>Design your visual direction</title>
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/CustomEase.min.js"></script>
-    <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.167.0/build/three.module.js"}}</script>
+    <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.167.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.167.0/examples/jsm/"}}</script>
     <style>
       * {
         margin: 0;
@@ -3249,7 +3249,13 @@
     <!-- Three.js shader gradient backgrounds (ES module) -->
     <script type="module">
     import * as THREE from 'three';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { HalftonePass } from 'three/addons/postprocessing/HalftonePass.js';
     window.THREE = THREE;
+    window._HalftonePass = HalftonePass;
+    window._EffectComposer = EffectComposer;
+    window._RenderPass = RenderPass;
 
     const vertexShader = `
 vec3 mod289(vec3 x){return x-floor(x*(1.0/289.0))*289.0;}
@@ -3272,7 +3278,17 @@ void main(){
   gl_Position=projectionMatrix*mvPos;
 }`;
 
-    const FRAG_DEFAULTS = `varying vec3 vPos;varying vec3 vNormal;varying vec3 vViewPos;uniform vec3 uColor1;uniform vec3 uColor2;uniform vec3 uColor3;
+    const GRAIN_GLSL = `
+float grain(vec2 co, float t){return fract(sin(dot(co+t,vec2(12.9898,78.233)))*43758.5453);}
+vec3 halftoneGrain(vec2 fragCoord, float t) {
+  float r = grain(fragCoord * 0.8, t + 0.0) * 0.12 - 0.06;
+  float g = grain(fragCoord * 0.8, t + 1.7) * 0.12 - 0.06;
+  float b = grain(fragCoord * 0.8, t + 3.1) * 0.12 - 0.06;
+  return vec3(r, g, b);
+}`;
+
+    const FRAG_DEFAULTS = `varying vec3 vPos;varying vec3 vNormal;varying vec3 vViewPos;uniform vec3 uColor1;uniform vec3 uColor2;uniform vec3 uColor3;uniform float uTime;
+${GRAIN_GLSL}
 void main(){
   vec3 base=mix(mix(uColor1,uColor2,smoothstep(-3.0,3.0,vPos.x)),uColor3,smoothstep(-2.0,2.0,vPos.z));
   vec3 n=normalize(vNormal);vec3 v=normalize(-vViewPos);
@@ -3285,6 +3301,7 @@ void main(){
 }`;
 
     const FRAG_COSMIC = `varying vec3 vPos;varying vec3 vNormal;varying vec3 vViewPos;uniform vec3 uColor1;uniform vec3 uColor2;uniform vec3 uColor3;uniform float uTime;uniform float uSpeed;
+${GRAIN_GLSL}
 float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123);}
 float noise2D(vec2 p){vec2 i=floor(p);vec2 f=fract(p);vec2 u=f*f*(3.0-2.0*f);return mix(mix(hash(i),hash(i+vec2(1,0)),u.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),u.x),u.y);}
 void main(){
@@ -3308,7 +3325,8 @@ void main(){
   gl_FragColor=vec4(col,1.0);
 }`;
 
-    const FRAG_GLASS = `varying vec3 vPos;varying vec3 vNormal;varying vec3 vViewPos;uniform vec3 uColor1;uniform vec3 uColor2;uniform vec3 uColor3;
+    const FRAG_GLASS = `varying vec3 vPos;varying vec3 vNormal;varying vec3 vViewPos;uniform vec3 uColor1;uniform vec3 uColor2;uniform vec3 uColor3;uniform float uTime;
+${GRAIN_GLSL}
 void main(){
   vec3 base=mix(mix(uColor1,uColor2,smoothstep(-3.0,3.0,vPos.x)),uColor3,smoothstep(-2.0,2.0,vPos.z));
   vec3 n=normalize(vNormal);vec3 v=normalize(-vViewPos);
@@ -3322,6 +3340,7 @@ void main(){
 }`;
 
     const FRAG_FOG = `varying vec3 vPos;varying vec3 vNormal;varying vec3 vViewPos;uniform vec3 uColor1;uniform vec3 uColor2;uniform vec3 uColor3;uniform float uTime;uniform float uSpeed;uniform float uDensity;uniform float uStrength;
+${GRAIN_GLSL}
 vec3 mod289v3(vec3 x){return x-floor(x*(1.0/289.0))*289.0;}
 vec4 mod289v4(vec4 x){return x-floor(x*(1.0/289.0))*289.0;}
 vec4 perm(vec4 x){return mod289v4(((x*34.0)+1.0)*x);}
@@ -3475,7 +3494,15 @@ void main(){
         mesh.position.set(preset.posX || 0, preset.posY || 0, preset.posZ || 0);
         scene.add(mesh);
 
-        activeRenderers.push({ renderer, scene, camera, uniforms, canvas });
+        const composer = new EffectComposer(renderer);
+        composer.addPass(new RenderPass(scene, camera));
+        composer.addPass(new HalftonePass(canvas.offsetWidth||640, canvas.offsetHeight||360, {
+          shape: 1, radius: 2,
+          rotateR: Math.PI/12, rotateG: (Math.PI/12)*2, rotateB: (Math.PI/12)*3,
+          scatter: 1, blending: 1, blendingMode: 1, greyscale: false
+        }));
+
+        activeRenderers.push({ renderer, scene, camera, uniforms, canvas, composer });
       });
 
       if (!window._sgAnimating) {
@@ -3486,10 +3513,11 @@ void main(){
             const w = s.canvas.offsetWidth, h = s.canvas.offsetHeight;
             if (w <= 0) return;
             s.renderer.setSize(w, h, false);
+            s.composer.setSize(w, h);
             s.camera.aspect = w / h;
             s.camera.updateProjectionMatrix();
             s.uniforms.uTime.value = t;
-            s.renderer.render(s.scene, s.camera);
+            s.composer.render();
           });
           requestAnimationFrame(animate);
         }
