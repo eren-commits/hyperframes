@@ -4,9 +4,9 @@
 
 You've captured the site, read all the data, written DESIGN.md. Now you know what you're working with — the brand's colors, assets, animations, typography. Before making any creative decisions, **ask the user what they want.**
 
-Do NOT skip this step. Even when the user gives detailed instructions like "cinematic, dark, 3D MacBook reveal" — that's still not a complete creative brief. They told you the vibe, but not: which features to highlight, whether they want narration, what format, whether they want captions, what specific assets to feature. Ask the questions below to fill the gaps.
+**Parse the user's prompt first.** Read what they already told you — video type, style, specific requests, duration. Only ask about things they DIDN'T specify. If they said "product demo, show me the kanban board and chat, moderate pace" — that's most of the brief already. Don't ask "what type of video?" when they literally said "product demo."
 
-The common failure: agents read the user's prompt, rephrase it back ("So you want a cinematic dark video with a MacBook reveal — got it!"), and proceed without actually asking anything new. That's not a creative brief — that's a parrot. Ask questions that surface information the user HASN'T already provided.
+Skip questions the user already answered. Ask only what's missing. If the prompt is detailed enough to build from, confirm the direction in one message and move to Step 3. The goal is to fill gaps, not interrogate.
 
 ---
 
