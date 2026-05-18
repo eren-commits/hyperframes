@@ -254,14 +254,6 @@ Build in this order. Each section has a job; don't blur them.
 - Right: duration philosophy + `<pre>` with `--dur-*` custom property declarations
 - Panel chrome matches the system: offset shadows for brutalist, hairlines for quiet, etc.
 
-### Background
-
-- Two-column: live shader preview on the left, config + GLSL on the right
-- Preview canvas (`<canvas id="bg-preview-canvas">`) mirrors the full-page shader
-- Config values in a token list (Geometry, Density, Speed, Strength, Grain)
-- GLSL in collapsible `<details>` blocks with `<pre id="vtx-src">` and `<pre id="frg-src">`
-- Shader config JSON in a collapsible `<details>` block
-
 ### Guidelines
 
 - Two-column do/don't
@@ -306,25 +298,13 @@ These three blocks must be present and clearly labeled:
 ```html
 <style id="template-css">
   .ds-slide-frame {
-    width: 1920px;
-    height: 1080px;
-    position: relative;
-    overflow: hidden;
-    --c-bg: var(--secondary);
-    --c-fg: var(--primary); /* internal aliases */
+    width: 1920px; height: 1080px; position: relative; overflow: hidden;
+    --c-bg: var(--secondary); --c-fg: var(--primary); /* internal aliases */
     /* ...font aliases, color aliases, dimensions... */
   }
-  .ds-slide-frame .slide {
-    width: 1920px;
-    height: 1080px;
-    ...;
-  }
-  .ds-slide-frame .slide--cover {
-    ...;
-  }
-  .ds-slide-frame .slide--chapter {
-    ...;
-  }
+  .ds-slide-frame .slide { width:1920px; height:1080px; ... }
+  .ds-slide-frame .slide--cover { ... }
+  .ds-slide-frame .slide--chapter { ... }
   /* one block per slide variant, complete enough to copy-paste */
 </style>
 ```
@@ -399,20 +379,20 @@ The mono labels everywhere should also speak in voice. A scholarly system writes
 
 ## 10. Concrete failure modes and fixes
 
-| Failure                                             | Fix                                                                                                                                            |
-| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| Neutral grey-on-white page chrome                   | Re-skin every section in the system's palette. The body background isn't neutral — it's `--secondary` or `--primary`.                          |
-| Cover headline at 48–64px                           | Push to `clamp(80px, 15vw, 280px)` minimum. The cover dominates or fails.                                                                      |
-| Accent used as a 12% background wash everywhere     | Reserve accent for solid hits: one swatch, one section-head highlight, one cover-foot cell, one stat. Power comes from repetition + restraint. |
-| Filled example copy inside slide gallery            | Replace with `{{placeholders}}`.                                                                                                               |
-| Same section-head treatment six times in a row      | Vary: cover huge, manifesto on a slab, palette normal, type paired with a label. Pulse the rhythm.                                             |
-| More than 4 palette tokens at the top               | Compress to 4. Move extras into `.ds-slide-frame` as `--c-pink`, `--c-yellow` costume vars.                                                    |
-| Reveal-on-scroll animations bolted on               | Cut them. They bloat the file.                                                                                                                 |
-| Identical 12-section showcase regardless of system  | Match section count to system density. Loud poster system needs 5 sections; scholarly system uses all 9.                                       |
-| Display font is Inter or Helvetica or system-ui     | Pick a memorable display face from §3.                                                                                                         |
-| All cards drop-shadowed identically                 | Brutalist: offset solid. Quiet: none. Modern B2B: 4% opacity. Don't mix philosophies.                                                          |
-| Manifesto reads like marketing                      | Rewrite in the system's voice. Three clauses, two italicized emphasis words, fits in 22–30ch.                                                  |
-| Endcap is a meta block with the same chrome as rest | Make it a single huge word at maximum scale, on accent or inverted canvas. Mirror the cover.                                                   |
+| Failure                                                 | Fix                                                                                                                                                         |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Neutral grey-on-white page chrome                       | Re-skin every section in the system's palette. The body background isn't neutral — it's `--secondary` or `--primary`.                                       |
+| Cover headline at 48–64px                               | Push to `clamp(80px, 15vw, 280px)` minimum. The cover dominates or fails.                                                                                   |
+| Accent used as a 12% background wash everywhere         | Reserve accent for solid hits: one swatch, one section-head highlight, one cover-foot cell, one stat. Power comes from repetition + restraint, not opacity. |
+| Filled example copy inside slide gallery                | Replace with `{{placeholders}}`.                                                                                                                            |
+| Same section-head treatment six times in a row          | Vary: cover huge, manifesto on a slab, palette normal, type paired with a label. Pulse the rhythm.                                                          |
+| More than 4 palette tokens at the top                   | Compress to 4. Move extras into `.ds-slide-frame` as `--c-pink`, `--c-yellow` costume vars.                                                                 |
+| Reveal-on-scroll animations bolted on                   | Cut them. They bloat the file.                                                                                                                              |
+| Identical 12-section showcase regardless of system      | Match section count to system density. Loud poster system needs 5 sections; scholarly system uses all 9.                                                    |
+| Display font is Inter or Helvetica or system-ui         | Pick a memorable display face from §3.                                                                                                                      |
+| All cards drop-shadowed identically                     | Brutalist: offset solid. Quiet: none. Modern B2B: 4% opacity. Don't mix philosophies.                                                                       |
+| Manifesto reads like marketing                          | Rewrite in the system's voice. Three clauses, two italicized emphasis words, fits in 22–30ch.                                                               |
+| Endcap is a meta block with the same chrome as the rest | Make it a single huge word at maximum scale, on accent or inverted canvas. Mirror the cover.                                                                |
 
 ---
 
@@ -424,7 +404,7 @@ The mono labels everywhere should also speak in voice. A scholarly system writes
 4. **Pick three fonts.** Display by character (§3), body to pair, mono usually JetBrains.
 5. **Write the `:root` block.** Four palette tokens, three fonts, derived `--ink-dim`/`--hairline`, padding clamps.
 6. **Write the `template-css` block.** All slide variants with internal alias vars (`--c-bg`, `--c-fg`, `--c-accent`) so slides re-skin cleanly.
-7. **Build the outer chrome — embodying the system at every step.** Sticky rail → cover → manifesto → palette → type → surface → motion → background → guidelines → templates → endcap.
+7. **Build the outer chrome — embodying the system at every step.** Sticky rail → cover → manifesto → palette → type → surface → motion → guidelines → templates → endcap.
 8. **Re-read the cover.** If you only saw the cover, would you keep going? If no, the cover is too quiet.
 9. **Re-read the manifesto.** Could this sentence work as a slide in a real deck made with this system? If no, the voice is wrong.
 10. **Mental squint test.** Imagine this showcase next to a generic startup landing page. Are they unmistakably different objects? If they look the same, the chrome isn't committing.
@@ -440,3 +420,193 @@ Before delivering, apply these three:
 3. **Squint test.** Squint at the page so type blurs. The shapes and colors alone should communicate the system's character — loud color blocks, quiet hairlines, soft tilted cards, hard grid lines. If squinting reveals a generic page structure, the chrome isn't committing to the system.
 
 A showcase that passes all three feels like a portfolio piece. A showcase that fails any of them feels like a spec sheet.
+
+---
+
+## 13. Mining the source for slide templates — the BMW M test
+
+The default 7-template set (cover, chapter, statement, stats, quote, list, end) is a _floor_. A great showcase mines the source document for system-specific components and turns each one into its own slide variant. If the source mentions a `spec-cell`, the slide gallery has a `slide--spec` template. If it mentions a `motorsport-photo-card`, the gallery has a `slide--photo-band` template. **One signature component in the source = one slide variant in the gallery.**
+
+Common system-specific components that must become slide variants:
+
+| Source component pattern                            | Slide variant                                                                        | Why                                                                                 |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
+| "Photo band" / "hero photo" / "full-bleed image"    | `slide--photo-band`                                                                  | A 16:9 placeholder block + overlay caption. Full-bleed inside the 1920×1080 canvas. |
+| "Spec cell" / "spec table" / numbered metrics grid  | `slide--spec`                                                                        | 3 or 4-up grid of large numbers (`{{value}}` at 96px+) with mono labels below       |
+| "Model card" / "product card" / 3-up image cards    | `slide--lineup`                                                                      | Three columns of photo placeholder + name + caption + accent link                   |
+| "Magazine grid" / "article cards" / editorial cards | `slide--magazine`                                                                    | Photo + category tag + title + excerpt, 2- or 3-up                                  |
+| "Configurator" / "comparison" / option pickers      | `slide--compare`                                                                     | Two-column with swatches/options on left, summary on right                          |
+| "Motorsport / racing / hero feature"                | `slide--feature`                                                                     | Large photo placeholder with single overlay headline                                |
+| "Ledger" / "spec table rows" / 2-column data        | `slide--ledger`                                                                      | Hairline-divided rows with key/value pairs                                          |
+| "CTA band" / pre-footer photo CTA                   | `slide--cta`                                                                         | Photo placeholder + centered headline + outlined button                             |
+| Tricolor stripe / signature divider                 | Used **inside** other slides, not its own variant — a structural marker at slide top |
+
+For the BMW M source: `cover`, `statement`, `spec`, `stat`, `quote`, `ledger`, `split`, `end` is good — but it should also include `photo-band` (full-bleed car image), `lineup` (3-up model cards), and `motorsport-feature` (full-bleed photo with overlay caption). Eight slides is the floor for a system this rich; ten to twelve is the target.
+
+### Photography-led systems get photo placeholders
+
+When the source says "photography is the brand voice" / "full-bleed automotive photography fills entire bands" / "cars are the visual subject," **every slide except the pure-statement slide gets a photo placeholder zone.** Render the placeholder as a styled empty block:
+
+```css
+.photo-placeholder {
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: linear-gradient(135deg, var(--c-surface-elevated), var(--c-surface-card));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.photo-placeholder::before {
+  content: "// PHOTOGRAPHY";
+  font-family: var(--c-f-mono);
+  font-size: 14px;
+  letter-spacing: 0.18em;
+  color: var(--c-dim);
+  opacity: 0.5;
+}
+.photo-placeholder::after {
+  content: "";
+  position: absolute;
+  inset: 24px;
+  border: 1px solid var(--c-dim);
+  opacity: 0.3;
+}
+```
+
+This signals to the downstream agent: _replace this block with a real photo when filling slides._ Without it, the gallery reads as content-light and the system's photographic voice is invisible.
+
+### Placeholder content must match the system's domain
+
+Generic `+42%` is wrong for an automotive system. Mine the source for what the system actually talks about and use that as the placeholder text. For BMW M:
+
+| Slide variant | Domain-appropriate `{{placeholder}}`                    |
+| ------------- | ------------------------------------------------------- |
+| Stat          | `{{number}}` = `523HP` / `3.2s` / `305KM/H` / `1,470KG` |
+| Spec cell     | label = `0–100 KM/H`, value = `3.2s`                    |
+| Ledger        | rows like `ENGINE → 4.4L V8 TWINPOWER`                  |
+| Quote         | `"M IS NOT A LETTER. IT'S A LANGUAGE."`                 |
+| Cover         | `BMW M.` / `THE ULTIMATE DRIVING MACHINE.`              |
+| Photo caption | `// M4 CSL · NÜRBURGRING · 2024`                        |
+
+For Vellum (scholarly journal): `{{number}}` becomes `42 folios` not `42%`. For Studio (design agency): `{{number}}` becomes `2003` (founded year) or `12 awards`. For 8-Bit Orbit (arcade): `{{number}}` becomes `999,999` or `LEVEL 7`.
+
+The skill should explicitly read the source's example copy + glossary and reuse those phrases as placeholder text in the slide gallery. Generic numbers signal that the agent didn't actually read the source.
+
+---
+
+## 14. Surface ladder — 4 tokens is the contract, but the system needs more
+
+The four sacred palette tokens (paper / canvas / chrome / accent) are the contract. But many systems — especially industrial, automotive, luxury, financial — have a _surface ladder_ of 3–5 dark/light surfaces that step up from canvas. The skill should extract these from the source and put them in `template-css` under `--c-surface-*` aliases:
+
+```css
+.ds-slide-frame {
+  --c-bg: var(--secondary); /* canvas — true black or true white */
+  --c-surface-soft: #0d0d0d; /* one notch above canvas */
+  --c-surface-card: #1a1a1a; /* card surface */
+  --c-surface-elevated: #262626; /* one more notch */
+  --c-carbon: #2b2b2b; /* domain-specific (BMW: carbon-fiber) */
+  --c-hairline: #3c3c3c; /* divider tone */
+  --c-fg: var(--primary);
+  --c-fg-2: #bbbbbb; /* body text */
+  --c-fg-3: #7e7e7e; /* muted, captions */
+  --c-accent: var(--accent);
+}
+```
+
+The four `--primary/--secondary/--tertiary/--accent` at the `:root` level stay sacred for the downstream agent's re-skinning. The surface ladder lives inside `.ds-slide-frame` as costume — the agent reading template CSS gets the full vocabulary, but a simple re-theming only needs to touch the four root tokens.
+
+**When to extract a surface ladder:** any time the source mentions more than two dark or two light surface colors (e.g., `canvas` + `surface-soft` + `surface-card` + `surface-elevated`). Industrial / luxury / automotive systems almost always have this. Editorial / scholarly systems often don't.
+
+### Body text ladder
+
+Same principle for type colors. The source likely names `ink` + `body` + `body-strong` + `muted`. Map these to `--c-fg` / `--c-fg-2` / `--c-fg-3` inside the slide frame. Use them in slide CSS:
+
+- `.headline` uses `--c-fg` (pure white/black)
+- `.lead` / body uses `--c-fg-2` (slightly muted)
+- `.caption` / metadata uses `--c-fg-3` (very muted)
+
+This is what makes slides feel hierarchically considered rather than flat.
+
+---
+
+## 15. Signature elements — find the one decorative thing
+
+Every system has one decorative element that isn't type or palette. The skill must hunt for it explicitly:
+
+- **Broadside**: nothing decorative — type IS the decoration
+- **BlockFrame**: chunky offset shadows
+- **Vellum**: drop caps + `§` marginalia glyphs
+- **Daisy Days**: hand-drawn daisy SVGs scattered as decoration
+- **8-Bit Orbit**: CRT scanlines + pixel glow
+- **Retro Windows**: bevels + title bars
+- **Sakura Chroma**: diagonal ribbon stripes
+- **Pin & Paper**: tilted safety-pin SVGs
+- **Scatterbrain**: sticky-note tilt + offset shadow
+- **BMW M**: the M tricolor stripe (`#0066b1 → #1c69d4 → #e22718`)
+
+The signature element appears in 3 places in the showcase, at minimum:
+
+1. Inside the brand mark on the nav rail (small)
+2. As a divider between major sections — replacing or accompanying the hairline `border-top` on `.section-head`
+3. As a structural marker inside relevant slide templates (e.g., a 4px stripe at the top of the cover slide, a hairline accent rule on chapter slides)
+
+For BMW M specifically: the M tricolor stripe must appear:
+
+- Below the brand mark in the nav rail
+- As a 4px-tall divider between the cover and the manifesto, and between the manifesto and palette
+- At the top of every slide in the template gallery (`.m-stripe-slide`)
+
+Without the signature element, the showcase looks like a generic dark system. With it consistently placed, the showcase reads as unmistakably BMW M.
+
+### How to encode signature elements
+
+Inline as a tiny reusable HTML pattern + CSS class. The BMW stripe is six lines of CSS and one `<div class="m-stripe"></div>` element that can be dropped anywhere:
+
+```css
+.m-stripe {
+  height: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--m-blue-light) 0% 33%,
+    var(--m-blue-dark) 33% 66%,
+    var(--m-red) 66% 100%
+  );
+}
+```
+
+Then place it three times in the page. Cheap to add, identity-defining.
+
+---
+
+## 16. The BMW M case — what was missing and how to fix
+
+Looking at a typical first-pass BMW M showcase:
+
+- ✅ Black canvas, white type, M red accent — correct
+- ✅ Saira Condensed for display, Inter Light for body — correct
+- ✅ M tricolor stripe present — correct
+- ✅ Zero radius, hairline borders — correct
+- ❌ Slide gallery uses generic stat (`+42%`) instead of automotive (`523HP`, `3.2s`)
+- ❌ No `slide--photo-band` template even though "photography is the brand voice"
+- ❌ No `slide--lineup` for the 3-up model card grid
+- ❌ Surface ladder collapsed to 4 tokens; `surface-soft` / `surface-card` / `surface-elevated` missing from `template-css`
+- ❌ Body color ladder collapsed; everything uses `--c-fg`, no `--c-fg-2` / `--c-fg-3`
+- ❌ Heritage BMW blue (`#1c69d4`) missing — should be in `--c-bmw-blue` inside `.ds-slide-frame`
+- ❌ Photo placeholders missing on cover, spec, split, and (added) photo-band templates
+- ❌ Placeholder copy in templates is generic instead of automotive
+
+A great BMW M showcase has all six of those failures fixed. The skill should drive the agent to actively look for each.
+
+---
+
+## 17. The four-test gauntlet — run before delivering
+
+Before declaring a showcase done, run these four tests in order:
+
+1. **Cover test** (§12.1) — can a stranger glance at the cover and describe the system in one sentence?
+2. **Voice test** (§12.2) — does the manifesto sound like the system speaks, or like generic design-system copy?
+3. **Squint test** (§12.3) — does the page shape alone communicate the system's character?
+4. **Mine test** (§13) — has every signature component from the source become a slide variant? Has every placeholder been replaced with domain-appropriate copy? Has the signature element been placed at least three times?
+
+A showcase that passes 4/4 is portfolio-worthy. 3/4 is good. 2/4 or fewer is a spec sheet.
