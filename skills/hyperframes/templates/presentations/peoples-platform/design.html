@@ -81,9 +81,9 @@ section{position:relative;padding:var(--pad-y) var(--pad-x)}
 .manifesto p strong{font-family:var(--f-hand);font-weight:400;color:var(--ink);font-size:.7em;transform:rotate(-2deg);display:inline-block;letter-spacing:.02em}
 
 /* Palette */
-.palette{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;max-width:100%;overflow:hidden}
+.palette{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;padding:0 12px 12px}
 @media(max-width:880px){.palette{grid-template-columns:repeat(2,1fr)}}
-.swatch{aspect-ratio:3/4;padding:0;display:flex;flex-direction:column;border:4px solid var(--ink);box-shadow:8px 8px 0 var(--ink);position:relative}
+.swatch{aspect-ratio:3/4;padding:0;display:flex;flex-direction:column;border:4px solid var(--ink);box-shadow:6px 6px 0 var(--ink);position:relative;min-width:0}
 .swatch:nth-child(1){transform:rotate(-1.5deg)}
 .swatch:nth-child(2){transform:rotate(1deg)}
 .swatch:nth-child(3){transform:rotate(-1deg)}
