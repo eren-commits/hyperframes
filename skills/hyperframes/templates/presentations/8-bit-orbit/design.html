@@ -15,12 +15,12 @@
 /* 8-BIT ORBIT TOKENS — CRT arcade palette. */
 :root{
   --primary:__PRIMARY__; --secondary:__SECONDARY__; --tertiary:__TERTIARY__; --accent:__ACCENT__;
-  --void:#06091A; --hud:#0E1638;
+  --void:#06091A; --hud:var(--secondary);
   --cyan:#4ADDE5; --magenta:#FF52A2; --lemon:#FFE74A; --lime:#7CFF6B;
   --ink:#F3F2EA;
   --ink-dim:#8C9BC9;
   --ink-fade:#46568A;
-  --grid:#1A2453;
+  --grid:color-mix(in srgb,var(--secondary) 93%,var(--tertiary));
   --hairline:#1F2C5E;
 
   --f-disp:"Press Start 2P",monospace;

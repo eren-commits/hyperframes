@@ -14,8 +14,8 @@
 <style id="ds-tokens">
 :root{
   --primary:__PRIMARY__; --secondary:__SECONDARY__; --tertiary:__TERTIARY__; --accent:__ACCENT__;
-  --peach:__PRIMARY__; --ink:__SECONDARY__;
-  --tan:__TERTIARY__; --coral:__ACCENT__; --plum:#5C2F23;
+  --peach:var(--primary); --ink:var(--secondary);
+  --tan:var(--tertiary); --coral:var(--accent); --plum:#5C2F23;
   --ink-dim:color-mix(in srgb,var(--ink) 65%,var(--peach));
   --ink-fade:color-mix(in srgb,var(--ink) 32%,var(--peach));
   --hairline:color-mix(in srgb,var(--ink) 16%,transparent);

@@ -14,8 +14,8 @@
 <style id="ds-tokens">
 :root{
   --primary:__PRIMARY__; --secondary:__SECONDARY__; --tertiary:__TERTIARY__; --accent:__ACCENT__;
-  --cream:#FCF1D8; --ink:#2A2624;
-  --sage:#BBD0A4; --blush:#F4B5C9; --sun:#F7D060; --sky:#B4D9F4;
+  --cream:color-mix(in srgb,var(--secondary) 95%,var(--accent)); --ink:var(--primary);
+  --sage:#BBD0A4; --blush:color-mix(in srgb,var(--tertiary) 86%,var(--accent)); --sun:#F7D060; --sky:#B4D9F4;
   --ink-dim:color-mix(in srgb,var(--ink) 65%,var(--cream));
   --ink-fade:color-mix(in srgb,var(--ink) 32%,var(--cream));
   --hairline:color-mix(in srgb,var(--ink) 14%,transparent);

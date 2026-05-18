@@ -14,9 +14,9 @@
 <style id="ds-tokens">
 :root{
   --primary:__PRIMARY__; --secondary:__SECONDARY__; --tertiary:__TERTIARY__; --accent:__ACCENT__;
-  --paper:__PRIMARY__; --paper-2:#FAF3D8;
-  --ink:__SECONDARY__; --ink-blue:__ACCENT__;
-  --ochre:__TERTIARY__;
+  --paper:var(--primary); --paper-2:#FAF3D8;
+  --ink:var(--secondary); --ink-blue:var(--accent);
+  --ochre:var(--tertiary);
   --ink-dim:color-mix(in srgb,var(--ink) 70%,var(--paper));
   --ink-fade:color-mix(in srgb,var(--ink) 35%,var(--paper));
   --hairline:color-mix(in srgb,var(--ink) 22%,transparent);

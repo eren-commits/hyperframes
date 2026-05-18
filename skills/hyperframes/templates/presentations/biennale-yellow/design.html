@@ -14,8 +14,8 @@
 <style id="ds-tokens">
 :root{
   --primary:__PRIMARY__; --secondary:__SECONDARY__; --tertiary:__TERTIARY__; --accent:__ACCENT__;
-  --parchment:__PRIMARY__; --indigo:__SECONDARY__;
-  --solar:__ACCENT__; --burnt:__TERTIARY__;
+  --parchment:var(--primary); --indigo:var(--secondary);
+  --solar:var(--accent); --burnt:var(--tertiary);
   --ink-dim:color-mix(in srgb,var(--indigo) 65%,var(--parchment));
   --ink-fade:color-mix(in srgb,var(--indigo) 32%,var(--parchment));
   --hairline:color-mix(in srgb,var(--indigo) 16%,transparent);

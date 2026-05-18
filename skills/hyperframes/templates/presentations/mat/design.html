@@ -14,8 +14,8 @@
 <style id="ds-tokens">
 :root{
   --primary:__PRIMARY__; --secondary:__SECONDARY__; --tertiary:__TERTIARY__; --accent:__ACCENT__;
-  --bone:__PRIMARY__; --sage:__SECONDARY__;
-  --moss:__TERTIARY__; --rust:__ACCENT__; --oak:#B8895A;
+  --bone:var(--primary); --sage:var(--secondary);
+  --moss:var(--tertiary); --rust:var(--accent); --oak:#B8895A;
   --ink-dim:color-mix(in srgb,var(--bone) 60%,var(--sage));
   --ink-fade:color-mix(in srgb,var(--bone) 30%,var(--sage));
   --hairline:color-mix(in srgb,var(--bone) 16%,transparent);

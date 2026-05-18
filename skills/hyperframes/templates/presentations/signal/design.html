@@ -14,8 +14,8 @@
 <style id="ds-tokens">
 :root{
   --primary:__PRIMARY__; --secondary:__SECONDARY__; --tertiary:__TERTIARY__; --accent:__ACCENT__;
-  --navy:__SECONDARY__; --bone:__PRIMARY__;
-  --slate:__TERTIARY__; --gold:__ACCENT__;
+  --navy:var(--secondary); --bone:var(--primary);
+  --slate:var(--tertiary); --gold:var(--accent);
   --ink-dim:color-mix(in srgb,var(--bone) 55%,var(--navy));
   --ink-fade:color-mix(in srgb,var(--bone) 28%,var(--navy));
   --hairline:color-mix(in srgb,var(--bone) 14%,transparent);

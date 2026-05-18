@@ -14,8 +14,8 @@
 <style id="ds-tokens">
 :root{
   --primary:__PRIMARY__; --secondary:__SECONDARY__; --tertiary:__TERTIARY__; --accent:__ACCENT__;
-  --paper:__PRIMARY__; --ink:__SECONDARY__;
-  --earth:__TERTIARY__; --fire:__ACCENT__;
+  --paper:var(--primary); --ink:var(--secondary);
+  --earth:var(--tertiary); --fire:var(--accent);
   --ink-dim:color-mix(in srgb,var(--ink) 65%,var(--paper));
   --ink-fade:color-mix(in srgb,var(--ink) 32%,var(--paper));
   --hairline:color-mix(in srgb,var(--ink) 16%,transparent);
