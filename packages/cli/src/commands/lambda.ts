@@ -31,6 +31,10 @@ export const examples: Example[] = [
     "Render with variables from a JSON file",
     "hyperframes lambda render ./my-template --site-id abc1234deadbeef0 --width 1920 --height 1080 --variables-file ./alice.json",
   ],
+  [
+    "Batch-render N personalised videos from a JSONL file (deploys the site once)",
+    "hyperframes lambda render-batch ./my-template --batch ./users.jsonl --width 1920 --height 1080 --max-concurrent 10",
+  ],
   ["Check progress for a started render", "hyperframes lambda progress hf-render-abcd1234"],
   [
     "Pre-upload a project so multiple renders share the upload",
@@ -53,6 +57,7 @@ ${c.bold("SUBCOMMANDS:")}
   ${c.accent("deploy")}            ${c.dim("Provision the Lambda + Step Functions + S3 stack via SAM")}
   ${c.accent("sites create")}      ${c.dim("Tar + upload a project to S3 (reusable across renders)")}
   ${c.accent("render")}            ${c.dim("Start a distributed render (returns a renderId)")}
+  ${c.accent("render-batch")}      ${c.dim("Fan out N personalised renders from a JSONL batch file")}
   ${c.accent("progress")}          ${c.dim("Print progress + cost for an in-flight or finished render")}
   ${c.accent("destroy")}           ${c.dim("Tear the stack down (S3 bucket is retained)")}
   ${c.accent("policies")}          ${c.dim("Print or validate the IAM permissions the CLI needs")}
@@ -141,6 +146,23 @@ export default defineCommand({
         "Fail the render command if any --variables key is undeclared or has a wrong type vs the composition's data-composition-variables. Without this flag, mismatches are warnings.",
       default: false,
     },
+    // render-batch
+    batch: {
+      type: "string",
+      description:
+        'Path to a JSONL batch file for `render-batch`. Each line: {"outputKey":"...","variables":{...}}',
+    },
+    "max-concurrent": {
+      type: "string",
+      description:
+        "Max in-flight Step Functions executions for `render-batch` (default: 50). Distinct from --max-parallel-chunks (which caps chunks per render).",
+    },
+    "dry-run": {
+      type: "boolean",
+      description:
+        "For `render-batch`: parse the batch file and print the manifest without invoking AWS. Every entry's status becomes `would-invoke`.",
+      default: false,
+    },
     wait: { type: "boolean", description: "Block until the render finishes" },
     "wait-interval-ms": {
       type: "string",
@@ -179,7 +201,14 @@ export default defineCommand({
     // dep) so the published CLI install stays small for users who don't
     // deploy to Lambda. Subverbs other than `policies` need aws-lambda;
     // catch the missing-module error here and turn it into a friendly hint.
-    const verbsNeedingSDK = new Set(["deploy", "sites", "render", "progress", "destroy"]);
+    const verbsNeedingSDK = new Set([
+      "deploy",
+      "sites",
+      "render",
+      "render-batch",
+      "progress",
+      "destroy",
+    ]);
     if (verbsNeedingSDK.has(subcommand)) {
       try {
         await import("@hyperframes/aws-lambda/sdk");
@@ -275,6 +304,53 @@ export default defineCommand({
           json: Boolean(args.json),
           wait: Boolean(args.wait),
           waitIntervalMs: parsePositiveInt(args["wait-interval-ms"], "--wait-interval-ms") ?? 5000,
+        });
+        return;
+      }
+      case "render-batch": {
+        const projectDir = args.target as string | undefined;
+        if (!projectDir) {
+          console.error(
+            "[lambda render-batch] usage: hyperframes lambda render-batch <projectDir> --batch <path.jsonl> --width <px> --height <px>",
+          );
+          process.exit(1);
+        }
+        const batch = args.batch as string | undefined;
+        if (!batch) {
+          console.error(
+            "[lambda render-batch] --batch <path.jsonl> is required. Each line is a JSON object with at least { outputKey: '...' }.",
+          );
+          process.exit(1);
+        }
+        const width = parsePositiveInt(args.width, "--width");
+        const height = parsePositiveInt(args.height, "--height");
+        if (width === undefined || height === undefined) {
+          console.error("[lambda render-batch] --width and --height are required.");
+          process.exit(1);
+        }
+        const fpsRaw = parseIntFlag(args.fps) ?? 30;
+        if (fpsRaw !== 24 && fpsRaw !== 30 && fpsRaw !== 60) {
+          console.error(`[lambda render-batch] --fps must be 24, 30, or 60; got ${fpsRaw}.`);
+          process.exit(1);
+        }
+        const { runRenderBatch } = await import("./lambda/render-batch.js");
+        await runRenderBatch({
+          projectDir,
+          stackName,
+          batch,
+          siteId: args["site-id"] as string | undefined,
+          fps: fpsRaw,
+          width,
+          height,
+          format: parseFormat(args.format),
+          codec: parseCodec(args.codec),
+          quality: parseQuality(args.quality),
+          chunkSize: parsePositiveInt(args["chunk-size"], "--chunk-size"),
+          maxParallelChunks: parsePositiveInt(args["max-parallel-chunks"], "--max-parallel-chunks"),
+          maxConcurrent: parsePositiveInt(args["max-concurrent"], "--max-concurrent"),
+          strictVariables: Boolean(args["strict-variables"]),
+          dryRun: Boolean(args["dry-run"]),
+          json: Boolean(args.json),
         });
         return;
       }
