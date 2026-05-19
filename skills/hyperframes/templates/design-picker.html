@@ -1948,7 +1948,7 @@
 
       function goToTune() {
         if (selectedMood === null) return;
-        var mb = MOODBOARDS[selectedMood];
+        var mb = MOODBOARDS[selectedMood] || {};
         var thIdx = THEMES.findIndex(function (t) {
           return t.id === (mb.theme || "dark");
         });
@@ -3473,8 +3473,9 @@
           var ntpe = NATIVE_TEMPLATE_PALETTES[slug];
           PALETTES[0].primary = np[0];
           PALETTES[0].secondary = np[1];
-          // Tertiary + accent: prefer template's native --tp-* values so Template Default chip matches actual slide colors
-          PALETTES[0].tertiary = (ntpe && ntpe[2]) || np[2];
+          // Tertiary stays from curated design palette (avoids tone-on-tone unreadability).
+          // Accent: prefer template's native --tp-* (so chip matches slide accent).
+          PALETTES[0].tertiary = np[2];
           PALETTES[0].accent = (ntpe && ntpe[3]) || np[3];
           PALETTES[0].name = "Template Default";
           PALETTES[0]._native = slug;
@@ -3801,11 +3802,13 @@
               /--tp-secondary:\s*[^;]+;/g,
               "--tp-secondary: " + _tpSecRef + ";",
             );
-            // Conditional rewrite for --tp-tertiary and --tp-accent: only override when user picks non-default palette.
-            // Preserves native template colors for Template Default; allows themeing when palette changes.
+            // Strip --tp-accent from scoped template CSS so .ds-slide-frame inherits from html root
+            // (where setProperty in updateSlideIframes controls the value). Avoids circular refs with
+            // templates that also alias --accent: var(--tp-accent). Initial value seeded by setProperty.
+            tmplCss = tmplCss.replace(/--tp-accent:\s*[^;]+;/g, "");
+            // --tp-tertiary stays conditional — PALETTES[0].tertiary uses curated value that may differ from template native.
             if (picks.palette !== null && picks.palette > 0) {
               tmplCss = tmplCss.replace(/--tp-tertiary:\s*[^;]+;/g, "--tp-tertiary: var(--tertiary);");
-              tmplCss = tmplCss.replace(/--tp-accent:\s*[^;]+;/g, "--tp-accent: var(--accent);");
             }
             var scoped = tmplCss
               .replace(/:root\s*\{/g, ".ds-slide-frame {")
@@ -3830,7 +3833,7 @@
               (dp.css || "none") +
               "}";
             scoped +=
-              "\n.ds-slide-frame .slide,.ds-slide-frame section{display:flex!important;flex-direction:column!important;opacity:1!important;position:relative!important;width:1920px!important;height:1080px!important}";
+              "\n.ds-slide-frame .slide,.ds-slide-frame section{opacity:1!important;visibility:visible!important;position:relative!important;width:1920px!important;height:1080px!important}";
             // .slide.dark/.light/.orange overrides removed — template's native semantics preserved
             // Force picker's font choices onto slide content
             if (picks.type !== null) {
@@ -3934,6 +3937,21 @@
 
         // Inject core token override + force swatch backgrounds to core tokens
         var _ft = picks.type !== null ? TYPEPAIRS[picks.type] : TYPEPAIRS[0];
+        // Pick contrasting text per swatch by luminance
+        function _swText(hex) {
+          var h = String(hex || "").replace("#", "");
+          if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+          if (h.length !== 6) return "#000";
+          var r = parseInt(h.substr(0, 2), 16) / 255,
+            g = parseInt(h.substr(2, 2), 16) / 255,
+            b = parseInt(h.substr(4, 2), 16) / 255;
+          var L = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+          return L < 0.55 ? "#fff" : "#111";
+        }
+        var _swTxt1 = _swText(p.primary),
+          _swTxt2 = _swText(p.secondary),
+          _swTxt3 = _swText(p.tertiary || "#888"),
+          _swTxt4 = _swText(p.accent);
         var overrideCSS =
           '<style id="picker-override">' +
           ":root{" +
@@ -3944,6 +3962,8 @@
           "!important;--tertiary:" +
           (p.tertiary || "#888") +
           "!important;--accent:" +
+          p.accent +
+          "!important;--tp-accent:" +
           p.accent +
           "!important;" +
           '--f-disp:"' +
@@ -3956,14 +3976,26 @@
           _ft.body.family +
           '",sans-serif!important' +
           "}" +
+          ".palette .swatch:nth-child(1),.palette .swatch:nth-child(1) *{color:" +
+          _swTxt1 +
+          "!important}" +
           ".palette .swatch:nth-child(1){background:" +
           p.primary +
+          "!important}" +
+          ".palette .swatch:nth-child(2),.palette .swatch:nth-child(2) *{color:" +
+          _swTxt2 +
           "!important}" +
           ".palette .swatch:nth-child(2){background:" +
           p.secondary +
           "!important}" +
+          ".palette .swatch:nth-child(3),.palette .swatch:nth-child(3) *{color:" +
+          _swTxt3 +
+          "!important}" +
           ".palette .swatch:nth-child(3){background:" +
           (p.tertiary || "#888") +
+          "!important}" +
+          ".palette .swatch:nth-child(4),.palette .swatch:nth-child(4) *{color:" +
+          _swTxt4 +
           "!important}" +
           ".palette .swatch:nth-child(4){background:" +
           p.accent +
@@ -6205,6 +6237,27 @@
         window._lastHeroEasing = null; // force animation on next render
         selectedMood = 0;
         goToTune();
+        // Mark default option (first) as active in each config group so user sees
+        // which option is currently in effect. Visual-only — picks stay null.
+        setTimeout(function () {
+          [
+            ["pal-options", ".opt"],
+            ["type-options", ".opt"],
+            ["corner-options", ".chip"],
+            ["density-options", ".chip"],
+            ["depth-options", ".chip"],
+            ["ease-options", ".ease-opt"],
+            ["bg-options", ".opt"],
+          ].forEach(function (pair) {
+            var c = document.getElementById(pair[0]);
+            if (!c) return;
+            c.querySelectorAll(pair[1]).forEach(function (el) {
+              el.classList.remove("selected");
+            });
+            var first = c.querySelector(pair[1]);
+            if (first) first.classList.add("selected");
+          });
+        }, 0);
         // Scroll sidebar to top after goToTune rebuilds content
         setTimeout(function() {
           var panelLeft = document.querySelector(".panel-left");

@@ -14,7 +14,7 @@
 <style id="ds-tokens">
 :root{
   --primary:__PRIMARY__; --secondary:__SECONDARY__; --tertiary:__TERTIARY__; --accent:__ACCENT__;
-  --cream:var(--secondary); --ink:var(--primary);
+  --cream:var(--primary); --ink:var(--secondary);
   --red:#E25C58; --blue:#2880A3; --yellow:#E8B842; --pink:#E89BC3;
   --ink-dim:color-mix(in srgb,var(--ink) 65%,var(--cream));
   --hairline:color-mix(in srgb,var(--ink) 20%,transparent);
@@ -103,7 +103,7 @@ section{position:relative;padding:var(--pad-y) var(--pad-x)}
 .swatch .role{padding:6px 12px;background:var(--ink);color:var(--cream);font:600 11px/1 var(--f-mono);letter-spacing:.14em;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center;gap:8px}
 .swatch .role::after{content:"☑";color:var(--yellow);font-size:14px;line-height:1}
 .swatch .fill{flex:1;display:flex;flex-direction:column;justify-content:flex-end;padding:18px}
-.swatch .name{font:700 clamp(28px,3.4vw,48px)/.92 var(--f-disp);letter-spacing:.005em;text-transform:uppercase;margin-top:auto}
+.swatch .name{font:700 clamp(20px,2.2vw,32px)/.92 var(--f-disp);letter-spacing:.005em;text-transform:uppercase;margin-top:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .swatch .hex{font:600 13px/1 var(--f-mono);margin-top:8px}
 .swatch .usage{font:500 12px/1.5 var(--f-body);margin-top:6px;opacity:.85}
 .swatch--cream .fill{background:var(--cream);color:var(--ink)}

@@ -65,7 +65,7 @@ section{position:relative;padding:var(--pad-y) var(--pad-x)}
 .cover{min-height:100vh;padding:96px var(--pad-x) 56px;display:grid;grid-template-rows:auto 1fr auto;position:relative;overflow:hidden}
 .cover-chrome{display:flex;justify-content:space-between;font:600 12px/1 var(--f-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--ink-dim)}
 .cover-chrome .accent{font-family:var(--f-hand);font-size:24px;font-weight:700;color:var(--orange);transform:rotate(-2deg);letter-spacing:.02em;text-transform:none}
-.cover-headline{align-self:center;margin:0;font:400 clamp(80px,16vw,260px)/.92 var(--f-disp);letter-spacing:.005em;color:var(--ink);text-align:center}
+.cover-headline{align-self:center;margin:0;font:400 clamp(72px,12vw,180px)/.92 var(--f-disp);letter-spacing:.005em;color:var(--ink);text-align:center}
 .cover-headline em{font-style:normal;color:var(--orange)}
 .cover-hand{text-align:center;font-family:var(--f-hand);font-weight:700;font-size:42px;color:var(--ink);margin-top:18px;transform:rotate(-2deg);letter-spacing:.02em}
 .cover-foot{margin-top:48px;display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
@@ -102,13 +102,13 @@ section{position:relative;padding:var(--pad-y) var(--pad-x)}
 .swatch:hover{transform:translateY(-3px)}
 .swatch::before{content:"";position:absolute;top:-6px;left:50%;transform:translateX(-50%) rotate(15deg);width:24px;height:8px;background:color-mix(in srgb,var(--ink) 30%,transparent);border-radius:2px}
 .swatch .role{font-family:var(--f-hand);font-size:22px;font-weight:700;color:var(--ink);letter-spacing:.02em}
-.swatch .name{font:400 clamp(28px,3.4vw,48px)/.95 var(--f-disp);letter-spacing:.005em;margin-top:auto;color:var(--ink)}
+.swatch .name{font:400 clamp(20px,2.2vw,32px)/.95 var(--f-disp);letter-spacing:.005em;margin-top:auto;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .swatch .hex{font:600 13px/1 var(--f-mono);margin-top:8px;color:var(--ink)}
 .swatch .usage{font:500 13px/1.5 var(--f-body);margin-top:6px;color:var(--ink);opacity:.8}
-.swatch--yellow{background:var(--yellow)}
-.swatch--pink{background:var(--pink)}
-.swatch--blue{background:var(--blue)}
-.swatch--green{background:var(--green)}
+.swatch--yellow{background:var(--yellow);color:var(--ink)}
+.swatch--pink{background:var(--pink);color:var(--ink)}
+.swatch--blue{background:var(--blue);color:var(--ink)}
+.swatch--green{background:var(--green);color:var(--ink)}
 
 /* Type specimen */
 .specimen{display:flex;flex-direction:column;gap:14px}

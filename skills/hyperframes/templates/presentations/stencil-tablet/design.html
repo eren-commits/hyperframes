@@ -15,7 +15,7 @@
 :root{
   /* 6-color earth palette */
   --primary:__PRIMARY__; --secondary:__SECONDARY__; --tertiary:__TERTIARY__; --accent:__ACCENT__;
-  --bone:#EAE3D2; --ink:var(--primary);
+  --bone:var(--primary); --ink:var(--secondary);
   --umber:#8E6E48; --terra:#B85D3A; --ochre:#C9A157; --moss:#7E8456;
   --ink-dim:color-mix(in srgb,var(--ink) 65%,var(--bone));
   --ink-fade:color-mix(in srgb,var(--ink) 32%,var(--bone));
@@ -93,7 +93,7 @@ section{position:relative;padding:var(--pad-y) var(--pad-x)}
 .swatch{aspect-ratio:3/4;padding:24px 22px;display:flex;flex-direction:column;justify-content:space-between;transition:transform .3s}
 .swatch:hover{transform:translateY(-3px)}
 .swatch .role{font:600 11px/1 var(--f-mono);letter-spacing:.16em;text-transform:uppercase;opacity:.8}
-.swatch .name{font:900 clamp(28px,2.6vw,40px)/.95 var(--f-disp);letter-spacing:.005em;text-transform:uppercase;margin-top:auto}
+.swatch .name{font:900 clamp(20px,2.2vw,32px)/.95 var(--f-disp);letter-spacing:.005em;text-transform:uppercase;margin-top:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .swatch .hex{font:600 12px/1 var(--f-mono);margin-top:8px}
 .swatch--bone{background:var(--bone);color:var(--ink)}
 .swatch--ink{background:var(--ink);color:var(--bone)}

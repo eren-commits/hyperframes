@@ -98,7 +98,7 @@ section{position:relative;padding:var(--pad-y) var(--pad-x)}
 .swatch:nth-child(4){transform:rotate(1.5deg)}
 .swatch::before{content:"";position:absolute;top:-12px;left:50%;transform:translateX(-50%) rotate(20deg);width:24px;height:24px;background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2314213B' stroke-width='1.6'><circle cx='8' cy='8' r='3.5'/><path d='M11 9 L20 18 M9.5 10.5 L18.5 19.5'/></svg>") no-repeat center/contain}
 .swatch .role{font:500 11px/1 var(--f-mono);letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim)}
-.swatch .name{font:italic 600 clamp(28px,3.4vw,48px)/.95 var(--f-disp);letter-spacing:-.005em;margin-top:auto;color:var(--ink)}
+.swatch .name{font:italic 600 clamp(20px,2.2vw,32px)/.95 var(--f-disp);letter-spacing:-.005em;margin-top:auto;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .swatch .name em{font-style:normal;color:var(--ink-blue)}
 .swatch .hex{font:500 12px/1 var(--f-mono);margin-top:8px}
 .swatch .usage{font:italic 400 13px/1.6 var(--f-body);margin-top:6px;color:var(--ink-dim)}

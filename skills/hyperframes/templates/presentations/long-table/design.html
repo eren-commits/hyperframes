@@ -69,7 +69,7 @@ section{position:relative;padding:var(--pad-y) var(--pad-x)}
 .swatch{aspect-ratio:3/4;padding:28px;display:flex;flex-direction:column;justify-content:space-between;border-right:1px solid var(--ink)}
 .swatch:last-child{border-right:0}
 .swatch .role{font:500 11px/1 var(--f-mono);letter-spacing:.2em;text-transform:uppercase}
-.swatch .name{font:italic 500 clamp(28px,3.4vw,48px)/1 var(--f-disp);letter-spacing:-.005em;margin-top:auto}
+.swatch .name{font:italic 500 clamp(20px,2.2vw,32px)/1 var(--f-disp);letter-spacing:-.005em;margin-top:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .swatch .hex{font:500 12px/1 var(--f-mono);margin-top:8px}
 .swatch .usage{font:italic 400 13px/1.55 var(--f-disp);margin-top:6px;opacity:.8;max-width:22ch}
 .swatch--linen{background:var(--linen);color:var(--ink)}

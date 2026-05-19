@@ -14,7 +14,7 @@
 <style id="ds-tokens">
 :root{
   --primary:__PRIMARY__; --secondary:__SECONDARY__; --tertiary:__TERTIARY__; --accent:__ACCENT__;
-  --cream:color-mix(in srgb,var(--secondary) 95%,var(--accent)); --ink:var(--primary);
+  --cream:color-mix(in srgb,var(--primary) 95%,var(--accent)); --ink:var(--secondary);
   --sage:#BBD0A4; --blush:color-mix(in srgb,var(--tertiary) 86%,var(--accent)); --sun:#F7D060; --sky:#B4D9F4;
   --ink-dim:color-mix(in srgb,var(--ink) 65%,var(--cream));
   --ink-fade:color-mix(in srgb,var(--ink) 32%,var(--cream));
@@ -102,15 +102,14 @@ section{position:relative;padding:var(--pad-y) var(--pad-x)}
 .swatch:nth-child(2):hover{transform:rotate(1deg) translateY(-6px)}
 .swatch:nth-child(3):hover{transform:rotate(-1deg) translateY(-6px)}
 .swatch:nth-child(4):hover{transform:rotate(1.5deg) translateY(-6px)}
-.swatch .role{font-family:var(--f-hand);font-size:22px;font-weight:700;align-self:flex-start;padding:4px 12px;background:#fff;border-radius:999px;border:2px solid var(--ink)}
-.swatch .name{font:400 clamp(28px,3.4vw,52px)/.95 var(--f-disp);letter-spacing:-.005em;margin-top:auto}
+.swatch .role{font-family:var(--f-hand);font-size:22px;font-weight:700;align-self:flex-start;padding:4px 12px;border-radius:999px;border:2px solid currentColor}
+.swatch .name{font:400 clamp(20px,2.2vw,32px)/.95 var(--f-disp);letter-spacing:-.005em;margin-top:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .swatch .hex{font:600 13px/1 var(--f-body);letter-spacing:.06em;margin-top:8px}
 .swatch .usage{font:500 13px/1.55 var(--f-body);margin-top:6px;opacity:.8;max-width:22ch}
-.swatch--cream{background:var(--cream)}
+.swatch--cream{background:var(--cream);color:var(--ink)}
 .swatch--ink{background:var(--ink);color:var(--cream)}
-.swatch--ink .role{background:var(--cream);color:var(--ink)}
-.swatch--sage{background:var(--sage)}
-.swatch--blush{background:var(--blush)}
+.swatch--sage{background:var(--sage);color:var(--ink)}
+.swatch--blush{background:var(--blush);color:var(--ink)}
 
 /* Type specimen */
 .specimen{display:flex;flex-direction:column;border:2px solid var(--ink);border-radius:24px;background:#fff;overflow:hidden}

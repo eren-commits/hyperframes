@@ -68,7 +68,7 @@ section{position:relative;padding:var(--pad-y) var(--pad-x)}
 .palette{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--hairline);border:1px solid var(--hairline)}
 .swatch{aspect-ratio:3/4;padding:28px;display:flex;flex-direction:column;justify-content:space-between}
 .swatch .role{font:500 11px/1 var(--f-mono);letter-spacing:.22em;text-transform:uppercase}
-.swatch .name{font:italic 600 clamp(28px,3.4vw,48px)/1 var(--f-disp);letter-spacing:-.01em;margin-top:auto}
+.swatch .name{font:italic 600 clamp(20px,2.2vw,32px)/1 var(--f-disp);letter-spacing:-.01em;margin-top:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .swatch .hex{font:500 12px/1 var(--f-mono);margin-top:8px}
 .swatch .usage{font:italic 400 13px/1.55 var(--f-disp);margin-top:6px;opacity:.8;max-width:22ch}
 .swatch--ivory{background:var(--ivory);color:var(--emerald)}

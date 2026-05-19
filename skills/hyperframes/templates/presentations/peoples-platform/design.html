@@ -14,7 +14,7 @@
 <style id="ds-tokens">
 :root{
   --primary:__PRIMARY__; --secondary:__SECONDARY__; --tertiary:__TERTIARY__; --accent:__ACCENT__;
-  --cream:var(--secondary); --ink:var(--primary);
+  --cream:var(--primary); --ink:var(--secondary);
   --blue:#112D54; --orange:#E15A2E; --red:#B7252A;
   --ink-dim:color-mix(in srgb,var(--ink) 65%,var(--cream));
   --hairline:color-mix(in srgb,var(--ink) 18%,transparent);
@@ -90,7 +90,7 @@ section{position:relative;padding:var(--pad-y) var(--pad-x)}
 .swatch:nth-child(4){transform:rotate(1.5deg)}
 .swatch .role{padding:8px 14px;background:var(--ink);color:var(--cream);font:600 12px/1 var(--f-mono);letter-spacing:.14em;text-transform:uppercase;border-bottom:4px solid var(--ink)}
 .swatch .fill{flex:1;display:flex;flex-direction:column;justify-content:flex-end;padding:18px}
-.swatch .name{font:400 clamp(28px,3.4vw,52px)/.95 var(--f-disp);letter-spacing:.005em;text-transform:uppercase;margin-top:auto}
+.swatch .name{font:400 clamp(20px,2.2vw,32px)/.95 var(--f-disp);letter-spacing:.005em;text-transform:uppercase;margin-top:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .swatch .hex{font:600 14px/1 var(--f-mono);margin-top:10px}
 .swatch .usage{font:500 13px/1.5 var(--f-body);margin-top:6px;opacity:.85}
 .swatch--cream{background:var(--cream);color:var(--ink)}

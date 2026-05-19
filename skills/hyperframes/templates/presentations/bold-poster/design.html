@@ -78,12 +78,12 @@ section{position:relative;padding:var(--pad-y) var(--pad-x)}
 .manifesto p em{font-style:normal;background:var(--ink);color:var(--fire);padding:0 .08em;display:inline-block;line-height:.95}
 
 /* Palette */
-.palette{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:2px solid var(--ink)}
-.swatch{aspect-ratio:3/4;padding:28px 24px;display:flex;flex-direction:column;justify-content:space-between;border-right:2px solid var(--ink);transition:transform .3s}
+.palette{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:2px solid var(--ink);min-width:0;overflow:hidden}
+.swatch{aspect-ratio:3/4;padding:28px 24px;display:flex;flex-direction:column;justify-content:space-between;border-right:2px solid var(--ink);transition:transform .3s;min-width:0;overflow:hidden;word-break:break-word}
 .swatch:last-child{border-right:0}
 .swatch:hover{transform:translateY(-3px)}
 .swatch .role{font:600 11px/1 var(--f-mono);letter-spacing:.16em;text-transform:uppercase}
-.swatch .name{font:400 clamp(28px,3.6vw,56px)/.95 var(--f-disp);letter-spacing:.005em;margin-top:auto}
+.swatch .name{font:400 clamp(20px,2.2vw,32px)/.95 var(--f-disp);letter-spacing:.005em;margin-top:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .swatch .hex{font:600 12px/1 var(--f-mono);margin-top:10px}
 .swatch .usage{font:500 13px/1.55 var(--f-body);margin-top:6px;opacity:.8;max-width:22ch}
 .swatch--paper{background:var(--paper);color:var(--ink)}

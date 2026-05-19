@@ -14,7 +14,7 @@
 <style id="ds-tokens">
 :root{
   --primary:__PRIMARY__; --secondary:__SECONDARY__; --tertiary:__TERTIARY__; --accent:__ACCENT__;
-  --ivory:var(--secondary); --ink:var(--primary);
+  --ivory:var(--primary); --ink:var(--secondary);
   --grey-1:#5A5752;
   --grey-2:#9A968D;
   --grey-3:#C9C4B6;
@@ -55,7 +55,7 @@ section{position:relative;padding:var(--pad-y) var(--pad-x)}
 .cover{min-height:100vh;padding:96px var(--pad-x) 56px;display:grid;grid-template-rows:auto 1fr auto;position:relative}
 .cover-chrome{display:flex;justify-content:space-between;font:500 11px/1 var(--f-mono);letter-spacing:.22em;text-transform:uppercase;color:var(--grey-1)}
 .cover-chrome .accent{color:var(--ink)}
-.cover-headline{align-self:end;margin:0;font:italic 500 clamp(80px,17vw,280px)/.92 var(--f-disp);letter-spacing:-.018em;color:var(--ink)}
+.cover-headline{align-self:end;margin:0;font:italic 500 clamp(72px,12vw,180px)/.92 var(--f-disp);letter-spacing:-.018em;color:var(--ink)}
 .cover-headline em{font-style:normal}
 .cover-foot{margin-top:56px;display:grid;grid-template-columns:repeat(4,1fr);gap:32px;padding-top:24px;border-top:1px solid var(--ink)}
 .cover-foot .cell{display:flex;flex-direction:column;gap:8px}
@@ -75,7 +75,7 @@ section{position:relative;padding:var(--pad-y) var(--pad-x)}
 .swatch:last-child{border-right:0}
 .swatch:hover{transform:translateY(-4px)}
 .swatch .role{font:500 11px/1 var(--f-mono);letter-spacing:.22em;text-transform:uppercase}
-.swatch .name{font:italic 500 clamp(28px,3.6vw,56px)/1 var(--f-disp);letter-spacing:-.005em;margin-top:auto}
+.swatch .name{font:italic 500 clamp(20px,2.2vw,32px)/1 var(--f-disp);letter-spacing:-.005em;margin-top:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .swatch .hex{font:500 12px/1 var(--f-mono);letter-spacing:.06em;margin-top:10px}
 .swatch .usage{font:italic 400 13px/1.6 var(--f-disp);margin-top:6px;opacity:.75;max-width:22ch}
 .swatch--ivory{background:var(--ivory);color:var(--ink)}
@@ -204,9 +204,9 @@ __TEMPLATE_CSS__
   </div>
   <div class="palette">
     <div class="swatch swatch--ivory"><div class="role">i · paper</div><div><div class="name">__PRIMARY_NAME__</div><div class="hex">__PRIMARY__</div><div class="usage">Warm white. The canvas.</div></div></div>
-    <div class="swatch swatch--g3"><div class="role">ii · margin</div><div><div class="name">__ACCENT_NAME__</div><div class="hex">__ACCENT__</div><div class="usage">Hairlines and dividers.</div></div></div>
+    <div class="swatch swatch--ink"><div class="role">ii · ink</div><div><div class="name">__SECONDARY_NAME__</div><div class="hex">__SECONDARY__</div><div class="usage">The voice.</div></div></div>
     <div class="swatch swatch--g1"><div class="role">iii · cipher</div><div><div class="name">__TERTIARY_NAME__</div><div class="hex">__TERTIARY__</div><div class="usage">Captions and chrome.</div></div></div>
-    <div class="swatch swatch--ink"><div class="role">iv · ink</div><div><div class="name">__SECONDARY_NAME__</div><div class="hex">__SECONDARY__</div><div class="usage">The voice.</div></div></div>
+    <div class="swatch swatch--g3"><div class="role">iv · margin</div><div><div class="name">__ACCENT_NAME__</div><div class="hex">__ACCENT__</div><div class="usage">Hairlines and dividers.</div></div></div>
   </div>
 </section>
 

@@ -86,7 +86,7 @@ section{position:relative;padding:var(--pad-y) var(--pad-x)}
 .swatch:nth-child(1){transform:rotate(-1deg)} .swatch:nth-child(2){transform:rotate(.5deg)} .swatch:nth-child(3){transform:rotate(-.5deg)} .swatch:nth-child(4){transform:rotate(1deg)}
 .swatch:nth-child(1):hover{transform:rotate(-1deg) translate(-3px,-3px)} .swatch:nth-child(2):hover{transform:rotate(.5deg) translate(-3px,-3px)} .swatch:nth-child(3):hover{transform:rotate(-.5deg) translate(-3px,-3px)} .swatch:nth-child(4):hover{transform:rotate(1deg) translate(-3px,-3px)}
 .swatch .role{font:600 11px/1 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;padding:4px 8px;background:var(--white);border:2px solid var(--black);align-self:flex-start}
-.swatch .name{font:400 clamp(28px,3.4vw,52px)/.92 var(--f-disp);letter-spacing:.005em;text-transform:uppercase;margin-top:auto}
+.swatch .name{font:400 clamp(20px,2.2vw,32px)/.92 var(--f-disp);letter-spacing:.005em;text-transform:uppercase;margin-top:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .swatch .hex{font:500 13px/1 var(--f-mono);margin-top:8px}
 .swatch .usage{font:400 11px/1.5 var(--f-mono);margin-top:6px;opacity:.75}
 .swatch--primary{background:var(--primary);color:var(--black)}

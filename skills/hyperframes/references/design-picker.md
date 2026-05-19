@@ -617,7 +617,9 @@ For `design-picker.html` (unified template+fine-tune picker):
 }
 ```
 
-Fields are `primary` (text), `secondary` (background), `tertiary` (muted), `accent`. The picker reads `p.primary`, `p.secondary`, etc. — wrong names will render as `undefined` and crash palette matching.
+Fields are `primary` (canvas/background — must be the LIGHT color), `secondary` (ink/text — must be the DARK color), `tertiary` (muted/chrome), `accent` (signal color). The picker reads `p.primary`, `p.secondary`, etc. — wrong names will render as `undefined` and crash palette matching.
+
+**Polarity rule (non-negotiable):** When generating supplemental palettes to extend the defaults, `primary` MUST be the light/paper color and `secondary` MUST be the dark/ink color. Every design.html in this skill aliases its canvas to `var(--primary)` and its text to `var(--secondary)` — flipping the two inverts every page (dark text on dark bg, light text on light bg). This applies even to "dark mode" palettes: pick an off-black for `primary` (still the surface) and a near-white for `secondary` (still the ink). Polarity is determined by role, not by hue.
 
 For `template-picker.html` (standalone Phase 1 only — legacy):
 
