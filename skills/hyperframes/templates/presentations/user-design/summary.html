@@ -1,0 +1,63 @@
+<style>
+.slide{width:100%;height:100vh;display:flex;flex-direction:column;justify-content:center;padding:80px;background:var(--tp-secondary,#fff);color:var(--tp-primary,#1a1a1a);font-family:var(--f-disp,Inter,sans-serif);position:relative;overflow:hidden}
+.dark{background:var(--tp-primary,#1a1a1a);color:var(--tp-secondary,#fff)}
+h1{font-size:96px;font-weight:600;line-height:.95;margin:0}
+h2{font-size:56px;font-weight:600;line-height:1;margin:0}
+h3{font-size:32px;font-weight:600;line-height:1.1;margin:0}
+p{font-size:22px;line-height:1.4;opacity:.6;max-width:640px;margin:12px 0 0}
+.ac{color:var(--tp-accent,#024ad8)}
+.overline{font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:.7px;color:var(--tp-accent,#024ad8)}
+.row{display:flex;gap:var(--gap,24px)}
+.swatch{flex:1;border-radius:var(--cr,12px);padding:var(--pad,20px);display:flex;flex-direction:column;justify-content:flex-end;gap:4px;min-height:200px;box-shadow:var(--shadow,none)}
+.card{background:color-mix(in srgb,var(--tp-secondary,#fff) 94%,var(--tp-primary,#1a1a1a));border:1px solid color-mix(in srgb,var(--tp-primary,#1a1a1a) 12%,transparent);border-radius:var(--cr,12px);padding:var(--pad,28px);display:flex;flex-direction:column;gap:var(--gap,12px);box-shadow:var(--shadow,none)}
+.stat{font-size:64px;font-weight:700;line-height:1;color:var(--tp-accent,#024ad8)}
+</style>
+<!-- cover -->
+<section class="slide">
+<div class="overline">{{headline}}</div>
+<h1>{{headline}}<span class="ac">.</span></h1>
+<p>{{body}}</p>
+</section>
+<!-- palette -->
+<section class="slide">
+<div class="overline">Palette</div>
+<h2>Four tokens.</h2>
+<div class="row" style="margin-top:24px;height:280px">
+<div class="swatch" style="background:var(--tp-primary);color:var(--tp-secondary)"><span style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;opacity:.7">Primary</span></div>
+<div class="swatch" style="background:var(--tp-secondary);color:var(--tp-primary);border:1px solid color-mix(in srgb,var(--tp-primary) 12%,transparent)"><span style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;opacity:.7">Secondary</span></div>
+<div class="swatch" style="background:var(--tp-tertiary);color:var(--tp-secondary)"><span style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;opacity:.7">Tertiary</span></div>
+<div class="swatch" style="background:var(--tp-accent);color:var(--tp-secondary)"><span style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;opacity:.7">Accent</span></div>
+</div>
+</section>
+<!-- type -->
+<section class="slide">
+<div class="overline">Typography</div>
+<div style="font-size:120px;font-weight:600;line-height:.9">Aa</div>
+<div style="font-size:56px;font-weight:600;line-height:1;margin-top:16px">Heading One</div>
+<p>{{body}}</p>
+</section>
+<!-- surface -->
+<section class="slide">
+<div class="overline">Surface</div>
+<h2>Cards.</h2>
+<div class="row" style="margin-top:24px">
+<div class="card" style="flex:1"><h3>{{headline}}</h3><p style="font-size:16px">{{body}}</p></div>
+<div class="card" style="flex:1"><h3>{{headline}}</h3><p style="font-size:16px">{{body}}</p></div>
+</div>
+</section>
+<!-- data -->
+<section class="slide">
+<div class="overline">Data</div>
+<h2>Metrics.</h2>
+<div class="row" style="margin-top:24px">
+<div class="card" style="flex:1;align-items:center;text-align:center"><div class="stat">{{number}}</div><div style="font-size:14px;opacity:.6">{{label}}</div></div>
+<div class="card" style="flex:1;align-items:center;text-align:center"><div class="stat">{{number}}</div><div style="font-size:14px;opacity:.6">{{label}}</div></div>
+<div class="card" style="flex:1;align-items:center;text-align:center"><div class="stat">{{number}}</div><div style="font-size:14px;opacity:.6">{{label}}</div></div>
+</div>
+</section>
+<!-- dark -->
+<section class="slide dark">
+<div class="overline">Dark</div>
+<h2>Inverted surface.</h2>
+<p>{{body}}</p>
+</section>
