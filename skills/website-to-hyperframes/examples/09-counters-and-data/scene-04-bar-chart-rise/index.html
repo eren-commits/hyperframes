@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>scene-04-bar-chart-rise</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet"
+  />
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0a0b10; }
+
+    [data-composition-id="scene-04-bar-chart-rise"] {
+      position: relative;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      background: radial-gradient(ellipse 1400px 900px at 50% 40%, #14171f 0%, #06070b 70%);
+      font-family: "Inter", -apple-system, sans-serif;
+      color: #f0f0f0;
+    }
+
+    /* Eyebrow */
+    .eyebrow {
+      position: absolute;
+      top: 80px; left: 0; right: 0;
+      text-align: center;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 13px;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.4);
+    }
+
+    .headline {
+      position: absolute;
+      top: 130px; left: 0; right: 0;
+      text-align: center;
+      font-family: "Inter", sans-serif;
+      font-weight: 800;
+      font-size: 56px;
+      letter-spacing: -0.02em;
+      color: #f4f4f7;
+    }
+    .headline .accent { color: #5b8dff; }
+
+    /* Chart container */
+    .chart {
+      position: absolute;
+      left: 160px; right: 160px;
+      top: 260px; bottom: 200px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .bar-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100%;
+      justify-content: flex-end;
+      position: relative;
+    }
+
+    .bar {
+      width: 100%;
+      max-width: 110px;
+      background: linear-gradient(180deg, #5b8dff 0%, #3a5bdc 60%, #1f2f8a 100%);
+      border-radius: 8px 8px 0 0;
+      transform-origin: bottom center;
+      box-shadow: 0 -2px 16px rgba(91, 141, 255, 0.25);
+      position: relative;
+    }
+    .bar.is-peak {
+      background: linear-gradient(180deg, #f59e0b 0%, #d97757 60%, #9a3a2a 100%);
+      box-shadow: 0 -2px 24px rgba(245, 158, 11, 0.35);
+    }
+
+    .bar-value {
+      position: absolute;
+      top: -52px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: "Inter", sans-serif;
+      font-weight: 700;
+      font-size: 36px;
+      color: #f4f4f7;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+    }
+    .bar-col.is-peak .bar-value { color: #f59e0b; }
+
+    .bar-label {
+      position: absolute;
+      bottom: -42px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: "JetBrains Mono", monospace;
+      font-size: 14px;
+      color: rgba(255,255,255,0.6);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    /* Y-axis ticks */
+    .y-axis {
+      position: absolute;
+      left: 80px;
+      top: 260px; bottom: 200px;
+      width: 60px;
+      display: flex;
+      flex-direction: column-reverse;
+      justify-content: space-between;
+      padding: 0 12px;
+      border-right: 1px solid rgba(255,255,255,0.08);
+    }
+    .y-tick {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 13px;
+      color: rgba(255,255,255,0.35);
+      letter-spacing: 0.04em;
+      text-align: right;
+    }
+
+    /* Bottom caption */
+    .caption {
+      position: absolute;
+      bottom: 80px; left: 0; right: 0;
+      text-align: center;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 13px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.4);
+    }
+
+    .scene-label {
+      position: absolute;
+      left: 24px; bottom: 18px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 11px;
+      color: rgba(255,255,255,0.3);
+      letter-spacing: 0.06em;
+    }
+    .scene-label b { color: rgba(255,255,255,0.6); }
+  </style>
+</head>
+<body>
+  <div
+    id="scene-04-bar-chart-rise"
+    data-composition-id="scene-04-bar-chart-rise"
+    data-start="0"
+    data-duration="7"
+    data-width="1920"
+    data-height="1080"
+  >
+    <div class="eyebrow">QUARTERLY GROWTH · Q1 — Q4 2026</div>
+    <div class="headline">Videos shipped <span class="accent">847% YoY</span></div>
+
+    <!-- Y-axis (5 tick marks: 0, 250, 500, 750, 1000) -->
+    <div class="y-axis">
+      <div class="y-tick">0</div>
+      <div class="y-tick">250</div>
+      <div class="y-tick">500</div>
+      <div class="y-tick">750</div>
+      <div class="y-tick">1,000</div>
+    </div>
+
+    <!-- Chart -->
+    <div class="chart" id="chart">
+      <!-- 6 bars: progression from low to peak -->
+      <div class="bar-col" data-target="89" data-height="9">
+        <div class="bar-value" id="v-1">0</div>
+        <div class="bar" id="b-1" style="height: 0%;"></div>
+        <div class="bar-label">Q1</div>
+      </div>
+      <div class="bar-col" data-target="162" data-height="16">
+        <div class="bar-value" id="v-2">0</div>
+        <div class="bar" id="b-2" style="height: 0%;"></div>
+        <div class="bar-label">Q2</div>
+      </div>
+      <div class="bar-col" data-target="248" data-height="25">
+        <div class="bar-value" id="v-3">0</div>
+        <div class="bar" id="b-3" style="height: 0%;"></div>
+        <div class="bar-label">Q3</div>
+      </div>
+      <div class="bar-col" data-target="421" data-height="42">
+        <div class="bar-value" id="v-4">0</div>
+        <div class="bar" id="b-4" style="height: 0%;"></div>
+        <div class="bar-label">Q4</div>
+      </div>
+      <div class="bar-col" data-target="612" data-height="61">
+        <div class="bar-value" id="v-5">0</div>
+        <div class="bar" id="b-5" style="height: 0%;"></div>
+        <div class="bar-label">Q1·26</div>
+      </div>
+      <div class="bar-col is-peak" data-target="847" data-height="85">
+        <div class="bar-value" id="v-6">0</div>
+        <div class="bar is-peak" id="b-6" style="height: 0%;"></div>
+        <div class="bar-label">Q2·26</div>
+      </div>
+    </div>
+
+    <div class="caption">SOURCE · INTERNAL · DETERMINISTIC tl.set() COUNTERS PER BAR</div>
+
+    <div class="scene-label">Section 09 · <b>Bar Chart Rise</b> · staggered bar rise with deterministic counter labels</div>
+  </div>
+
+  <script>
+    (function () {
+      var BEAT = 7;
+      window.__timelines = window.__timelines || {};
+      var tl = gsap.timeline({ paused: true });
+
+      // Eyebrow + headline fade in first
+      tl.fromTo([".eyebrow", ".y-axis"],
+        { opacity: 0, y: -4 },
+        { opacity: 1, y: 0, duration: 0.5, stagger: 0.1, ease: "power2.out" }, 0);
+
+      tl.fromTo(".headline",
+        { opacity: 0, y: 12 },
+        { opacity: 1, y: 0, duration: 0.6, ease: "expo.out" }, 0.3);
+
+      // Bar labels fade in
+      tl.fromTo(".bar-label",
+        { opacity: 0 },
+        { opacity: 1, duration: 0.4, stagger: 0.08, ease: "power2.out" }, 0.5);
+
+      // === Bars rise with stagger — 0.9s to 3.6s ===
+      // Each bar has a target height (data-height as percentage * 100)
+      // Use back.out for a satisfying overshoot
+      var bars = [
+        { id: "b-1", height: 9, target: 89 },
+        { id: "b-2", height: 16, target: 162 },
+        { id: "b-3", height: 25, target: 248 },
+        { id: "b-4", height: 42, target: 421 },
+        { id: "b-5", height: 61, target: 612 },
+        { id: "b-6", height: 85, target: 847 },
+      ];
+
+      bars.forEach(function (b, i) {
+        var startTime = 0.9 + i * 0.22;
+        tl.fromTo("#" + b.id,
+          { height: "0%" },
+          { height: b.height + "%", duration: 0.7, ease: "back.out(1.2)" },
+          startTime);
+      });
+
+      // === Counter labels tick up alongside the bar rises ===
+      // For each bar, schedule ~10 tl.set() calls to count from 0 to target
+      bars.forEach(function (b, i) {
+        var startTime = 0.9 + i * 0.22;
+        var endTime = startTime + 0.7;
+        var steps = 10;
+        for (var s = 0; s <= steps; s++) {
+          var t = startTime + (s / steps) * (endTime - startTime);
+          var val = Math.round((s / steps) * b.target);
+          tl.set("#v-" + (i + 1), { textContent: val.toString() }, t);
+        }
+        tl.set("#v-" + (i + 1), { textContent: b.target.toString() }, endTime);
+      });
+
+      // 3.0s: peak bar (Q2·26) gets a special pulse — emphasis on "847"
+      tl.to("#b-6", { scaleY: 1.05, transformOrigin: "bottom", duration: 0.18, ease: "back.out(2)" }, 3.3);
+      tl.to("#b-6", { scaleY: 1, duration: 0.3, ease: "power2.out" }, 3.48);
+      tl.to("#v-6", { scale: 1.2, transformOrigin: "center", duration: 0.18, ease: "back.out(2)" }, 3.3);
+      tl.to("#v-6", { scale: 1, duration: 0.3, ease: "power2.out" }, 3.48);
+
+      // === Hold + continuous motion (3.8-6.4s) ===
+      // Subtle Ken Burns drift on the chart
+      tl.to(".chart", { scale: 1.015, transformOrigin: "center bottom", duration: 1.4, ease: "sine.inOut", yoyo: true, repeat: 1 }, 3.8);
+
+      // Bars breathe (subtle scaleY ripple from left to right)
+      bars.forEach(function (b, i) {
+        tl.to("#" + b.id, { scaleY: 1.02, transformOrigin: "bottom", duration: 0.3, ease: "sine.inOut", yoyo: true, repeat: 1 }, 4.5 + i * 0.1);
+      });
+
+      // Caption fade in
+      tl.fromTo(".caption",
+        { opacity: 0 },
+        { opacity: 1, duration: 0.6, ease: "power2.out" }, 4.2);
+
+      window.__timelines["scene-04-bar-chart-rise"] = tl;
+    })();
+  </script>
+</body>
+</html>

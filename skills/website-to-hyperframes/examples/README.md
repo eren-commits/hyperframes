@@ -63,6 +63,7 @@ Need a specific technique? Use this table to find the canonical scene.
 | **Single ripple-shader A→B transition** (concentric rings + RGB chromatic aberration + central flash) | [`05-transitions-shader/scene-02-ripple-shader-transition/`](05-transitions-shader/scene-02-ripple-shader-transition/) |
 | 6 CSS transitions side-by-side (push, scale, blur-dissolve, 3D flip, light leak, dissolve) | [`06-transitions-css/scene-01-css-transitions-grid/`](06-transitions-css/scene-01-css-transitions-grid/) |
 | **Single full-frame CSS 3D flip transition** (blue card → 180° flip → orange card with counters) | [`06-transitions-css/scene-02-3d-flip-transition/`](06-transitions-css/scene-02-3d-flip-transition/) |
+| **Light-leak wipe transition** (3 stacked diagonal gradient strips sweep DARK→LIGHT scene with mix-blend-mode screen bloom) | [`06-transitions-css/scene-03-light-leak-wipe/`](06-transitions-css/scene-03-light-leak-wipe/) |
 | Headline blur entrance (Apple keynote) | [`01-typography/scene-01-soft-blur-in/`](01-typography/scene-01-soft-blur-in/) |
 | Terminal-style typewriter | [`01-typography/scene-02-typewriter-mechanical/`](01-typography/scene-02-typewriter-mechanical/) |
 | Per-word kinetic build (word locks center) | [`01-typography/scene-03-kinetic-center-build/`](01-typography/scene-03-kinetic-center-build/) |
@@ -97,6 +98,7 @@ Need a specific technique? Use this table to find the canonical scene.
 | Video editor UI with timeline scrubber + render HUD | [`04-composed-ui/scene-11-timeline-editor-ui/`](04-composed-ui/scene-11-timeline-editor-ui/) |
 | Claude Code / AI agent IDE mockup with prompt + tool calls | [`04-composed-ui/scene-12-claude-code-ide/`](04-composed-ui/scene-12-claude-code-ide/) |
 | Figma-style design inspector panel with cycling values | [`04-composed-ui/scene-13-design-inspector/`](04-composed-ui/scene-13-design-inspector/) |
+| **3-tier SaaS pricing card reveal** (featured center card with "Most Popular" badge + deterministic price counters) | [`04-composed-ui/scene-14-pricing-card-reveal/`](04-composed-ui/scene-14-pricing-card-reveal/) |
 | WebGL fragment shader + Canvas 2D fallback | [`07-html-in-canvas/scene-01-webgl-shader/`](07-html-in-canvas/scene-01-webgl-shader/) |
 | Canvas 2D procedural ASCII art + lightning | [`07-html-in-canvas/scene-02-canvas-ascii/`](07-html-in-canvas/scene-02-canvas-ascii/) |
 | Canvas 2D cursor blur + chromatic aberration text | [`07-html-in-canvas/scene-03-cursor-blur-sweeps/`](07-html-in-canvas/scene-03-cursor-blur-sweeps/) |
@@ -108,6 +110,7 @@ Need a specific technique? Use this table to find the canonical scene.
 | Editorial timeline diagram + SVG easing curve | [`09-counters-and-data/scene-01-timeline-diagram/`](09-counters-and-data/scene-01-timeline-diagram/) |
 | Vertical scroll-pan pipeline diagram | [`09-counters-and-data/scene-02-pipeline-diagram/`](09-counters-and-data/scene-02-pipeline-diagram/) |
 | Canonical 0 → 1,000,000 counter (33 deterministic `tl.set` steps) | [`09-counters-and-data/scene-03-counter-million-showcase/`](09-counters-and-data/scene-03-counter-million-showcase/) |
+| **6-bar staggered chart rise with deterministic value labels** (quarterly growth, peak bar in amber) | [`09-counters-and-data/scene-04-bar-chart-rise/`](09-counters-and-data/scene-04-bar-chart-rise/) |
 | Radial bloom dot grid (stagger from center) | [`10-particles-and-ambient/scene-01-radial-bloom-grid/`](10-particles-and-ambient/scene-01-radial-bloom-grid/) |
 | Aurora end-card + particles + tri-color text gradient | [`10-particles-and-ambient/scene-02-aurora-end-card/`](10-particles-and-ambient/scene-02-aurora-end-card/) |
 | Scan-line CRT grid + telemetry HUD | [`10-particles-and-ambient/scene-03-scan-line-grid/`](10-particles-and-ambient/scene-03-scan-line-grid/) |
@@ -138,10 +141,10 @@ Need a specific technique? Use this table to find the canonical scene.
 
 ## Stitched Grand Tour reel
 
-All 68 scenes concatenated back-to-back as a single 7:50 MP4. Useful for visual-gestalt review or for sharing the library at a glance:
+All 71 scenes concatenated back-to-back as a single 8:11 MP4. Useful for visual-gestalt review or for sharing the library at a glance:
 
-- **Grand Tour reel:** https://www.heygenverse.com/s/bbe43a50-4eda-4fd9-b248-38c5ae73e64d/raw
-- **Browsable gallery (per-section grid, all 68 scenes as embedded videos):** https://www.heygenverse.com/a/1636f2fe-3ddc-4543-9a56-0d0b99538807
+- **Grand Tour reel:** https://www.heygenverse.com/s/2637bc07-ef26-43f2-8ef3-83c21d7aad88/raw
+- **Browsable gallery (per-section grid, all 71 scenes as embedded videos):** https://www.heygenverse.com/a/1636f2fe-3ddc-4543-9a56-0d0b99538807
 
 Rebuild the reel after adding scenes: `ffmpeg -f concat -safe 0 -i /tmp/concat-list.txt -c copy out.mp4` where the concat list orders all scene MP4s in section sequence.
 

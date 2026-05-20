@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>scene-14-pricing-card-reveal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet"
+  />
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #fafafa; }
+
+    [data-composition-id="scene-14-pricing-card-reveal"] {
+      position: relative;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      background: radial-gradient(ellipse 1400px 900px at 50% 40%, #fff 0%, #f4f4f6 70%);
+      font-family: "Inter", -apple-system, sans-serif;
+      color: #1d1c19;
+    }
+
+    /* Eyebrow + Headline */
+    .eyebrow {
+      position: absolute;
+      top: 88px; left: 0; right: 0;
+      text-align: center;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 13px;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: #8a8579;
+    }
+    .headline {
+      position: absolute;
+      top: 130px; left: 0; right: 0;
+      text-align: center;
+      font-family: "Inter", sans-serif;
+      font-weight: 800;
+      font-size: 56px;
+      letter-spacing: -0.025em;
+      color: #1d1c19;
+    }
+    .headline .accent { color: #5b8dff; }
+
+    /* Cards container */
+    .cards {
+      position: absolute;
+      left: 50%; top: 50%;
+      transform: translate(-50%, -50%);
+      margin-top: 60px;
+      display: flex;
+      gap: 28px;
+      align-items: stretch;
+    }
+
+    .card {
+      width: 380px;
+      height: 600px;
+      background: #fff;
+      border: 1px solid rgba(0,0,0,0.08);
+      border-radius: 18px;
+      padding: 36px 32px;
+      display: flex;
+      flex-direction: column;
+      box-shadow:
+        0 1px 2px rgba(0,0,0,0.04),
+        0 12px 32px rgba(0,0,0,0.04);
+      position: relative;
+    }
+
+    /* Featured card */
+    .card.featured {
+      background: linear-gradient(165deg, #0d1f4a 0%, #1a2f6e 100%);
+      color: #fff;
+      transform: translateY(0);
+      box-shadow:
+        0 1px 2px rgba(91,141,255,0.2),
+        0 24px 60px rgba(13,31,74,0.3);
+      border: 1px solid rgba(91,141,255,0.3);
+    }
+    .card.featured .badge {
+      position: absolute;
+      top: -16px; left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, #f59e0b 0%, #d97757 100%);
+      color: #fff;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      font-weight: 700;
+      padding: 6px 14px;
+      border-radius: 999px;
+      box-shadow: 0 4px 14px rgba(245,158,11,0.4);
+    }
+
+    .tier-name {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 14px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: #8a8579;
+      margin-bottom: 12px;
+    }
+    .card.featured .tier-name { color: rgba(255,255,255,0.6); }
+
+    .tier-desc {
+      font-size: 17px;
+      color: #5a554d;
+      margin-bottom: 32px;
+      line-height: 1.4;
+    }
+    .card.featured .tier-desc { color: rgba(255,255,255,0.7); }
+
+    .price-block {
+      margin-bottom: 28px;
+    }
+    .price-num {
+      font-family: "Inter", sans-serif;
+      font-size: 88px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1;
+      color: #1d1c19;
+      display: inline-block;
+    }
+    .card.featured .price-num { color: #fff; }
+    .price-num .currency {
+      font-size: 40px;
+      vertical-align: top;
+      margin-right: 4px;
+      font-weight: 600;
+      color: #8a8579;
+    }
+    .card.featured .price-num .currency { color: rgba(255,255,255,0.65); }
+    .price-period {
+      display: block;
+      font-size: 14px;
+      color: #8a8579;
+      margin-top: 8px;
+      font-family: "JetBrains Mono", monospace;
+      letter-spacing: 0.08em;
+    }
+    .card.featured .price-period { color: rgba(255,255,255,0.55); }
+
+    .feature-list {
+      list-style: none;
+      flex: 1;
+    }
+    .feature-list li {
+      font-size: 16px;
+      color: #2a1f10;
+      margin-bottom: 14px;
+      padding-left: 28px;
+      position: relative;
+      line-height: 1.4;
+      opacity: 0;
+    }
+    .card.featured .feature-list li { color: rgba(255,255,255,0.92); }
+    .feature-list li::before {
+      content: "";
+      position: absolute;
+      left: 0; top: 6px;
+      width: 18px; height: 18px;
+      background: #5b8dff;
+      border-radius: 50%;
+      box-shadow: inset 0 0 0 4px #fff;
+    }
+    .card.featured .feature-list li::before {
+      background: #f59e0b;
+      box-shadow: inset 0 0 0 4px #0d1f4a;
+    }
+
+    .cta-btn {
+      margin-top: 24px;
+      padding: 16px;
+      background: #5b8dff;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-family: "Inter", sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: -0.005em;
+      text-align: center;
+      cursor: pointer;
+      transition: none;
+    }
+    .card.featured .cta-btn {
+      background: #fff;
+      color: #0d1f4a;
+    }
+    .card.basic .cta-btn {
+      background: #1d1c19;
+    }
+
+    .scene-label {
+      position: absolute;
+      left: 24px; bottom: 18px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 11px;
+      color: rgba(29, 28, 25, 0.4);
+      letter-spacing: 0.06em;
+    }
+    .scene-label b { color: rgba(29, 28, 25, 0.7); }
+  </style>
+</head>
+<body>
+  <div
+    id="scene-14-pricing-card-reveal"
+    data-composition-id="scene-14-pricing-card-reveal"
+    data-start="0"
+    data-duration="8"
+    data-width="1920"
+    data-height="1080"
+  >
+    <div class="eyebrow">SIMPLE · TRANSPARENT · NO HIDDEN FEES</div>
+    <div class="headline">Pick the plan that <span class="accent">grows with you</span>.</div>
+
+    <div class="cards">
+      <!-- BASIC -->
+      <div class="card basic" id="card-1">
+        <div class="tier-name">Starter</div>
+        <div class="tier-desc">For solo builders shipping their first video.</div>
+        <div class="price-block">
+          <div class="price-num"><span class="currency">$</span><span id="price-1">0</span></div>
+          <span class="price-period">FREE FOREVER</span>
+        </div>
+        <ul class="feature-list">
+          <li>10 videos per month</li>
+          <li>720p export</li>
+          <li>Community support</li>
+          <li>Watermark on exports</li>
+        </ul>
+        <div class="cta-btn">Get started</div>
+      </div>
+
+      <!-- FEATURED (Pro) -->
+      <div class="card featured" id="card-2">
+        <div class="badge">Most Popular</div>
+        <div class="tier-name">Pro</div>
+        <div class="tier-desc">For teams shipping launch videos every week.</div>
+        <div class="price-block">
+          <div class="price-num"><span class="currency">$</span><span id="price-2">0</span></div>
+          <span class="price-period">PER USER / MONTH</span>
+        </div>
+        <ul class="feature-list">
+          <li>Unlimited videos</li>
+          <li>4K export · no watermark</li>
+          <li>Custom brand kits</li>
+          <li>Priority rendering</li>
+          <li>Email + chat support</li>
+        </ul>
+        <div class="cta-btn">Start 14-day trial</div>
+      </div>
+
+      <!-- BUSINESS -->
+      <div class="card basic" id="card-3">
+        <div class="tier-name">Business</div>
+        <div class="tier-desc">For agencies + brand teams at scale.</div>
+        <div class="price-block">
+          <div class="price-num"><span class="currency">$</span><span id="price-3">0</span></div>
+          <span class="price-period">PER SEAT · ANNUAL</span>
+        </div>
+        <ul class="feature-list">
+          <li>Everything in Pro</li>
+          <li>SSO + audit logs</li>
+          <li>Dedicated success manager</li>
+          <li>SLA + custom integrations</li>
+        </ul>
+        <div class="cta-btn">Contact sales</div>
+      </div>
+    </div>
+
+    <div class="scene-label">Section 04 · <b>Pricing Card Reveal</b> · 3-tier SaaS pricing with featured center card</div>
+  </div>
+
+  <script>
+    (function () {
+      var BEAT = 8;
+      window.__timelines = window.__timelines || {};
+      var tl = gsap.timeline({ paused: true });
+
+      // Eyebrow + headline fade in
+      tl.fromTo(".eyebrow",
+        { opacity: 0, y: -6 },
+        { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 0);
+
+      tl.fromTo(".headline",
+        { opacity: 0, y: 14 },
+        { opacity: 1, y: 0, duration: 0.7, ease: "expo.out" }, 0.2);
+
+      // Cards drop in with stagger — center card last (so it lands on top of the others visually)
+      // Each card uses a different motion shape:
+      //   card 1 (left): y from 40, expo.out (soft land)
+      //   card 3 (right): y from 40, expo.out (mirror)
+      //   card 2 (featured center): y from 80 + scale 0.92, back.out(1.5) (impact)
+      tl.fromTo("#card-1",
+        { opacity: 0, y: 40 },
+        { opacity: 1, y: 0, duration: 0.7, ease: "expo.out" }, 0.7);
+
+      tl.fromTo("#card-3",
+        { opacity: 0, y: 40 },
+        { opacity: 1, y: 0, duration: 0.7, ease: "expo.out" }, 0.82);
+
+      tl.fromTo("#card-2",
+        { opacity: 0, y: 80, scale: 0.92 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.8, ease: "back.out(1.5)" }, 1.0);
+
+      // Featured badge has an extra back-overshoot entrance
+      tl.fromTo(".badge",
+        { opacity: 0, scale: 0, y: -10 },
+        { opacity: 1, scale: 1, y: 0, duration: 0.5, ease: "back.out(2.5)" }, 1.5);
+
+      // === Price counters tick up ===
+      // Card 1: 0 (stays 0 — free tier — but pulse it to show it's intentional)
+      tl.to("#card-1 .price-num", { scale: 1.05, transformOrigin: "left center", duration: 0.15, ease: "back.out(2)" }, 1.9);
+      tl.to("#card-1 .price-num", { scale: 1, duration: 0.25, ease: "power2.out" }, 2.05);
+
+      // Card 2: 0 → 29 (Pro)
+      var pro = [0, 9, 18, 25, 29];
+      pro.forEach(function (v, i) {
+        tl.set("#price-2", { textContent: v.toString() }, 1.9 + i * 0.07);
+      });
+      tl.to("#card-2 .price-num", { scale: 1.08, transformOrigin: "left center", duration: 0.15, ease: "back.out(2)" }, 2.22);
+      tl.to("#card-2 .price-num", { scale: 1, duration: 0.25, ease: "power2.out" }, 2.37);
+
+      // Card 3: 0 → 79 (Business)
+      var biz = [0, 22, 45, 65, 79];
+      biz.forEach(function (v, i) {
+        tl.set("#price-3", { textContent: v.toString() }, 1.95 + i * 0.07);
+      });
+      tl.to("#card-3 .price-num", { scale: 1.05, transformOrigin: "left center", duration: 0.15, ease: "back.out(2)" }, 2.3);
+      tl.to("#card-3 .price-num", { scale: 1, duration: 0.25, ease: "power2.out" }, 2.45);
+
+      // === Feature list items fade in per-card with stagger ===
+      [1, 2, 3].forEach(function (cardIdx) {
+        var cardStart = 2.6 + (cardIdx - 1) * 0.12;
+        tl.fromTo("#card-" + cardIdx + " .feature-list li",
+          { opacity: 0, x: -8 },
+          { opacity: 1, x: 0, duration: 0.4, stagger: 0.08, ease: "power3.out" },
+          cardStart);
+      });
+
+      // === Featured card "lift" — at ~4.5s the Pro card lifts up slightly to emphasize ===
+      tl.to("#card-2", { y: -16, scale: 1.04, duration: 0.6, ease: "back.out(1.4)" }, 4.5);
+
+      // Featured card breathes during hold
+      tl.to("#card-2", { y: -20, duration: 1.0, ease: "sine.inOut", yoyo: true, repeat: 1 }, 5.3);
+
+      // CTA buttons pulse briefly (call attention to action)
+      tl.fromTo(".cta-btn",
+        { boxShadow: "0 0 0 rgba(91, 141, 255, 0)" },
+        { boxShadow: "0 6px 18px rgba(91, 141, 255, 0.3)", duration: 0.4, stagger: 0.1, ease: "power2.out" },
+        4.8);
+
+      // Final hold (no element static)
+      tl.to(".headline .accent", { color: "#3a5bdc", duration: 0.6, ease: "sine.inOut", yoyo: true, repeat: 1 }, 6.5);
+
+      window.__timelines["scene-14-pricing-card-reveal"] = tl;
+    })();
+  </script>
+</body>
+</html>

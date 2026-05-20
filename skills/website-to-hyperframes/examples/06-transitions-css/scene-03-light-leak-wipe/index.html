@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>scene-03-light-leak-wipe</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet"
+  />
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #000; }
+
+    [data-composition-id="scene-03-light-leak-wipe"] {
+      position: relative;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      background: #000;
+      font-family: "Inter", -apple-system, sans-serif;
+      color: #f0f0f0;
+    }
+
+    /* Beats stacked */
+    .beat {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Beat A: deep navy with soft architectural feel */
+    .beat-a {
+      background:
+        linear-gradient(135deg, #0a1530 0%, #1a2b5e 50%, #0f1a3c 100%),
+        radial-gradient(circle at 30% 30%, rgba(91, 141, 255, 0.2), transparent 60%);
+    }
+    .beat-a .label {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 13px;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.55);
+      margin-bottom: 24px;
+    }
+    .beat-a .hero {
+      font-size: 200px;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      color: #e9ecf5;
+      line-height: 0.9;
+      text-shadow: 0 12px 60px rgba(0,0,0,0.4);
+    }
+    .beat-a .sub {
+      font-family: "Inter", sans-serif;
+      font-size: 28px;
+      font-weight: 500;
+      color: rgba(233, 236, 245, 0.7);
+      margin-top: 24px;
+      letter-spacing: -0.005em;
+    }
+
+    /* Beat B: warm cream with editorial feel */
+    .beat-b {
+      background:
+        linear-gradient(135deg, #f9f4e9 0%, #f0e6d2 50%, #e5d6b7 100%),
+        radial-gradient(circle at 70% 60%, rgba(245, 158, 11, 0.12), transparent 60%);
+      opacity: 0;
+    }
+    .beat-b .label {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 13px;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: rgba(42, 31, 16, 0.55);
+      margin-bottom: 24px;
+    }
+    .beat-b .hero {
+      font-size: 200px;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      color: #2a1f10;
+      line-height: 0.9;
+      text-shadow: 0 12px 60px rgba(42, 31, 16, 0.1);
+    }
+    .beat-b .sub {
+      font-family: "Inter", sans-serif;
+      font-style: italic;
+      font-size: 28px;
+      font-weight: 500;
+      color: rgba(42, 31, 16, 0.7);
+      margin-top: 24px;
+      letter-spacing: -0.005em;
+    }
+
+    /* === THE LIGHT-LEAK WIPE ===
+       A bright diagonal gradient strip sweeps across the frame from left to right.
+       At its peak position (covering most of the screen), beat A swaps for beat B.
+       Multiple stacked strips at different speeds give the "light leak" look. */
+    .leak-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      mix-blend-mode: screen;
+      opacity: 0;
+    }
+
+    .leak-strip {
+      position: absolute;
+      top: -300px; bottom: -300px;
+      width: 800px;
+      transform: translateX(-1200px) rotate(8deg);
+      transform-origin: center;
+    }
+    .leak-1 {
+      left: 0;
+      background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(255, 240, 200, 0.05) 20%,
+        rgba(255, 220, 150, 0.4) 40%,
+        rgba(255, 255, 230, 0.95) 50%,
+        rgba(255, 220, 150, 0.4) 60%,
+        rgba(255, 240, 200, 0.05) 80%,
+        transparent 100%
+      );
+      filter: blur(40px);
+    }
+    .leak-2 {
+      left: 0;
+      width: 1200px;
+      background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(245, 158, 11, 0.3) 30%,
+        rgba(255, 200, 100, 0.6) 50%,
+        rgba(245, 158, 11, 0.3) 70%,
+        transparent 100%
+      );
+      filter: blur(80px);
+      transform: translateX(-1500px) rotate(-6deg);
+    }
+    .leak-3 {
+      left: 0;
+      width: 500px;
+      background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.6) 50%,
+        transparent 100%
+      );
+      filter: blur(120px);
+      transform: translateX(-1000px) rotate(15deg);
+    }
+
+    /* Bottom — transition meta */
+    .transition-meta {
+      position: absolute;
+      bottom: 28px; right: 32px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.4);
+      z-index: 50;
+    }
+
+    /* Corner editorial marks */
+    .corner-mark {
+      position: absolute;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.3);
+      z-index: 50;
+    }
+    .corner-mark.tl { top: 40px; left: 56px; }
+    .corner-mark.tr { top: 40px; right: 56px; }
+
+    .scene-label {
+      position: absolute;
+      left: 24px; bottom: 18px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 11px;
+      color: rgba(255,255,255,0.5);
+      letter-spacing: 0.06em;
+      z-index: 50;
+    }
+    .scene-label b { color: rgba(255,255,255,0.75); }
+  </style>
+</head>
+<body>
+  <div
+    id="scene-03-light-leak-wipe"
+    data-composition-id="scene-03-light-leak-wipe"
+    data-start="0"
+    data-duration="6"
+    data-width="1920"
+    data-height="1080"
+  >
+    <div class="corner-mark tl">FIG · 03</div>
+    <div class="corner-mark tr">CSS · LIGHT-LEAK WIPE</div>
+
+    <!-- Beat A -->
+    <div class="beat beat-a" id="beat-a">
+      <div class="label">BEFORE · COLD-OPEN</div>
+      <div class="hero">DARK</div>
+      <div class="sub">3 a.m. · the build is broken</div>
+    </div>
+
+    <!-- Beat B -->
+    <div class="beat beat-b" id="beat-b">
+      <div class="label">AFTER · DELIVERY</div>
+      <div class="hero">LIGHT</div>
+      <div class="sub">9 a.m. · ship the demo</div>
+    </div>
+
+    <!-- Light-leak layer (3 stacked strips sweeping across) -->
+    <div class="leak-layer" id="leak-layer">
+      <div class="leak-strip leak-1" id="leak-1"></div>
+      <div class="leak-strip leak-2" id="leak-2"></div>
+      <div class="leak-strip leak-3" id="leak-3"></div>
+    </div>
+
+    <div class="transition-meta">3 STACKED GRADIENT STRIPS · MIX-BLEND-MODE SCREEN · DIAGONAL SWEEP</div>
+    <div class="scene-label">Section 06 · <b>Light-Leak Wipe</b> · diagonal gradient strips sweep A → B with bloom blend</div>
+  </div>
+
+  <script>
+    (function () {
+      var BEAT = 6;
+      window.__timelines = window.__timelines || {};
+      var tl = gsap.timeline({ paused: true });
+
+      // 0.0s: corner marks fade in
+      tl.fromTo(".corner-mark",
+        { opacity: 0 },
+        { opacity: 1, duration: 0.5, stagger: 0.08, ease: "power2.out" }, 0);
+
+      // 0.2s: beat-a fades in + hero text bouncy entrance
+      tl.fromTo("#beat-a",
+        { opacity: 0 },
+        { opacity: 1, duration: 0.4, ease: "power2.out" }, 0.2);
+
+      tl.fromTo("#beat-a .hero",
+        { opacity: 0, scale: 1.2 },
+        { opacity: 1, scale: 1, duration: 0.6, ease: "expo.out" }, 0.4);
+
+      tl.fromTo(["#beat-a .label", "#beat-a .sub"],
+        { opacity: 0, y: 10 },
+        { opacity: 1, y: 0, duration: 0.5, stagger: 0.1, ease: "power2.out" }, 0.6);
+
+      // === LIGHT-LEAK WIPE: 1.8-3.6s ===
+      // Leak layer fades in
+      tl.to("#leak-layer", { opacity: 1, duration: 0.3, ease: "power2.out" }, 1.8);
+
+      // 3 strips sweep across at slightly different times/speeds (creates organic light-leak feel)
+      tl.to("#leak-1", { x: 2500, duration: 1.6, ease: "power2.inOut" }, 1.8);
+      tl.to("#leak-2", { x: 2700, duration: 1.8, ease: "power2.inOut" }, 1.9);
+      tl.to("#leak-3", { x: 2300, duration: 1.4, ease: "power2.inOut" }, 2.1);
+
+      // === Beat A → B swap at peak bloom (around 2.4s) ===
+      // Beat A fades to black (the leak is bright enough to mask the swap)
+      tl.to("#beat-a", { opacity: 0, duration: 0.4, ease: "power2.in" }, 2.4);
+      // Beat B fades in (still hidden behind the bright leak)
+      tl.to("#beat-b", { opacity: 1, duration: 0.4, ease: "power2.out" }, 2.5);
+
+      // Leak layer fades out as strips finish sweeping (3.5-3.8s)
+      tl.to("#leak-layer", { opacity: 0, duration: 0.4, ease: "power2.in" }, 3.5);
+
+      // === Beat B settles in (3.7s onward) ===
+      tl.fromTo("#beat-b .hero",
+        { scale: 0.92 },
+        { scale: 1, duration: 0.6, ease: "back.out(1.5)" }, 3.7);
+
+      tl.fromTo(["#beat-b .label", "#beat-b .sub"],
+        { y: 8, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.5, stagger: 0.1, ease: "power2.out" }, 3.9);
+
+      // 4.5s onward: gentle Ken Burns drift on beat-b
+      tl.to("#beat-b", { scale: 1.025, transformOrigin: "center", duration: 1.4, ease: "sine.inOut", yoyo: true, repeat: 1 }, 4.4);
+
+      window.__timelines["scene-03-light-leak-wipe"] = tl;
+    })();
+  </script>
+</body>
+</html>
