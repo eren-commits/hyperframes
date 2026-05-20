@@ -6,22 +6,31 @@ This is the quality gate. Before the user sees anything, YOU verify that the vid
 
 **You may not say the video is ready, looks good, or present a preview URL until every item below is checked.** No exceptions. Do not summarize your impressions — paste the actual evidence for each.
 
-Score each item 1–5. If any item scores below 3, fix it before continuing.
+Score each item 1–5. If any item scores below 3, fix it before continuing. **Do not rush these.** Each checkbox is its own pass through the artifacts — slow down, look at every frame, write the actual observation, not a summary impression.
 
 ```
 [ ] verify-beats exits 0                  → paste the summary line ("✓ N/N beats passed")
 [ ] Lint: zero errors                     → paste the lint output (not "lint passed")
 [ ] Snapshot taken, N frames confirmed    → state the exact frame count
-[ ] descriptions.md read in full          → quote the WORST frame Gemini described
-[ ] Contact sheet viewed                  → describe the weakest-looking beat in one sentence
+[ ] descriptions.md read in full          → quote the WORST frame Gemini described, verbatim
+[ ] Contact sheet viewed cell-by-cell     → for EACH beat, one sentence: what's in frame, what's moving, what brand assets are present
 [ ] No mid-video dark frames              → state explicitly which frames (if any) are dark and why
+[ ] Brand assets actually visible         → for each beat, name which captured SVG / illustration / screenshot is on screen and at what timestamp. If a beat shows zero captured assets, justify why.
 [ ] Audio duration matches video ±0.5s    → paste both numbers
-[ ] Critic sub-agent run                  → paste its single biggest quality gap finding
+[ ] Critic sub-agent run                  → paste its single biggest quality gap finding, verbatim
 ```
 
-The first item is the new structural gate: `npx hyperframes verify-beats <project-dir>` must exit 0. This catches the failure mode where sub-agents claim "done" without doing the work — it re-checks every beat's verification artifact (lint, snapshots taken, brand colors used, captured assets referenced, frame observations, concept alignment) against the actual files on disk. If a sub-agent lied about using `#FF6363` and the file uses `#000000`, the verifier catches it. Re-dispatch failing beats before continuing.
+`verify-beats` is a **structural backstop**, not the verification itself. It catches the easy lies (missing files, wrong hex codes, headlines too small, observations under 20 characters). It does NOT catch: a beat that's technically present but boring, a captured logo placed off-screen, a kinetic-type beat that's correctly written but unreadable at video scale, a transition that's jarring, audio sync drift, brand voice that's wrong. **Those failures only surface when YOU look at every frame.**
 
-**Why this matters:** The natural tendency is to look at a contact sheet, see that content is present, and declare it done. That is not verification — that is pattern-matching to a completion signal. Verification means running each check and reporting the raw result. "Frame 7 at 14.2s shows the logo in the top-left against a dark blue background, text is centered" is evidence. "The video looks great" is not.
+The pre-fix-era flow took longer specifically because it caught these. Don't trade the careful look for a green checkmark. The order is:
+
+1. Run `verify-beats` → fix any structural failures, re-run until exit 0.
+2. **Then do the per-frame review yourself** — open `snapshots/contact-sheet.jpg`, read `snapshots/descriptions.md` line-by-line, write the per-beat verdict in the section below.
+3. **Then spawn the critic sub-agent** — fresh eyes, no knowledge of what you intended, only what's on screen.
+
+If any of those three stages surfaces a problem, fix it and re-do all three from the top. Iteration is the point. A video that passes `verify-beats` but a careful human review would reject is not done.
+
+**Why this matters:** The natural tendency is to look at a contact sheet, see that content is present, and declare it done. That is not verification — that is pattern-matching to a completion signal. Verification means running each check and reporting the raw result. "Frame 7 at 14.2s shows the Raycast logo SVG drawing its final stroke at 0.85 opacity against #07080A, the headline 'Crush your sprint' has settled in 96px Inter SemiBold below" is evidence. "The video looks great" is not.
 
 ---
 
@@ -124,9 +133,10 @@ Score each dimension 1–5. Be specific — name the beat and timestamp for ever
 
 1. **Beat execution** (1–5): Does every beat deliver what STORYBOARD.md planned? Name any beat that underdelivers and what exactly is wrong.
 2. **Brand accuracy** (1–5): Does this feel made for THIS brand specifically, or could it be for any company? Name one element that is distinctly on-brand and one that is generic.
-3. **Visual quality** (1–5): Any blank frames, clipped text, centering failures, invisible elements? Cite exact frame timestamps.
-4. **Motion design** (1–5): Do animations feel intentional and polished, or default and mechanical? Name the weakest transition and why.
-5. **CTA beat** (1–5): Is the final beat clear, centered, readable, and does it hold long enough? Describe exactly what is visible on the CTA frame.
+3. **Captured asset utilization** (1–5): The user captured the brand's actual SVG logos, hero illustrations, and screenshots into `capture/assets/`. Are they on screen in this video, or did the agents recreate everything from divs and CSS? List which captured assets appear in which beats. If beats are missing them, flag it — a video that recreates everything in CSS is generic, not branded.
+4. **Visual quality** (1–5): Any blank frames, clipped text, centering failures, invisible elements? Cite exact frame timestamps.
+5. **Motion design** (1–5): Do animations feel intentional and polished, or default and mechanical? Name the weakest transition and why.
+6. **CTA beat** (1–5): Is the final beat clear, centered, readable, and does it hold long enough? Describe exactly what is visible on the CTA frame.
 
 End with: What is the single most important fix before this ships? Name the beat, the element, and the specific change.
 

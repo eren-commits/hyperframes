@@ -35,9 +35,13 @@ You are building ONE beat of a multi-beat video composition. This file tells you
 - `/hyperframes-contrast` — audit color contrast (WCAG)
 - `/lottie`, `/three`, `/waapi`, `/animejs`, `/css-animations` — if beat uses these engines
 
-**Always view before using:**
+**Always open the captured assets folder before designing the beat:**
 
-- Captured assets from `capture/assets/` — VIEW the image before placing text on it. Check safe zones, contrast, actual content.
+- `capture/assets/svgs/` — brand logos, icons, decorative marks. SVGs are infinitely scalable and stroke-animatable (path drawing, dash offset). A logo SVG drawing itself onto frame can carry an entire beat.
+- `capture/assets/` — hero illustrations, screenshots, product art, gradients, photography. These are first-class beat subjects, not background decoration. A breathing hero illustration with a single line of kinetic type is a complete shot.
+- VIEW every image before placing text on it. Check safe zones, contrast, actual content, where the focal point sits.
+
+**If your beat spec names a captured asset, USE it.** Don't substitute a CSS recreation. The user captured these from the real brand site precisely so the video carries the brand's actual visual identity.
 
 ## Step 2: Build the composition
 
@@ -186,16 +190,24 @@ A beat is a SHOT in a film, not a webpage with entrance animations. Your GSAP ti
 
 ## You are building a SHOT, not a webpage
 
-The storyboard tells you the shot framing (close-up / medium / wide / etc.) and the camera move. Implement them. **If your composition looks like a webpage centered in the canvas with elements that "breathe" by 1-2px, you misread the beat.** Re-read it.
+The storyboard tells you the shot framing (close-up / medium / wide / etc.) and the camera move. Implement them. A beat is a moment, not a screenshot. The distinction is **what the camera is doing**, not whether the subject is a UI element or a logo — a tight push-in on a real product screenshot is a shot; a centered card on a parked camera is a webpage.
 
-**Specific patterns to refuse:**
+**Patterns that turn a shot back into a webpage:**
 
-- ❌ **macOS / browser window chrome** as a frame around the content — traffic-light dots (`.red`, `.yellow`, `.green` circles), URL bars, browser tabs, breadcrumbs — UNLESS the storyboard explicitly says the chrome is the subject of the shot. If you build a window with chrome around a UI, you've built a screenshot equivalent in CSS, defeating the entire purpose of composing from divs.
-- ❌ **Sidebars + headers + footers** (the standard webpage layout) — these are page navigation, not video subjects. The beat is about _the kanban moment_, not _the kanban app_.
-- ❌ **Centered card / panel / window with 60–120px margin on all sides** — that's a webpage layout. Videos use the full frame with intentional negative space.
+- ❌ **macOS / browser window chrome reproduced in CSS** — traffic-light dots (`.red`, `.yellow`, `.green` circles), URL bars, browser tabs reconstructed from divs. UNLESS the storyboard explicitly says the chrome IS the subject. (A captured product screenshot from `capture/assets/` that happens to include chrome is fine — that's documentary footage of the brand. The rule is about hand-rolling fake chrome to frame a CSS rebuild.)
+- ❌ **Full webpage layout** (sidebar + header + footer + main content area) when the storyboard called for a moment, not a tour. The beat is about _the kanban moment_, not _the kanban app_.
+- ❌ **Parked-camera composition** — centered card with 60–120px margins on all sides and no camera move. Either give it a real push-in / dolly / parallax, or reframe.
 - ❌ **"Hold with breathing"** implemented as `y: ±1–2px` or `scale: 1.01` — invisible at 1920×1080+ scale. If continuous motion is required, use camera dolly (scale 1.0 → 1.05), parallax pan (x/y ±30–80px), or progressive reveals.
 - ❌ **Hover-state simulations** — videos have no hover. If the brand uses hover effects, show the BEFORE and AFTER as discrete frames in the timeline.
 - ❌ **Counter pulses + dot pulses + tiny scale wobbles** as the only motion during the hold — these are "I ran out of ideas" filler.
+
+**Patterns that ARE shots (do these freely):**
+
+- ✅ **Captured SVG logo drawing itself stroke-by-stroke** (DrawSVG / path dashoffset) — a complete opener or stinger.
+- ✅ **Captured hero illustration with camera dolly** — push-in from 1.0 → 1.08 over 4s, focal element holds frame.
+- ✅ **Captured product screenshot with parallax layers** — separate the foreground UI from background panels and move them at different speeds, or use HTML-in-Canvas for an iPhone/MacBook mockup.
+- ✅ **Captured asset as the bed, kinetic type as the punchline** — the brand's hero image holds the frame while a one-line message arrives, splits, reflows.
+- ✅ **Composed-from-divs UI moment** when the beat is specifically about that UI's interaction (a card sliding into a column, a search result resolving) — this is the legit case for CSS-only composition.
 
 **Required motion magnitudes** (anything smaller is invisible at video scale):
 

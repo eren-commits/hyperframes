@@ -1,6 +1,8 @@
 # Step 3: Storyboard + Script
 
-Marketing videos are made concept-first. **The order is: message → narrative arc → beats that serve the arc → which techniques bring each beat to life → which brand accents decorate it.** Captured assets enter LAST — they're a brand toolkit you reach for where they serve the concept, not the starting material you build from. If you find yourself opening `asset-descriptions.md` to decide what beats to write, stop and go back to the message.
+Marketing videos are made concept-first. **The order is: message → narrative arc → beats that serve the arc → which assets and techniques bring each beat to life.** Captured assets (SVG logos, brand illustrations, hero art, gradients) are first-class beat content alongside composed UIs — many of them will carry their own beats. The constraint is only that you shouldn't _start_ from the asset inventory ("we have these screenshots, let's build a slideshow"). Start from the message, then weave in the right captured assets and the right composed elements per beat.
+
+**Read `capture/extracted/asset-descriptions.md` before writing beats.** Know what's in the capture. The brand's actual visual identity — its real logo, its real illustrations, its real gradients, its real hero art — is what makes the video feel like _this_ brand and not a generic dark cinematic template. Most beats will use one or two captured assets layered with composed motion.
 
 ## First decision: CONCEPT
 
