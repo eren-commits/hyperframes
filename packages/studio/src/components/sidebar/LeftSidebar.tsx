@@ -3,6 +3,7 @@ import {
   useState,
   useCallback,
   useImperativeHandle,
+  useRef,
   forwardRef,
   type ReactNode,
 } from "react";
@@ -17,6 +18,7 @@ export type SidebarTab = "compositions" | "assets" | "code" | "blocks";
 
 export interface LeftSidebarHandle {
   selectTab: (tab: SidebarTab) => void;
+  getTab: () => SidebarTab;
 }
 
 const STORAGE_KEY = "hf-studio-sidebar-tab";
@@ -87,6 +89,8 @@ export const LeftSidebar = memo(
     ref,
   ) {
     const [tab, setTab] = useState<SidebarTab>(getPersistedTab);
+    const tabRef = useRef(tab);
+    tabRef.current = tab;
 
     const selectTab = useCallback((t: SidebarTab) => {
       setTab(t);
@@ -94,7 +98,9 @@ export const LeftSidebar = memo(
       trackStudioEvent("tab_switch", { panel: "left_sidebar", tab: t });
     }, []);
 
-    useImperativeHandle(ref, () => ({ selectTab }), [selectTab]);
+    const getTab = useCallback(() => tabRef.current, []);
+
+    useImperativeHandle(ref, () => ({ selectTab, getTab }), [selectTab, getTab]);
 
     return (
       <div

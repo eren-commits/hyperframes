@@ -295,6 +295,15 @@ export function StudioApp() {
     handleCut,
   });
 
+  const selectSidebarTabStable = useCallback(
+    (tab: SidebarTab) => leftSidebarRef.current?.selectTab(tab),
+    [],
+  );
+  const getSidebarTabStable = useCallback(
+    () => leftSidebarRef.current?.getTab() ?? "compositions",
+    [],
+  );
+
   const domEditSession = useDomEditSession({
     projectId,
     activeCompPath,
@@ -327,7 +336,8 @@ export function StudioApp() {
     reloadPreview,
     setRefreshKey,
     openSourceForSelection: fileManager.openSourceForSelection,
-    selectSidebarTab: (tab: SidebarTab) => leftSidebarRef.current?.selectTab(tab),
+    selectSidebarTab: selectSidebarTabStable,
+    getSidebarTab: getSidebarTabStable,
   });
 
   domEditSelectionBridgeRef.current = domEditSession.domEditSelection;

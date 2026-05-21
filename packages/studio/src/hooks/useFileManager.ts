@@ -122,6 +122,9 @@ export function useFileManager({
   const handleFileSelect = useCallback((path: string) => {
     const pid = projectIdRef.current;
     if (!pid) return;
+    revealAbortRef.current?.abort();
+    revealAbortRef.current = null;
+    revealRequestIdRef.current++;
     // Skip fetching binary content for media files — just set the path for preview
     if (isMediaFile(path)) {
       setEditingFile({ path, content: null });
