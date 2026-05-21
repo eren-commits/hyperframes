@@ -257,6 +257,7 @@ export function syncRuntimeMedia(params: {
         // seconds. The canplay listener was also racey — the event could
         // fire between `load()` and `addEventListener` attachment, wedging
         // the element waiting for a callback that never came.
+        if (typeof el.play !== "function") continue;
         markPlayRequested(el);
         void el.play().catch((err: unknown) => {
           // If play() rejects — e.g. autoplay blocked, element removed
@@ -274,7 +275,7 @@ export function syncRuntimeMedia(params: {
           if (name === "NotAllowedError") params.onAutoplayBlocked?.();
         });
       } else if (!params.playing && !el.paused) {
-        el.pause();
+        if (typeof el.pause === "function") el.pause();
       }
       continue;
     }
@@ -283,6 +284,6 @@ export function syncRuntimeMedia(params: {
     lastOffset.delete(el);
     strictDriftSamples.delete(el);
     seekLoadRetried.delete(el);
-    if (!el.paused) el.pause();
+    if (!el.paused && typeof el.pause === "function") el.pause();
   }
 }

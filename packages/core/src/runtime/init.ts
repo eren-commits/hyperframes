@@ -1102,7 +1102,9 @@ export function initSandboxRuntimeModular(): void {
       };
       node.addEventListener("error", onError);
       registerRuntimeCleanup(() => {
-        node.removeEventListener("error", onError);
+        if (typeof node.removeEventListener === "function") {
+          node.removeEventListener("error", onError);
+        }
       });
     }
 
@@ -1232,8 +1234,10 @@ export function initSandboxRuntimeModular(): void {
 
   const unbindMediaMetadataListeners = () => {
     for (const mediaEl of metadataBoundMedia) {
-      mediaEl.removeEventListener("loadedmetadata", scheduleMetadataDurationHydration);
-      mediaEl.removeEventListener("durationchange", scheduleMetadataDurationHydration);
+      if (typeof mediaEl.removeEventListener === "function") {
+        mediaEl.removeEventListener("loadedmetadata", scheduleMetadataDurationHydration);
+        mediaEl.removeEventListener("durationchange", scheduleMetadataDurationHydration);
+      }
     }
     metadataBoundMedia.clear();
   };

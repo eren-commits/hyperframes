@@ -197,10 +197,14 @@ export function usePlaybackKeyboard({
     iframeDoc?.addEventListener("keydown", handleIframeKeyDown, true);
     iframeDoc?.addEventListener("keyup", handleIframeKeyUp, true);
     iframeShortcutCleanupRef.current = () => {
-      iframeWin?.removeEventListener("keydown", handleIframeKeyDown, true);
-      iframeWin?.removeEventListener("keyup", handleIframeKeyUp, true);
-      iframeDoc?.removeEventListener("keydown", handleIframeKeyDown, true);
-      iframeDoc?.removeEventListener("keyup", handleIframeKeyUp, true);
+      if (typeof iframeWin?.removeEventListener === "function") {
+        iframeWin.removeEventListener("keydown", handleIframeKeyDown, true);
+        iframeWin.removeEventListener("keyup", handleIframeKeyUp, true);
+      }
+      if (typeof iframeDoc?.removeEventListener === "function") {
+        iframeDoc.removeEventListener("keydown", handleIframeKeyDown, true);
+        iframeDoc.removeEventListener("keyup", handleIframeKeyUp, true);
+      }
     };
   }, [iframeRef, iframeShortcutCleanupRef]);
 

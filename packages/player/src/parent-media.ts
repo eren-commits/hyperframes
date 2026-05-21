@@ -98,7 +98,7 @@ export class ParentMediaManager {
   destroy(): void {
     this.teardownObserver();
     for (const m of this._entries) {
-      m.el.pause();
+      if (typeof m.el.pause === "function") m.el.pause();
       m.el.src = "";
     }
     this._entries = [];
@@ -118,13 +118,15 @@ export class ParentMediaManager {
 
   playAll(): void {
     for (const m of this._entries) {
-      if (!m.el.src) continue;
+      if (!m.el.src || typeof m.el.play !== "function") continue;
       m.el.play().catch((err: unknown) => this._reportPlaybackError(err));
     }
   }
 
   pauseAll(): void {
-    for (const m of this._entries) m.el.pause();
+    for (const m of this._entries) {
+      if (typeof m.el.pause === "function") m.el.pause();
+    }
   }
 
   seekAll(timeInSeconds: number): void {
@@ -278,7 +280,7 @@ export class ParentMediaManager {
     // up immediately — bypass the jitter-coalescing gate.
     if (created && this._audioOwner === "parent") {
       this.mirrorTime(this._getCurrentTime(), { force: true });
-      if (!this._isPaused() && created.el.src) {
+      if (!this._isPaused() && created.el.src && typeof created.el.play === "function") {
         created.el.play().catch((err: unknown) => this._reportPlaybackError(err));
       }
     }
@@ -292,7 +294,7 @@ export class ParentMediaManager {
     const idx = this._entries.findIndex((m) => m.el.src === src);
     if (idx === -1) return;
     const entry = this._entries[idx];
-    entry.el.pause();
+    if (typeof entry.el.pause === "function") entry.el.pause();
     entry.el.src = "";
     this._entries.splice(idx, 1);
   }

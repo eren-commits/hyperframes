@@ -266,11 +266,15 @@ export const Player = forwardRef<HTMLIFrameElement, PlayerProps>(
         iframe.addEventListener("load", handleLoad);
 
         cleanup = () => {
-          iframe.removeEventListener("load", handleLoad);
-          player.removeEventListener("click", preventToggle, { capture: true });
-          player.removeEventListener("shadertransitionstate", handleShaderTransitionState);
-          player.removeEventListener("ready", handleReady);
-          player.removeEventListener("error", handleError);
+          if (typeof iframe.removeEventListener === "function") {
+            iframe.removeEventListener("load", handleLoad);
+          }
+          if (typeof player.removeEventListener === "function") {
+            player.removeEventListener("click", preventToggle, { capture: true });
+            player.removeEventListener("shadertransitionstate", handleShaderTransitionState);
+            player.removeEventListener("ready", handleReady);
+            player.removeEventListener("error", handleError);
+          }
           if (assetPollRef.current) clearInterval(assetPollRef.current);
           assetPollRef.current = null;
           container.removeChild(player);

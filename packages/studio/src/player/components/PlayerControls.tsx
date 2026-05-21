@@ -254,9 +254,11 @@ export const PlayerControls = memo(function PlayerControls({
           /* Already released after the first cleanup — second invocation
              via the window-fallback or visibility path is a no-op throw. */
         }
-        target.removeEventListener("pointermove", onMove);
-        target.removeEventListener("pointerup", onUp);
-        target.removeEventListener("pointercancel", onUp);
+        if (typeof target.removeEventListener === "function") {
+          target.removeEventListener("pointermove", onMove);
+          target.removeEventListener("pointerup", onUp);
+          target.removeEventListener("pointercancel", onUp);
+        }
         window.removeEventListener("pointerup", onUp);
         window.removeEventListener("pointercancel", onUp);
         document.removeEventListener("visibilitychange", onVisibilityChange);
