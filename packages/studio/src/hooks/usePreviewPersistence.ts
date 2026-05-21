@@ -104,17 +104,31 @@ export function usePreviewPersistence({
       };
       const install = () => {
         reapply();
-        if (iframe.contentWindow) installStudioManualEditSeekReapply(iframe.contentWindow, reapply);
+        try {
+          if (iframe.contentWindow)
+            installStudioManualEditSeekReapply(iframe.contentWindow, reapply);
+        } catch {
+          /* cross-origin — iframe navigated or reloaded */
+        }
       };
 
-      const win = iframe.contentWindow;
+      let win: Window | null = null;
+      try {
+        win = iframe.contentWindow;
+      } catch {
+        /* cross-origin */
+      }
       install();
-      win?.requestAnimationFrame?.(install);
-      win?.setTimeout?.(install, 80);
-      win?.setTimeout?.(install, 250);
-      win?.setTimeout?.(install, 500);
-      win?.setTimeout?.(install, 1000);
-      win?.setTimeout?.(install, 2000);
+      try {
+        win?.requestAnimationFrame?.(install);
+        win?.setTimeout?.(install, 80);
+        win?.setTimeout?.(install, 250);
+        win?.setTimeout?.(install, 500);
+        win?.setTimeout?.(install, 1000);
+        win?.setTimeout?.(install, 2000);
+      } catch {
+        /* cross-origin — iframe navigated or reloaded */
+      }
     },
     [previewIframeRef],
   );

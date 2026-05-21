@@ -310,13 +310,27 @@ export function useAppHotkeys({
 
   const syncPreviewTimelineHotkey = useCallback(
     (iframe: HTMLIFrameElement | null) => {
-      const nextWindow = iframe?.contentWindow ?? null;
+      let nextWindow: Window | null = null;
+      try {
+        nextWindow = iframe?.contentWindow ?? null;
+      } catch {
+        /* cross-origin */
+      }
       if (previewHotkeyWindowRef.current === nextWindow) return;
       if (previewHotkeyWindowRef.current) {
-        previewHotkeyWindowRef.current.removeEventListener("keydown", previewAppKeyDownHandler);
+        try {
+          previewHotkeyWindowRef.current.removeEventListener("keydown", previewAppKeyDownHandler);
+        } catch {
+          /* cross-origin — stale window ref */
+        }
       }
       previewHotkeyWindowRef.current = nextWindow;
-      nextWindow?.addEventListener("keydown", previewAppKeyDownHandler, true);
+      try {
+        nextWindow?.addEventListener("keydown", previewAppKeyDownHandler, true);
+      } catch {
+        /* cross-origin */
+        previewHotkeyWindowRef.current = null;
+      }
     },
     [previewAppKeyDownHandler],
   );
@@ -324,7 +338,11 @@ export function useAppHotkeys({
   useEffect(
     () => () => {
       if (previewHotkeyWindowRef.current) {
-        previewHotkeyWindowRef.current.removeEventListener("keydown", previewAppKeyDownHandler);
+        try {
+          previewHotkeyWindowRef.current.removeEventListener("keydown", previewAppKeyDownHandler);
+        } catch {
+          /* cross-origin — stale window ref */
+        }
         previewHotkeyWindowRef.current = null;
       }
     },
@@ -333,40 +351,62 @@ export function useAppHotkeys({
 
   // ── History hotkey for iframe forwarding ──
 
-  const handleHistoryHotkey = useCallback((event: KeyboardEvent) => {
-    if (!(event.metaKey || event.ctrlKey)) return;
-    if (shouldIgnoreHistoryShortcut(event.target)) return;
-    const key = event.key.toLowerCase();
-    if (key === "z" && !event.shiftKey) {
-      event.preventDefault();
-      void handleUndoRef.current();
-      return;
-    }
-    if ((key === "z" && event.shiftKey) || (event.ctrlKey && !event.metaKey && key === "y")) {
-      event.preventDefault();
-      void handleRedoRef.current();
-    }
-  }, []);
+  const handleHistoryHotkey = useCallback(
+    // fallow-ignore-next-line complexity
+    (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey)) return;
+      if (shouldIgnoreHistoryShortcut(event.target)) return;
+      // Undo: Cmd/Ctrl+Z
+      if (event.key.toLowerCase() === "z" && !event.shiftKey) {
+        event.preventDefault();
+        void handleUndoRef.current();
+        return;
+      }
+      // Redo: Cmd/Ctrl+Shift+Z or Ctrl+Y
+      if (
+        (event.key.toLowerCase() === "z" && event.shiftKey) ||
+        (event.ctrlKey && !event.metaKey && event.key.toLowerCase() === "y")
+      ) {
+        event.preventDefault();
+        void handleRedoRef.current();
+      }
+    },
+    [],
+  );
 
   const syncPreviewHistoryHotkey = useCallback(
     (iframe: HTMLIFrameElement | null) => {
-      previewHistoryHotkeyCleanupRef.current?.();
+      try {
+        previewHistoryHotkeyCleanupRef.current?.();
+      } catch {
+        /* cross-origin — stale window ref */
+      }
       previewHistoryHotkeyCleanupRef.current = null;
 
-      const win = iframe?.contentWindow ?? null;
+      let win: Window | null = null;
       let doc: Document | null = null;
       try {
+        win = iframe?.contentWindow ?? null;
         doc = iframe?.contentDocument ?? null;
       } catch {
-        doc = null;
+        /* cross-origin */
       }
       if (!win && !doc) return;
 
-      win?.addEventListener("keydown", handleHistoryHotkey, true);
-      doc?.addEventListener("keydown", handleHistoryHotkey, true);
+      try {
+        win?.addEventListener("keydown", handleHistoryHotkey, true);
+        doc?.addEventListener("keydown", handleHistoryHotkey, true);
+      } catch {
+        /* cross-origin */
+        return;
+      }
       previewHistoryHotkeyCleanupRef.current = () => {
-        win?.removeEventListener("keydown", handleHistoryHotkey, true);
-        doc?.removeEventListener("keydown", handleHistoryHotkey, true);
+        try {
+          win?.removeEventListener("keydown", handleHistoryHotkey, true);
+          doc?.removeEventListener("keydown", handleHistoryHotkey, true);
+        } catch {
+          /* cross-origin — iframe navigated or reloaded */
+        }
       };
     },
     [handleHistoryHotkey],
@@ -374,7 +414,11 @@ export function useAppHotkeys({
 
   useEffect(
     () => () => {
-      previewHistoryHotkeyCleanupRef.current?.();
+      try {
+        previewHistoryHotkeyCleanupRef.current?.();
+      } catch {
+        /* cross-origin — stale window ref */
+      }
       previewHistoryHotkeyCleanupRef.current = null;
     },
     [],

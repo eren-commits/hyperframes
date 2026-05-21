@@ -182,25 +182,45 @@ export function usePlaybackKeyboard({
   playbackKeyDownRef.current = handlePlaybackKeyDown;
   playbackKeyUpRef.current = handlePlaybackKeyUp;
 
+  // fallow-ignore-next-line complexity
   const attachIframeShortcutListeners = useCallback(() => {
-    iframeShortcutCleanupRef.current?.();
+    try {
+      iframeShortcutCleanupRef.current?.();
+    } catch {
+      /* cross-origin — stale window ref */
+    }
     iframeShortcutCleanupRef.current = null;
 
-    const iframeWin = iframeRef.current?.contentWindow;
-    const iframeDoc = iframeRef.current?.contentDocument;
+    let iframeWin: Window | null = null;
+    let iframeDoc: Document | null = null;
+    try {
+      iframeWin = iframeRef.current?.contentWindow ?? null;
+      iframeDoc = iframeRef.current?.contentDocument ?? null;
+    } catch {
+      /* cross-origin */
+    }
     if (!iframeWin && !iframeDoc) return;
 
     const handleIframeKeyDown = (e: KeyboardEvent) => playbackKeyDownRef.current(e);
     const handleIframeKeyUp = (e: KeyboardEvent) => playbackKeyUpRef.current(e);
-    iframeWin?.addEventListener("keydown", handleIframeKeyDown, true);
-    iframeWin?.addEventListener("keyup", handleIframeKeyUp, true);
-    iframeDoc?.addEventListener("keydown", handleIframeKeyDown, true);
-    iframeDoc?.addEventListener("keyup", handleIframeKeyUp, true);
+    try {
+      iframeWin?.addEventListener("keydown", handleIframeKeyDown, true);
+      iframeWin?.addEventListener("keyup", handleIframeKeyUp, true);
+      iframeDoc?.addEventListener("keydown", handleIframeKeyDown, true);
+      iframeDoc?.addEventListener("keyup", handleIframeKeyUp, true);
+    } catch {
+      /* cross-origin */
+      return;
+    }
     iframeShortcutCleanupRef.current = () => {
-      iframeWin?.removeEventListener("keydown", handleIframeKeyDown, true);
-      iframeWin?.removeEventListener("keyup", handleIframeKeyUp, true);
-      iframeDoc?.removeEventListener("keydown", handleIframeKeyDown, true);
-      iframeDoc?.removeEventListener("keyup", handleIframeKeyUp, true);
+      try {
+        iframeWin?.removeEventListener("keydown", handleIframeKeyDown, true);
+        iframeWin?.removeEventListener("keyup", handleIframeKeyUp, true);
+        iframeDoc?.removeEventListener("keydown", handleIframeKeyDown, true);
+        iframeDoc?.removeEventListener("keyup", handleIframeKeyUp, true);
+      } catch {
+        /* cross-origin — iframe navigated or reloaded */
+      }
     };
   }, [iframeRef, iframeShortcutCleanupRef]);
 

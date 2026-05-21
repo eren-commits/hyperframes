@@ -565,7 +565,11 @@ export function useTimelinePlayer() {
     return () => {
       window.removeEventListener("keydown", handleWindowKeyDown, true);
       window.removeEventListener("keyup", handleWindowKeyUp, true);
-      iframeShortcutCleanupRef.current?.();
+      try {
+        iframeShortcutCleanupRef.current?.();
+      } catch {
+        /* cross-origin — stale window ref */
+      }
       iframeShortcutCleanupRef.current = null;
       window.removeEventListener("message", handleMessage);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
