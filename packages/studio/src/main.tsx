@@ -22,8 +22,13 @@ function errorProps(value: unknown): {
   return { error_message: String(value), error_name: null, stack_trace: null };
 }
 
+// fallow-ignore-next-line complexity
 function isCompositionAssetError(msg: string): boolean {
-  return msg.includes("Error fetching") && (msg.includes("404") || msg.includes("Not Found"));
+  if (msg.includes("Error fetching") && (msg.includes("404") || msg.includes("Not Found")))
+    return true;
+  if (msg.includes("unsupported or unrecognizable format")) return true;
+  if (msg.includes("MEDIA_ERR_SRC_NOT_SUPPORTED")) return true;
+  return false;
 }
 
 const ERROR_CAP = 50;
