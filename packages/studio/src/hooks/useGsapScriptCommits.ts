@@ -3,6 +3,8 @@ import type { ParsedGsap } from "@hyperframes/core/gsap-parser";
 import type { DomEditSelection } from "../components/editor/domEditingTypes";
 import type { EditHistoryKind } from "../utils/editHistory";
 import { applySoftReload } from "../utils/gsapSoftReload";
+import { executeOptimistic } from "../utils/optimisticUpdate";
+import { usePlayerStore, type KeyframeCacheEntry } from "../player/store/playerStore";
 
 const PROPERTY_DEFAULTS: Record<string, number> = {
   opacity: 1,
@@ -68,6 +70,23 @@ async function mutateGsapScript(
   } catch {
     return null;
   }
+}
+
+/** Read the current keyframe cache entry for an element from the player store. */
+function readKeyframeSnapshot(
+  elementId: string | null | undefined,
+): KeyframeCacheEntry | undefined {
+  if (!elementId) return undefined;
+  return usePlayerStore.getState().keyframeCache.get(elementId);
+}
+
+/** Write a keyframe cache entry (or clear it) in the player store. */
+function writeKeyframeCache(
+  elementId: string | null | undefined,
+  data: KeyframeCacheEntry | undefined,
+): void {
+  if (!elementId) return;
+  usePlayerStore.getState().setKeyframeCache(elementId, data);
 }
 
 interface GsapScriptCommitsParams {
@@ -361,32 +380,98 @@ export function useGsapScriptCommits({
       property: string,
       value: number | string,
     ) => {
-      void commitMutation(
-        selection,
-        { type: "add-keyframe", animationId, percentage, properties: { [property]: value } },
-        { label: `Add keyframe at ${percentage}%`, softReload: true },
-      );
+      const elementId = selection.id;
+      void executeOptimistic<KeyframeCacheEntry | undefined>({
+        apply: () => {
+          const prev = readKeyframeSnapshot(elementId);
+          if (prev) {
+            const newKeyframes = [
+              ...prev.keyframes,
+              { percentage, properties: { [property]: value } },
+            ].sort((a, b) => a.percentage - b.percentage);
+            writeKeyframeCache(elementId, { ...prev, keyframes: newKeyframes });
+          }
+          return prev;
+        },
+        persist: () =>
+          commitMutation(
+            selection,
+            { type: "add-keyframe", animationId, percentage, properties: { [property]: value } },
+            { label: `Add keyframe at ${percentage}%`, softReload: true },
+          ),
+        rollback: (prev) => {
+          writeKeyframeCache(elementId, prev);
+        },
+      });
     },
     [commitMutation],
   );
 
   const removeKeyframe = useCallback(
     (selection: DomEditSelection, animationId: string, percentage: number) => {
-      void commitMutation(
-        selection,
-        { type: "remove-keyframe", animationId, percentage },
-        { label: `Remove keyframe at ${percentage}%`, softReload: true },
-      );
+      const elementId = selection.id;
+      void executeOptimistic<KeyframeCacheEntry | undefined>({
+        apply: () => {
+          const prev = readKeyframeSnapshot(elementId);
+          if (prev) {
+            const newKeyframes = prev.keyframes.filter((kf) => kf.percentage !== percentage);
+            writeKeyframeCache(elementId, { ...prev, keyframes: newKeyframes });
+          }
+          return prev;
+        },
+        persist: () =>
+          commitMutation(
+            selection,
+            { type: "remove-keyframe", animationId, percentage },
+            { label: `Remove keyframe at ${percentage}%`, softReload: true },
+          ),
+        rollback: (prev) => {
+          writeKeyframeCache(elementId, prev);
+        },
+      });
     },
     [commitMutation],
   );
 
   const convertToKeyframes = useCallback(
     (selection: DomEditSelection, animationId: string) => {
+      const elementId = selection.id;
+      void executeOptimistic<KeyframeCacheEntry | undefined>({
+        apply: () => {
+          const prev = readKeyframeSnapshot(elementId);
+          if (!prev) {
+            // Seed a minimal percentage-format entry so the UI shows keyframe
+            // diamonds immediately, before the server responds.
+            writeKeyframeCache(elementId, {
+              format: "percentage",
+              keyframes: [
+                { percentage: 0, properties: {} },
+                { percentage: 100, properties: {} },
+              ],
+            });
+          }
+          return prev;
+        },
+        persist: () =>
+          commitMutation(
+            selection,
+            { type: "convert-to-keyframes", animationId },
+            { label: "Convert to keyframes" },
+          ),
+        rollback: (prev) => {
+          writeKeyframeCache(elementId, prev);
+        },
+      });
+    },
+    [commitMutation],
+  );
+
+  const removeAllKeyframes = useCallback(
+    (selection: DomEditSelection, animationId: string) => {
       void commitMutation(
         selection,
-        { type: "convert-to-keyframes", animationId },
-        { label: "Convert to keyframes" },
+        { type: "remove-all-keyframes", animationId },
+        { label: "Remove all keyframes", softReload: true },
       );
     },
     [commitMutation],
@@ -405,5 +490,6 @@ export function useGsapScriptCommits({
     addKeyframe,
     removeKeyframe,
     convertToKeyframes,
+    removeAllKeyframes,
   };
 }
