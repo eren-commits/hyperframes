@@ -478,7 +478,6 @@ export function useGsapScriptCommits({
   );
 
   return {
-    commitMutation,
     updateGsapProperty,
     updateGsapMeta,
     deleteGsapAnimation,

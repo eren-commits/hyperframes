@@ -21,6 +21,7 @@ import {
   getSourceFileForElement,
   humanizeIdentifier,
   isHtmlElement,
+  isIdentityTransform,
   isTextBearingTag,
   parsePx,
 } from "./domEditingDom";
@@ -214,12 +215,13 @@ export function resolveDomEditCapabilities(args: {
   const top = parsePx(args.inlineStyles.top) ?? parsePx(args.computedStyles.top);
   const width = parsePx(args.inlineStyles.width) ?? parsePx(args.computedStyles.width);
   const height = parsePx(args.inlineStyles.height) ?? parsePx(args.computedStyles.height);
+  const hasTransformDrivenGeometry = !isIdentityTransform(args.computedStyles.transform);
 
-  // GSAP-driven transforms don't block left/top
-  // editing — they're separate CSS properties. Blocking canMove forces the
-  // drag to use CSS `translate` which STACKS with GSAP's transform, causing
-  // double-offset during playback. left/top editing avoids this conflict.
-  const canMove = (position === "absolute" || position === "fixed") && left != null && top != null;
+  const canMove =
+    (position === "absolute" || position === "fixed") &&
+    left != null &&
+    top != null &&
+    !hasTransformDrivenGeometry;
 
   const canResize = canMove && (width != null || height != null);
   const canApplyManualGeometry = !args.isCompositionHost;
