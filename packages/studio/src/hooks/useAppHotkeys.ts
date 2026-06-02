@@ -150,8 +150,8 @@ export function useAppHotkeys({
       return;
     }
     if (result.ok && result.label) {
-      await syncHistoryPreviewAfterApply(result.paths);
       onAfterUndoRedo?.();
+      await syncHistoryPreviewAfterApply(result.paths);
       showToast(`Undid ${result.label}`, "info");
     }
   }, [
@@ -175,8 +175,8 @@ export function useAppHotkeys({
       return;
     }
     if (result.ok && result.label) {
-      await syncHistoryPreviewAfterApply(result.paths);
       onAfterUndoRedo?.();
+      await syncHistoryPreviewAfterApply(result.paths);
       showToast(`Redid ${result.label}`, "info");
     }
   }, [

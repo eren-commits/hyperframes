@@ -258,7 +258,7 @@ export function useGsapScriptCommits({
     async (
       selection: DomEditSelection,
       method: "to" | "from" | "set" | "fromTo",
-      currentTime?: number,
+      _currentTime?: number,
     ) => {
       const { selector, autoId } = ensureElementAddressable(selection);
 
@@ -286,9 +286,10 @@ export function useGsapScriptCommits({
         if (!data.changed) return;
       }
 
-      const rawStart =
-        currentTime ?? (Number.parseFloat(selection.dataAttributes.start ?? "0") || 0);
-      const start = Math.round(rawStart * 1000) / 1000;
+      const elStart = Number.parseFloat(selection.dataAttributes?.start ?? "0") || 0;
+      const elDuration = Number.parseFloat(selection.dataAttributes?.duration ?? "1") || 1;
+      const position = Math.round(elStart * 1000) / 1000;
+      const duration = Math.round(elDuration * 1000) / 1000;
       const toDefaults: Record<string, Record<string, number>> = {
         from: { opacity: 0 },
         to: { x: 0, y: 0, opacity: 1 },
@@ -302,8 +303,8 @@ export function useGsapScriptCommits({
           type: "add",
           targetSelector: selector,
           method,
-          position: start,
-          duration: method === "set" ? undefined : 0.5,
+          position,
+          duration: method === "set" ? undefined : duration,
           ease: method === "set" ? undefined : "power2.out",
           properties: toDefaults[method] ?? { opacity: 1 },
           fromProperties: method === "fromTo" ? { opacity: 0 } : undefined,
