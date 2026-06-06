@@ -371,7 +371,14 @@ describe("memory-adaptive Chrome flags", () => {
     expect(gpuBudget(buildChromeArgs(base))).toBe(1024);
   });
 
-  it("scales GPU budget to total/2 above threshold", () => {
+  it("switches to total/2 GPU and no heap limit just above threshold", () => {
+    const above = LOW_MEMORY_TOTAL_MB_THRESHOLD + 1;
+    mockGetSystemTotalMb.mockReturnValue(above);
+    expect(gpuBudget(buildChromeArgs(base))).toBe(Math.floor(above / 2));
+    expect(heapFlag(buildChromeArgs(base))).toBeNull();
+  });
+
+  it("scales GPU budget to total/2 well above threshold", () => {
     mockGetSystemTotalMb.mockReturnValue(LOW_MEMORY_TOTAL_MB_THRESHOLD * 2);
     expect(gpuBudget(buildChromeArgs(base))).toBe(LOW_MEMORY_TOTAL_MB_THRESHOLD);
   });
