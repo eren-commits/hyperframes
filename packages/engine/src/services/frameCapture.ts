@@ -347,10 +347,21 @@ async function initDrawElementOrTransparentBackground(
   if (useDrawElement) {
     session.isSwiftShader = await detectSwiftShader(page);
     const transparent = session.options.format === "png";
-    // drawElementImage does not capture the per-frame video <img> (the snapshot
-    // predates it) — verified black on both macOS and native Linux/BeginFrame —
-    // so any composition containing <video> falls back to screenshot capture.
-    const hasVideo = await page.evaluate(() => document.querySelector("video") !== null);
+    // Video compositions fall back to screenshot capture. Root cause (probed on
+    // macOS GPU, matches the Linux CI failure): drawElementImage drops
+    // layer-promoted subtrees while their transforms ANIMATE — sub-composition
+    // entrance/zoom scenes capture black until the animation settles. The
+    // injected per-frame video <img> itself captures fine; paint-event sync and
+    // an opaque destination were both verified to make zero difference
+    // (bit-identical output), so this is a Chromium-side capture gap, same
+    // family as crbug 521434899 but reproducible on GPU. Video comps are where
+    // animated promoted layers are guaranteed, hence the gate; DOM/CSS/GSAP
+    // comps with non-promoted transforms capture correctly.
+    // HF_FAST_CAPTURE_VIDEO=true bypasses the gate for future R&D probing.
+    const hasVideo =
+      process.env.HF_FAST_CAPTURE_VIDEO === "true"
+        ? false
+        : await page.evaluate(() => document.querySelector("video") !== null);
     const mode = resolveDrawElementCaptureMode(session.isSwiftShader, transparent, hasVideo);
     if (mode === "screenshot") {
       const reason =
