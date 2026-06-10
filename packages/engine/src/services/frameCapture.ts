@@ -338,11 +338,27 @@ async function initDrawElementOrTransparentBackground(
   logInitPhase: (phase: string) => void,
 ): Promise<void> {
   const supersampling = (session.options.deviceScaleFactor ?? 1) > 1;
-  const useDrawElement = (session.config?.useDrawElement ?? false) && !supersampling;
+  // forceScreenshot is an explicit routing decision made upstream (render-mode
+  // compat hints like raw requestAnimationFrame, alpha formats, low-memory) —
+  // drawElement must not override it. Concretely: an rAF-compat comp on
+  // SwiftShader gets a screenshot-launched (free-running) browser, where
+  // drawElement runs in paint-event-sync mode; SwiftShader never refreshes a
+  // 2d canvas bitmap inside a cached paint record there, so every canvas
+  // captures frozen-blank (raf-ball rendered fully black). On a GPU the same
+  // path happens to work, but the hint asked for screenshot — honor it.
+  const forceScreenshot = session.config?.forceScreenshot ?? false;
+  const useDrawElement =
+    (session.config?.useDrawElement ?? false) && !supersampling && !forceScreenshot;
   if ((session.config?.useDrawElement ?? false) && supersampling) {
     console.log(
       "[engine] --experimental-fast-capture disabled for this render: drawElementImage " +
         "ignores deviceScaleFactor, so supersampled (DPR > 1) output uses screenshot capture.",
+    );
+  }
+  if ((session.config?.useDrawElement ?? false) && !supersampling && forceScreenshot) {
+    console.log(
+      "[engine] fast capture: falling back to screenshot — render-mode compatibility " +
+        "hint forced screenshot capture (e.g. raw requestAnimationFrame composition).",
     );
   }
   if (useDrawElement) {

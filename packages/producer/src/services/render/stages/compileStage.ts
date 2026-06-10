@@ -136,7 +136,15 @@ export async function runCompileStage(input: CompileStageInput): Promise<Compile
   // composition's `renderModeHints.recommendScreenshot`. The single
   // write to `cfg.forceScreenshot` happens at the end of this block so
   // the contract is enforceable by inspection.
-  const callerForced = cfg.forceScreenshot || needsAlpha;
+  // Alpha output forces screenshot because BeginFrame doesn't preserve alpha —
+  // but drawElement fast capture self-manages alpha (screenshot-launched
+  // browser + png drawElementImage, pixel-perfect; see createCaptureSession).
+  // Folding needsAlpha here would make the engine's forceScreenshot guard
+  // disable fast capture for every transparent render, so skip the fold when
+  // fast capture is on. Render-mode hints (e.g. raw requestAnimationFrame)
+  // still force screenshot below — those are correctness routings that
+  // drawElement must honor.
+  const callerForced = cfg.forceScreenshot || (needsAlpha && !cfg.useDrawElement);
   const { forceScreenshot } = applyRenderModeHints(callerForced, compiled, log);
   cfg.forceScreenshot = forceScreenshot;
   writeCompiledArtifacts(compiled, workDir, Boolean(job.config.debug));
