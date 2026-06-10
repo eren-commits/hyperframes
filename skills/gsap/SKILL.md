@@ -183,6 +183,31 @@ master.add(child, 0);
 
 Animating `x`, `y`, `scale`, `rotation`, `opacity` stays on the compositor. Avoid `width`, `height`, `top`, `left` when transforms achieve the same effect.
 
+### autoAlpha for Anything That Fades to Hidden — Especially Captions
+
+An element at `opacity: 0` still paints: the browser keeps compositing it as a
+transparent layer every frame. Stack several of them — the word-by-word caption
+pattern, hidden scene groups, phrase containers waiting for their cue — and each
+one stays a live compositor layer for the whole composition. That costs render
+time everywhere and breaks deterministic capture paths that read paint records
+(frames capture black or misplaced).
+
+`autoAlpha` is the fix and it is a drop-in: identical fade, but at 0 it also
+sets `visibility: hidden`, removing the element from the paint tree entirely.
+
+```js
+// ❌ ten caption groups, all painting as transparent layers all the time
+tl.to("#caption-3", { opacity: 1, duration: 0.3 }, 4.2);
+
+// ✅ hidden groups don't paint at all
+tl.to("#caption-3", { autoAlpha: 1, duration: 0.3 }, 4.2);
+```
+
+Rule of thumb: if the element ever sits at zero opacity while other content
+plays, use `autoAlpha`. Plain `opacity` is only preferable when the element
+must keep its layout-box interactive or visible-to-assistive-tech while faded
+out — which never applies to rendered video.
+
 ### will-change
 
 ```css
