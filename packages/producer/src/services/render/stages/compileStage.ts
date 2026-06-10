@@ -145,7 +145,31 @@ export async function runCompileStage(input: CompileStageInput): Promise<Compile
   // still force screenshot below — those are correctness routings that
   // drawElement must honor.
   const callerForced = cfg.forceScreenshot || (needsAlpha && !cfg.useDrawElement);
-  const { forceScreenshot } = applyRenderModeHints(callerForced, compiled, log);
+  const { forceScreenshot: hintForced } = applyRenderModeHints(callerForced, compiled, log);
+  let forceScreenshot = hintForced;
+  // Fast-capture video gate, decided at COMPILE time. The engine's runtime
+  // gate (initializeSession hasVideo check) fires after the browser is
+  // already launched — on Linux that launch is BeginFrame mode, and the
+  // gate's screenshot fallback then calls Page.captureScreenshot on a
+  // BeginFrame-launched browser, which hangs for the full protocol timeout
+  // (style-N prod comps: 2× protocolTimeout, then failure). The compiler
+  // knows videoCount here, before launch — force screenshot now so the
+  // browser launches in the mode the capture will actually use. The runtime
+  // gate stays as the backstop for dynamically-created <video> elements.
+  // HF_FAST_CAPTURE_VIDEO=true bypasses both gates (R&D escape hatch).
+  if (
+    !forceScreenshot &&
+    cfg.useDrawElement &&
+    compiled.videos.length > 0 &&
+    process.env.HF_FAST_CAPTURE_VIDEO !== "true"
+  ) {
+    forceScreenshot = true;
+    log.info(
+      "[Render] Fast capture: composition contains <video> — forcing screenshot capture " +
+        "at compile time (caption-pattern gate; see fast-capture-limitations.md Lim 2).",
+      { videoCount: compiled.videos.length },
+    );
+  }
   cfg.forceScreenshot = forceScreenshot;
   writeCompiledArtifacts(compiled, workDir, Boolean(job.config.debug));
 

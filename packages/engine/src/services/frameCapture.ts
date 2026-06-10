@@ -76,6 +76,13 @@ export interface CaptureSession {
     totalMs: number;
   };
   captureMode: CaptureMode;
+  /**
+   * Browser LAUNCH mode, immutable after createCaptureSession. `captureMode`
+   * is reassigned by initializeSession (e.g. to "drawelement"), so callers
+   * that need to know whether this browser actually drives BeginFrame (the
+   * SwiftShader liveness probe) read this field instead.
+   */
+  launchCaptureMode: CaptureMode;
   // BeginFrame state
   beginFrameTimeTicks: number;
   beginFrameIntervalMs: number;
@@ -509,6 +516,19 @@ export async function createCaptureSession(
   // instrumentAcceleratedCanvases). Must be registered before navigation.
   if (useDrawElement) {
     await page.evaluateOnNewDocument(instrumentAcceleratedCanvases);
+    // Signal the producer's GSAP stub to rewrite `opacity` → `autoAlpha` in
+    // tween vars: stacked opacity-0 containers (the caption pattern) keep
+    // painting as transparent promoted layers, which breaks drawElementImage
+    // capture and stalls SwiftShader BeginFrame. autoAlpha removes them from
+    // the paint tree at 0 with an identical fade. Opt out with
+    // HF_FAST_CAPTURE_AUTOALPHA=false.
+    if (process.env.HF_FAST_CAPTURE_AUTOALPHA !== "false") {
+      await page.evaluateOnNewDocument(() => {
+        (
+          window as Window & { __HF_FAST_CAPTURE_AUTOALPHA__?: boolean }
+        ).__HF_FAST_CAPTURE_AUTOALPHA__ = true;
+      });
+    }
   }
   // Inject render-time variable overrides before any page script runs, so the
   // runtime helper `getVariables()` returns the merged result on its first
@@ -570,6 +590,7 @@ export async function createCaptureSession(
       totalMs: 0,
     },
     captureMode,
+    launchCaptureMode: captureMode,
     beginFrameTimeTicks: 0,
     // Frame interval in ms: 1000 * den / num. For 30/1 → 33.333…, for
     // 30000/1001 (NTSC) → 33.366…. JavaScript number precision is fine at
