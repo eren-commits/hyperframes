@@ -13,6 +13,12 @@ import type { DomEditSelection } from "../components/editor/domEditingTypes";
 
 import { usePlayerStore } from "../player/store/playerStore";
 import { readRuntimeKeyframes, scanAllRuntimeKeyframes } from "./gsapRuntimeKeyframes";
+
+const INTEGER_PROPS = new Set(["x", "y", "width", "height", "top", "left", "right", "bottom"]);
+
+function roundForProp(prop: string, val: number): number {
+  return INTEGER_PROPS.has(prop) ? Math.round(val) : Math.round(val * 1000) / 1000;
+}
 import {
   absoluteToPercentage,
   resolveTweenStart,
@@ -457,7 +463,7 @@ export function readGsapProperty(
     const el = iframe.contentDocument?.querySelector(selector);
     if (!el) return null;
     const val = Number(gsap.getProperty(el, prop));
-    return Number.isFinite(val) ? Math.round(val) : null;
+    return Number.isFinite(val) ? roundForProp(prop, val) : null;
   } catch {
     return null;
   }
@@ -499,7 +505,7 @@ export function readAllAnimatedProperties(
 
   for (const prop of propKeys) {
     const val = Number(gsap.getProperty(el, prop));
-    if (Number.isFinite(val)) result[prop] = Math.round(val);
+    if (Number.isFinite(val)) result[prop] = roundForProp(prop, val);
   }
   return result;
 }

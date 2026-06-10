@@ -54,6 +54,7 @@ export function useTimelinePlayhead({
 }: UseTimelinePlayheadInput) {
   const dragScrollRaf = useRef(0);
   const previousZoomModeRef = useRef<ZoomMode | null>(zoomMode);
+  const suppressAutoScrollRef = useRef(false);
 
   const syncPlayheadPosition = useCallback(
     (time: number) => {
@@ -90,6 +91,7 @@ export function useTimelinePlayhead({
       if (
         scroll &&
         !isDragging.current &&
+        !suppressAutoScrollRef.current &&
         shouldAutoScrollTimeline(zoomModeRef.current, scroll.scrollWidth, scroll.clientWidth)
       ) {
         const edgeMargin = scroll.clientWidth * 0.12;
@@ -196,5 +198,10 @@ export function useTimelinePlayhead({
     };
   }, [handlePinchWheel, scrollRef, timelineReady, elementsLength]);
 
-  return { seekFromX, autoScrollDuringDrag, dragScrollRaf };
+  const suppressAutoScrollBriefly = useCallback(() => {
+    suppressAutoScrollRef.current = true;
+    setTimeout(() => { suppressAutoScrollRef.current = false; }, 150);
+  }, []);
+
+  return { seekFromX, autoScrollDuringDrag, dragScrollRaf, suppressAutoScrollBriefly };
 }

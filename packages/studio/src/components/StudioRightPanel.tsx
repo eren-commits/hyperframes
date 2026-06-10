@@ -16,10 +16,12 @@ import {
 /** Motion data without targeting metadata. */
 type StudioMotionData = Omit<StudioGsapMotion, "kind" | "target" | "updatedAt">;
 
+import { useCallback } from "react";
 import { useStudioContext } from "../contexts/StudioContext";
 import { usePanelLayoutContext } from "../contexts/PanelLayoutContext";
 import { useFileManagerContext } from "../contexts/FileManagerContext";
 import { useDomEditContext } from "../contexts/DomEditContext";
+import { usePlayerStore } from "../player/store/playerStore";
 
 export interface StudioRightPanelProps {
   selectedStudioMotion: StudioMotionData | null;
@@ -100,7 +102,15 @@ export function StudioRightPanel({
     commitAnimatedProperty,
     handleSetArcPath,
     handleUpdateArcSegment,
+    handleGsapAddKeyframe,
+    handleGsapRemoveKeyframe,
+    handleGsapConvertToKeyframes,
   } = useDomEditContext();
+
+  const handleSeekToTime = useCallback(
+    (time: number) => usePlayerStore.getState().requestSeek(time),
+    [],
+  );
 
   const { assets, fontAssets, projectDir, handleImportFiles, handleImportFonts } =
     useFileManagerContext();
@@ -236,6 +246,10 @@ export function StudioRightPanel({
                   onCommitAnimatedProperty={commitAnimatedProperty}
                   onSetArcPath={handleSetArcPath}
                   onUpdateArcSegment={handleUpdateArcSegment}
+                  onAddKeyframe={handleGsapAddKeyframe}
+                  onRemoveKeyframe={handleGsapRemoveKeyframe}
+                  onConvertToKeyframes={handleGsapConvertToKeyframes}
+                  onSeekToTime={handleSeekToTime}
                   recordingState={recordingState}
                   recordingDuration={recordingDuration}
                   onToggleRecording={onToggleRecording}

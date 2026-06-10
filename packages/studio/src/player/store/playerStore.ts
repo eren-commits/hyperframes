@@ -91,6 +91,9 @@ interface PlayerState {
   keyframeCache: Map<string, KeyframeCacheEntry>;
   setKeyframeCache: (elementId: string, data: KeyframeCacheEntry | undefined) => void;
 
+  autoKeyframeEnabled: boolean;
+  setAutoKeyframeEnabled: (enabled: boolean) => void;
+
   setIsPlaying: (playing: boolean) => void;
   setCurrentTime: (time: number) => void;
   setDuration: (duration: number) => void;
@@ -178,6 +181,9 @@ export const usePlayerStore = create<PlayerState>((set) => ({
       else next.add(id);
       return { expandedTimelineElements: next };
     }),
+
+  autoKeyframeEnabled: true,
+  setAutoKeyframeEnabled: (enabled) => set({ autoKeyframeEnabled: enabled }),
 
   keyframeCache: new Map(),
   setKeyframeCache: (elementId, data) =>

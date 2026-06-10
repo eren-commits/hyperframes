@@ -610,7 +610,12 @@ function reapplyRotations(doc: Document): void {
   }
 }
 
+let _lastReapplyTime = 0;
+
 export function reapplyPositionEditsAfterSeek(doc: Document): void {
+  const now = performance.now();
+  if (now - _lastReapplyTime < 16) return;
+  _lastReapplyTime = now;
   reapplyPathOffsets(doc);
   reapplyBoxSizes(doc);
   reapplyRotations(doc);

@@ -177,6 +177,11 @@ export function useGestureRecording() {
         runtimeRef.current = null;
       }
 
+      if (!runtimeRef.current) {
+        isRecordingRef.current = false;
+        return;
+      }
+
       const iframeRect = iframeEl.getBoundingClientRect();
       const doc = iframeEl.contentDocument;
       const root = doc?.querySelector<HTMLElement>("[data-composition-id]") ?? doc?.documentElement;

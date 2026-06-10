@@ -702,8 +702,15 @@ export function registerFileRoutes(api: Hono, adapter: StudioApiAdapter): void {
       return c.json({ error: "mutation type required" }, 400);
     }
 
-    const html = readFileSync(res.absPath, "utf-8");
-    const block = extractGsapScriptBlock(html);
+    let html = readFileSync(res.absPath, "utf-8");
+    let block = extractGsapScriptBlock(html);
+    if (!block && (body.type === "add" || body.type === "add-with-keyframes")) {
+      const gsapCdn = "https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js";
+      const bootstrap = `<script src="${gsapCdn}"></script>\n<script>\nwindow.__timelines = window.__timelines || {};\nconst tl = gsap.timeline({ paused: true });\nwindow.__timelines["main"] = tl;\n</script>`;
+      html = html.replace("</body>", `${bootstrap}\n</body>`);
+      writeFileSync(res.absPath, html, "utf-8");
+      block = extractGsapScriptBlock(html);
+    }
     if (!block) {
       return c.json({ error: "no GSAP script found in file" }, 400);
     }
