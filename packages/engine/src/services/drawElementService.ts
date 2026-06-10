@@ -171,6 +171,25 @@ export async function captureDrawElementFrame(
           settled = true;
           try {
             ctx.clearRect(0, 0, w, h);
+            // drawElementImage only paints the captured subtree. A background
+            // set on <body>/<html> (the common authoring pattern) lives OUTSIDE
+            // [data-composition-id], so without this fill those pixels stay
+            // transparent — and the jpeg encode below turns them black.
+            // Resolve the nearest non-transparent ancestor background-color and
+            // paint it first, matching what captureScreenshot composites.
+            // (Resolved per frame: compositions may set body background from JS.)
+            let bg = "";
+            for (let el = root.parentElement; el; el = el.parentElement) {
+              const c = getComputedStyle(el).backgroundColor;
+              if (c && c !== "transparent" && c !== "rgba(0, 0, 0, 0)") {
+                bg = c;
+                break;
+              }
+            }
+            if (bg) {
+              ctx.fillStyle = bg;
+              ctx.fillRect(0, 0, w, h);
+            }
             (
               ctx as unknown as { drawElementImage(el: Element, x: number, y: number): void }
             ).drawElementImage(root, 0, 0);
