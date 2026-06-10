@@ -21,12 +21,18 @@ import type { Page } from "puppeteer-core";
  * Two cases fall back to screenshot (see docs/fast-capture-limitations.md):
  *  - transparent + SwiftShader: software-GL drops promoted sub-layers on a
  *    transparent canvas destination (Chromium bug 521434899).
- *  - hasVideo: drawElementImage draws a snapshot taken at the paint event and
- *    does not capture the freshly-injected per-frame video <img> — the video
- *    region comes out black/stale. This was verified on BOTH macOS and a native
- *    amd64 Linux runner (where per-frame BeginFrame *does* paint) — fast-vs-
- *    baseline PSNR ~12 dB either way — so video is unconditionally routed to
- *    screenshot capture regardless of platform. Fast video is future R&D.
+ *  - hasVideo: a PROXY gate for the caption-pattern capture bug. The actual
+ *    trigger (established by bisect + standalone repro, 2026-06-09) is the
+ *    word-by-word caption opacity pattern: per-frame JS opacity writes on >=2
+ *    stacked containers with fully-transparent children, inside a transformed
+ *    container overflowing the capture canvas, read back via toDataURL —
+ *    drawElementImage then captures fully-transparent frames (~12 dB
+ *    fast-vs-baseline, both macOS and native amd64 Linux). Video itself
+ *    captures fine (caption-free bg-video probe: 54 dB), but real video comps
+ *    almost always carry captions, so <video> is the conservative signal.
+ *    Chromium-side; see docs/fast-capture-limitations.md Lim 2. Fast video
+ *    arrives when the upstream bug is fixed (or the gate learns to detect the
+ *    caption pattern instead).
  */
 export function resolveDrawElementCaptureMode(
   isSwiftShader: boolean,

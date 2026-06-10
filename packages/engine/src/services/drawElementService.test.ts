@@ -53,8 +53,9 @@ describe("resolveDrawElementCaptureMode", () => {
     expect(resolveDrawElementCaptureMode(false, false)).toBe("drawelement");
   });
 
-  // ── video routing: drawElementImage can't capture video on any platform ──
-  it("video → screenshot (drawElementImage does not capture video frames)", () => {
+  // ── video routing: <video> is the proxy gate for the caption-pattern
+  //    capture bug (see fast-capture-limitations.md Lim 2) ──
+  it("video → screenshot (proxy gate for the caption-pattern capture bug)", () => {
     expect(resolveDrawElementCaptureMode(false, false, /* hasVideo */ true)).toBe("screenshot");
   });
 

@@ -347,16 +347,17 @@ async function initDrawElementOrTransparentBackground(
   if (useDrawElement) {
     session.isSwiftShader = await detectSwiftShader(page);
     const transparent = session.options.format === "png";
-    // Video compositions fall back to screenshot capture. Root cause (probed on
-    // macOS GPU, matches the Linux CI failure): drawElementImage drops
-    // layer-promoted subtrees while their transforms ANIMATE — sub-composition
-    // entrance/zoom scenes capture black until the animation settles. The
-    // injected per-frame video <img> itself captures fine; paint-event sync and
-    // an opaque destination were both verified to make zero difference
-    // (bit-identical output), so this is a Chromium-side capture gap, same
-    // family as crbug 521434899 but reproducible on GPU. Video comps are where
-    // animated promoted layers are guaranteed, hence the gate; DOM/CSS/GSAP
-    // comps with non-promoted transforms capture correctly.
+    // Video compositions fall back to screenshot capture. <video> is a PROXY
+    // signal: the actual trigger (bisect + standalone repro, 2026-06-09) is the
+    // word-by-word caption opacity pattern — per-frame JS opacity writes on >=2
+    // stacked containers with fully-transparent children, inside a transformed
+    // container that overflows the capture canvas, read back via toDataURL.
+    // drawElementImage then captures fully-transparent frames (~12 dB
+    // fast-vs-baseline on macOS GPU and native amd64 Linux alike). Video itself
+    // captures fine — a caption-free bg-video probe scores 54 dB — but real
+    // video comps almost always carry captions, so the gate keys on <video>.
+    // Chromium-side, same family as crbug 521434899 but reproduces on real
+    // GPUs; see docs/fast-capture-limitations.md Lim 2 for the ablation table.
     // HF_FAST_CAPTURE_VIDEO=true bypasses the gate for future R&D probing.
     const hasVideo =
       process.env.HF_FAST_CAPTURE_VIDEO === "true"
@@ -367,7 +368,7 @@ async function initDrawElementOrTransparentBackground(
       const reason =
         transparent && session.isSwiftShader
           ? "transparent output on SwiftShader (Chromium bug 521434899)"
-          : "composition contains <video> (drawElementImage does not capture video frames)";
+          : "composition contains <video> (proxy for the caption-pattern capture bug — see fast-capture-limitations.md Lim 2)";
       console.log(`[engine] fast capture: falling back to screenshot — ${reason}`);
       session.captureMode = "screenshot";
       if (transparent) {
