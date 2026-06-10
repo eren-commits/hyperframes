@@ -144,32 +144,36 @@ export async function runCompileStage(input: CompileStageInput): Promise<Compile
   // fast capture is on. Render-mode hints (e.g. raw requestAnimationFrame)
   // still force screenshot below — those are correctness routings that
   // drawElement must honor.
-  const callerForced = cfg.forceScreenshot || (needsAlpha && !cfg.useDrawElement);
-  const { forceScreenshot: hintForced } = applyRenderModeHints(callerForced, compiled, log);
-  let forceScreenshot = hintForced;
   // Fast-capture video gate, decided at COMPILE time. The engine's runtime
   // gate (initializeSession hasVideo check) fires after the browser is
   // already launched — on Linux that launch is BeginFrame mode, and the
   // gate's screenshot fallback then calls Page.captureScreenshot on a
   // BeginFrame-launched browser, which hangs for the full protocol timeout
   // (style-N prod comps: 2× protocolTimeout, then failure). The compiler
-  // knows videoCount here, before launch — force screenshot now so the
-  // browser launches in the mode the capture will actually use. The runtime
-  // gate stays as the backstop for dynamically-created <video> elements.
+  // knows videoCount here, before launch — disable drawElement now so the
+  // render takes the NORMAL baseline route for its platform (BeginFrame on
+  // Linux, screenshot on macOS). Forcing screenshot here instead would cost
+  // real time: BeginFrame capture is ~40% faster than screenshot on
+  // SwiftShader (style-8-prod: 47s vs 68s), and the fresh-baseline runs
+  // prove these comps complete fine under plain BeginFrame capture. The
+  // runtime gate stays as the backstop for dynamically-created <video>.
   // HF_FAST_CAPTURE_VIDEO=true bypasses both gates (R&D escape hatch).
   if (
-    !forceScreenshot &&
     cfg.useDrawElement &&
     compiled.videos.length > 0 &&
     process.env.HF_FAST_CAPTURE_VIDEO !== "true"
   ) {
-    forceScreenshot = true;
+    cfg.useDrawElement = false;
     log.info(
-      "[Render] Fast capture: composition contains <video> — forcing screenshot capture " +
-        "at compile time (caption-pattern gate; see fast-capture-limitations.md Lim 2).",
+      "[Render] Fast capture: composition contains <video> — disabling drawElementImage " +
+        "for this render (caption-pattern gate; see fast-capture-limitations.md Lim 2). " +
+        "Capture uses the platform's baseline route.",
       { videoCount: compiled.videos.length },
     );
   }
+  const callerForced = cfg.forceScreenshot || (needsAlpha && !cfg.useDrawElement);
+  const { forceScreenshot: hintForced } = applyRenderModeHints(callerForced, compiled, log);
+  let forceScreenshot = hintForced;
   cfg.forceScreenshot = forceScreenshot;
   writeCompiledArtifacts(compiled, workDir, Boolean(job.config.debug));
 

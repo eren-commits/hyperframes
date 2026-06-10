@@ -393,8 +393,17 @@ async function initDrawElementOrTransparentBackground(
         transparent && session.isSwiftShader
           ? "transparent output on SwiftShader (Chromium bug 521434899)"
           : "composition contains <video> (proxy for the caption-pattern capture bug — see fast-capture-limitations.md Lim 2)";
-      console.log(`[engine] fast capture: falling back to screenshot — ${reason}`);
-      session.captureMode = "screenshot";
+      // Fall back to the browser's LAUNCH mode, not unconditionally to
+      // "screenshot": on a BeginFrame-launched browser (Linux fast capture)
+      // Page.captureScreenshot hangs for the full protocol timeout, while
+      // beginFrameCapture is the platform's normal baseline path. The
+      // transparent+SwiftShader case always arrives on a screenshot-launched
+      // browser (drawElementTransparent forces that at launch), so alpha
+      // still routes through captureScreenshot.
+      console.log(
+        `[engine] fast capture: falling back to ${session.launchCaptureMode} capture — ${reason}`,
+      );
+      session.captureMode = session.launchCaptureMode;
       if (transparent) {
         await initTransparentBackground(session.page);
       }
@@ -516,19 +525,24 @@ export async function createCaptureSession(
   // instrumentAcceleratedCanvases). Must be registered before navigation.
   if (useDrawElement) {
     await page.evaluateOnNewDocument(instrumentAcceleratedCanvases);
-    // Signal the producer's GSAP stub to rewrite `opacity` → `autoAlpha` in
-    // tween vars: stacked opacity-0 containers (the caption pattern) keep
-    // painting as transparent promoted layers, which breaks drawElementImage
-    // capture and stalls SwiftShader BeginFrame. autoAlpha removes them from
-    // the paint tree at 0 with an identical fade. Opt out with
-    // HF_FAST_CAPTURE_AUTOALPHA=false.
-    if (process.env.HF_FAST_CAPTURE_AUTOALPHA !== "false") {
-      await page.evaluateOnNewDocument(() => {
-        (
-          window as Window & { __HF_FAST_CAPTURE_AUTOALPHA__?: boolean }
-        ).__HF_FAST_CAPTURE_AUTOALPHA__ = true;
-      });
-    }
+  }
+  // Signal the producer's GSAP stub to rewrite `opacity` → `autoAlpha` in
+  // tween vars: stacked opacity-0 containers (the caption pattern) keep
+  // painting as transparent promoted layers, which breaks drawElementImage
+  // capture and adds per-frame layer-promotion cost on every capture path.
+  // Keyed on the fast-capture ENV (not the per-render useDrawElement cfg) so
+  // video-gated renders — where compileStage disables drawElement but the
+  // user still opted into fast capture — keep the paint-tree win. Baseline
+  // renders never set the env. Opt out with HF_FAST_CAPTURE_AUTOALPHA=false.
+  if (
+    process.env.PRODUCER_EXPERIMENTAL_FAST_CAPTURE === "true" &&
+    process.env.HF_FAST_CAPTURE_AUTOALPHA !== "false"
+  ) {
+    await page.evaluateOnNewDocument(() => {
+      (
+        window as Window & { __HF_FAST_CAPTURE_AUTOALPHA__?: boolean }
+      ).__HF_FAST_CAPTURE_AUTOALPHA__ = true;
+    });
   }
   // Inject render-time variable overrides before any page script runs, so the
   // runtime helper `getVariables()` returns the merged result on its first
