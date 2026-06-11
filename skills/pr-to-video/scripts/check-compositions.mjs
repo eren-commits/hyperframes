@@ -221,7 +221,7 @@ for (const target of visualTargets) {
   //
   // Also ban id selector `#<scene-id>-root`: it is not a runtime contract; internal
   // elements use `#s<N>-foo`.
-  const styleBlocks = [...html.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)];
+  const styleBlocks = [...html.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style\s*>/gi)];
   for (const sb of styleBlocks) {
     const css = sb[1];
     const stripped = css.replace(/\/\*[\s\S]*?\*\//g, "");
@@ -265,7 +265,7 @@ for (const target of visualTargets) {
   }
 
   // Rule 3: JS — <script> must not contain wrapper-ancestor selectors / #<scene-id>-root
-  const scriptBlocks = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)];
+  const scriptBlocks = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script\s*>/gi)];
   for (const sb of scriptBlocks) {
     const js = sb[1];
     const stripped = js.replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");

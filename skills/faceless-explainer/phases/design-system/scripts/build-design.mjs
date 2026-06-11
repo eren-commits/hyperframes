@@ -2462,8 +2462,15 @@ function renderComponents() {
       const htmlMatch = c.block.match(/```html\n([\s\S]*?)```/);
       const cssMatch = c.block.match(/```html[\s\S]*?<style>([\s\S]*?)<\/style>/);
       const htmlSnippet = htmlMatch ? htmlMatch[1].trim() : "";
-      // Strip <style> from the html before live-rendering
-      const htmlForPreview = htmlSnippet.replace(/<style[\s\S]*?<\/style>/g, "").trim();
+      // Strip <style> from the html before live-rendering — to a fixpoint, so
+      // fragments left by one pass can't reassemble into a new <style> block
+      // (CodeQL js/incomplete-multi-character-sanitization).
+      let htmlForPreview = htmlSnippet;
+      for (let prev = null; prev !== htmlForPreview; ) {
+        prev = htmlForPreview;
+        htmlForPreview = htmlForPreview.replace(/<style\b[\s\S]*?<\/style\s*>/gi, "");
+      }
+      htmlForPreview = htmlForPreview.trim();
       const expanded = htmlForPreview.replace(/\{(\w+)\}/g, (_, key) => placeholderFor(key));
       return `
   <div class="comp-card">
