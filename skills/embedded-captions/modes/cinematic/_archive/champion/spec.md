@@ -5,6 +5,7 @@ beats building toward a center-stage CROWN that crosses the subject's body.
 "Wimbledon Champion" energy.
 
 **Visual identity (LOCKED):**
+
 - 5 typography slots: intro / phrase / emph / dream / crown
 - `mix-blend-mode: screen` over warm bone color (#fff5df)
 - Deep text-shadow + brightness boost
@@ -14,6 +15,7 @@ beats building toward a center-stage CROWN that crosses the subject's body.
 ## When to apply
 
 ✅ **Good fit:**
+
 - Podcast / interview style with a single seated subject
 - Cluttered backdrop (bookshelf, props, dark) — screen blend reads through
 - Subject roughly centered with clear clean zones on one or both sides
@@ -21,6 +23,7 @@ beats building toward a center-stage CROWN that crosses the subject's body.
 - 16:9 landscape, 1920×1080 ideal
 
 ❌ **Wrong fit:**
+
 - Bright/sky/window backdrop (screen blend washes out)
 - Subject heavily off-center such that there's no clean column zone
 - Speech has no clear climax line
@@ -28,13 +31,13 @@ beats building toward a center-stage CROWN that crosses the subject's body.
 
 ## Layout decisions agent makes
 
-| Field | What | Example (1920×1080) |
-|---|---|---|
-| `plane.top/left/width/height` | Where the side column sits. Pick the side opposite the subject's gaze (looking room) and hug the cleanest backdrop zone. | `{top: 40, left: 40, width: 720, height: 420}` |
-| `plane.rotateY` | Slight perspective into the wall. Positive for left column (recedes right), negative for right column. Keep small (3-7°). | `4` |
-| `crown_top` | Y position of the crown. Should fall on the subject's chest/neck so the body occludes the middle letters. | `420` |
-| `font_scale` | Multiplier on locked sizes. | `1.0` for 1920×1080 |
-| `crown_enabled` | Whether to render a crown. Skip if the speech has no clean payoff line, or if the subject is too far off-center for a center crown to land. | `true` |
+| Field                         | What                                                                                                                                        | Example (1920×1080)                            |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| `plane.top/left/width/height` | Where the side column sits. Pick the side opposite the subject's gaze (looking room) and hug the cleanest backdrop zone.                    | `{top: 40, left: 40, width: 720, height: 420}` |
+| `plane.rotateY`               | Slight perspective into the wall. Positive for left column (recedes right), negative for right column. Keep small (3-7°).                   | `4`                                            |
+| `crown_top`                   | Y position of the crown. Should fall on the subject's chest/neck so the body occludes the middle letters.                                   | `420`                                          |
+| `font_scale`                  | Multiplier on locked sizes.                                                                                                                 | `1.0` for 1920×1080                            |
+| `crown_enabled`               | Whether to render a crown. Skip if the speech has no clean payoff line, or if the subject is too far off-center for a center crown to land. | `true`                                         |
 
 ### Crown placement rules
 
@@ -49,13 +52,13 @@ larger clean zone instead of center. See `references/layout-heuristics.md`.
 
 ## Slot assignment
 
-| Slot | Use for |
-|---|---|
-| intro | Filler / discourse markers ("you know,", "for me,", "so…") |
-| phrase | Main statement clauses |
-| emph | Key achievement / superlative line |
-| dream | Aspirational lines, past-tense reflection |
-| crown | The single climax line — center-stage payoff |
+| Slot   | Use for                                                    |
+| ------ | ---------------------------------------------------------- |
+| intro  | Filler / discourse markers ("you know,", "for me,", "so…") |
+| phrase | Main statement clauses                                     |
+| emph   | Key achievement / superlative line                         |
+| dream  | Aspirational lines, past-tense reflection                  |
+| crown  | The single climax line — center-stage payoff               |
 
 Aim for ≤3 slots per video (excluding crown). Don't use all 4 in a 12s clip.
 

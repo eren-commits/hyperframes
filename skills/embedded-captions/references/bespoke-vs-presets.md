@@ -14,10 +14,10 @@ If you only use presets, your render will look generic. If you only copy existin
 
 Full HTML for two validated renders is in `references/example-renders/`:
 
-| File | Scene | What makes it work |
-|---|---|---|
+| File               | Scene                                                   | What makes it work                                                                                                                                                                                         |
+| ------------------ | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `memory-wall.html` | Introspective monologue, right-side foam wall, mid-tone | Right-aligned cascade, per-group bespoke sizes (`cap-1` 78 italic / `cap-2` 66 italic + right hanging-indent / `cap-3` 72 upright / `cap-4` 90 uppercase). `mix-blend-mode: screen` for the dark-ish foam. |
-| `champion.html` | Podcast interview, cluttered bookshelf, 1920×1080 | Upper-left column + center-stage crown. Tuned preset class sizes (`cap-intro` 52 / `cap-phrase` 60 / `cap-emph` 70 / `cap-crown` 140). `screen` blend reads the shelves through text. |
+| `champion.html`    | Podcast interview, cluttered bookshelf, 1920×1080       | Upper-left column + center-stage crown. Tuned preset class sizes (`cap-intro` 52 / `cap-phrase` 60 / `cap-emph` 70 / `cap-crown` 140). `screen` blend reads the shelves through text.                      |
 
 **When a new scene matches one of these closely** (similar framing, similar subject-center, similar backdrop type): clone the HTML and only replace the GROUPS array + word timings. Don't re-derive the design from presets — you'll lose the specific choices that took many iterations to validate.
 
@@ -66,11 +66,11 @@ The `"style": "1"` field becomes `class="cap-1"` on the element — any string w
 
 So use the caption-region luminance to **choose** a template that already fits — never to recolour one:
 
-| Region luminance | What fits | Why |
-|---|---|---|
-| < 60 (dark / low-key) | a cream + `screen` template (`cinematic-cream`, `memory-wall`, `champion`, `portrait-header`) | light text glows, picks up the scene |
-| 60–180 (mid-tone) | a cream + `screen` template still reads (add a scrim via Standard if marginal) | text picks up texture |
-| > 180 (bright: window, pale wall) | **none of the cream/`screen` Cinematic templates — they wash out** | → use **Standard mode** (opaque rail, set per the chosen template) instead |
+| Region luminance                  | What fits                                                                                     | Why                                                                        |
+| --------------------------------- | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| < 60 (dark / low-key)             | a cream + `screen` template (`cinematic-cream`, `memory-wall`, `champion`, `portrait-header`) | light text glows, picks up the scene                                       |
+| 60–180 (mid-tone)                 | a cream + `screen` template still reads (add a scrim via Standard if marginal)                | text picks up texture                                                      |
+| > 180 (bright: window, pale wall) | **none of the cream/`screen` Cinematic templates — they wash out**                            | → use **Standard mode** (opaque rail, set per the chosen template) instead |
 
 If the scene is bright and the cream/`screen` look washes out, that's the signal to switch to **Standard mode** (which sets opaque colour in the HTML), not to recolour a Cinematic template into something it isn't.
 
@@ -79,9 +79,15 @@ If the scene is bright and the cream/`screen` look washes out, that's the signal
 These are per-group affordances you'll occasionally need. Express via `custom_css`:
 
 ```css
-#cg-2 { padding-right: 44px; }      /* right-aligned: shrinks right edge, creating left outdent */
-#cg-2 { padding-left: 44px; }       /* left-aligned: offset right start */
-.cap-emph .w:first-child { font-size: 110%; }   /* oversize first word only */
+#cg-2 {
+  padding-right: 44px;
+} /* right-aligned: shrinks right edge, creating left outdent */
+#cg-2 {
+  padding-left: 44px;
+} /* left-aligned: offset right start */
+.cap-emph .w:first-child {
+  font-size: 110%;
+} /* oversize first word only */
 ```
 
 The `#cg-N` selector always works because `make-composition.cjs` writes `<div id="cg-N" ...>` for every group.
@@ -97,13 +103,14 @@ All three templates default to `position: absolute` on `.cap` inside their plane
   display: flex;
   flex-direction: column;
   justify-content: center;
-  align-items: flex-end;   /* or flex-start for left-aligned */
+  align-items: flex-end; /* or flex-start for left-aligned */
   text-align: right;
   gap: 14px;
 }
 .wall-plane .cap {
-  position: static;        /* un-do template's absolute */
-  top: auto; right: auto;
+  position: static; /* un-do template's absolute */
+  top: auto;
+  right: auto;
   max-width: 100%;
 }
 ```
@@ -144,11 +151,13 @@ bash scripts/render-and-composite.sh <project>
 ```
 
 This skips the preset-based plan.json entirely. Use when:
+
 - Subject framing, shot composition, and backdrop type are similar to the example
 - You just need to swap the words and timings
 - The bespoke typography from the example is what you want
 
 **Don't clone when**:
+
 - Subject position differs significantly (e.g. centered vs off-center)
 - Scene luminance / blend-mode needs are different
 - You want to experiment with new typography

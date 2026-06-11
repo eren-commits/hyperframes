@@ -14,11 +14,12 @@ Captions exist to serve the face, not compete with it. If the caption draws the 
 
 ### 2. Occlude, don't hover
 
-World-class caption design puts text *into* the scene. Letters that pass behind a shoulder, mic, or head feel diegetic. Letters that float uniformly above the lower-third feel like PowerPoint. Use the matte pipeline — that's the moat over every competitor.
+World-class caption design puts text _into_ the scene. Letters that pass behind a shoulder, mic, or head feel diegetic. Letters that float uniformly above the lower-third feel like PowerPoint. Use the matte pipeline — that's the moat over every competitor.
 
 ### 3. Contrast is a hierarchy problem, not a brightness problem
 
 A white box behind text is a failure of taste. Priority order:
+
 1. `mix-blend-mode: overlay` or `screen` picking up scene luminance
 2. 2–3px dark stroke + soft drop shadow
 3. Narrow semi-opaque gradient bar (NOT a solid box)
@@ -28,6 +29,7 @@ A white box behind text is a failure of taste. Priority order:
 ### 4. Kill the constant lower-third
 
 Fixed-bottom captions are monotone. Caption zone shifts with shot:
+
 - Tight close-up → upper sidebar or crown
 - Mid-shot → embedded on back wall / foam / whiteboard
 - Wide → classic lower-third offset to non-subject side
@@ -49,6 +51,7 @@ Display-size (>40pt) wants negative tracking (-10 to -30 units, or `-0.015em` to
 ### 8. Never italicize for emphasis in video text
 
 Italics are a **print** convention for flow inside a paragraph. On 24fps motion they read as "tilted" not "stressed". Emphasize with weight (extrabold), color (single accent), or size (1.3–1.6×). Italics allowed only for:
+
 - Literal quotation of written material
 - Foreign word
 - Thought vs spoken dichotomy
@@ -56,6 +59,7 @@ Italics are a **print** convention for flow inside a paragraph. On 24fps motion 
 ### 9. Color discipline: one hue + neutrals
 
 Pick **one** saturated accent per video for keyword highlights. Hormozi's yellow+green+red works for him because his content is already loud. Cinematic = single accent + white/bone/charcoal. Default palette:
+
 - Warm white `#F5EFE6` on dark
 - Graphite `#1A1A1A` on light
 - Accent chosen from scene sampling
@@ -72,18 +76,19 @@ BBC reading speed is 160–180 wpm (0.33–0.38s/word). Cinematic feel wants mor
 
 Same phrase, different stagger, totally different feel:
 
-| Stagger | Feel |
-|---|---|
-| 40ms | machine-gun, urgent, TikTok-hook |
-| 80ms | conversational, default |
-| 150ms | deliberate, documentary |
-| 250ms+ | poetic, ceremonial |
+| Stagger | Feel                             |
+| ------- | -------------------------------- |
+| 40ms    | machine-gun, urgent, TikTok-hook |
+| 80ms    | conversational, default          |
+| 150ms   | deliberate, documentary          |
+| 250ms+  | poetic, ceremonial               |
 
 Pick from content tone, not default to one value.
 
-### 13. Emphasis escalates *within* a phrase, not *between* phrases
+### 13. Emphasis escalates _within_ a phrase, not _between_ phrases
 
 Every word bolded = no emphasis. Structure:
+
 - 70% plain body
 - 20% slight lift (color OR weight, not both)
 - 8% full emphasis (bigger, brighter, held longer)
@@ -92,6 +97,7 @@ Every word bolded = no emphasis. Structure:
 ### 14. Break rhythm once per 30s
 
 Every-word-same-way = eye adapts, stops registering motion. Plant a rhythm-break every ~30s:
+
 - Phrase enters from opposite direction
 - A single word at 2× size
 - A beat of pure silence with no caption
@@ -102,6 +108,7 @@ This is what separates Submagic-preset work from something designed.
 ### 15. Caption what adds, cut what restates
 
 Transcribe everything. **Display** 70–85%. Remove:
+
 - Filler ("um", "like", "you know", "I mean")
 - Self-corrections ("I think... I mean actually...")
 - Obvious visual echoes ("as you can see here" while pointing)

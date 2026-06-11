@@ -16,9 +16,11 @@ Original Memory Wall render used this. Text uses perspective transform + `mix-bl
 If **any** condition fails, **do not use wall-embed**. Pick another template.
 
 ### What memory-wall looked like
+
 The acoustic foam wall to the right of the subject took ~40% of frame width, tilted ~13° toward the viewer, mid-grey color, uniform dimpled texture. Perfect. Text with `rotateY(-13deg)` and overlay blend sat on it like printed letters.
 
 ### Anti-examples (wall-embed would FAIL)
+
 - **champion / demo1_avatarv** — bookshelf background with books, white vases, picture frames. Cluttered + 3D depth. Fails condition 1 and 4. Used corner-column-crown instead.
 - **Jobs 60 Minutes** — blurry potted plant background. No flat surface at all. Fails condition 1.
 - **Randy Pausch "Time is all we have"** — completely black backdrop. No perspective to exploit, no mid-tone surface. Fails 2 and 3. Used portrait-header.
@@ -29,12 +31,14 @@ The acoustic foam wall to the right of the subject took ~40% of frame width, til
 The default for most talking-head content. Works when wall-embed doesn't.
 
 ### Conditions
+
 1. **Single subject, fixed camera.** Handheld is tolerable if drift is small.
 2. **At least one clean zone (≥ 15% of frame width) to the left or right of the subject** where captions can sit without continuous body occlusion.
 3. **Background can be cluttered or 3D** — we're not relying on a flat surface, just readable contrast. Screen blend mode picks up darker backgrounds (bookshelves, dark walls) naturally.
 4. **Landscape aspect** (16:9 or similar). For portrait, use `portrait-header`.
 
 ### When to add the crown vs when to skip it
+
 - Add crown if there's a natural "title drop" line — the one phrase that lands the story (e.g. "WIMBLEDON CHAMPION", "BEATLES", "SHARP AGAIN"). Check [layout-heuristics.md § Crown placement](layout-heuristics.md) for the three geometric conditions.
 - Skip crown for factual / neutral monologues where no phrase carries the climax. Short videos (<10s) often don't need it.
 
@@ -43,11 +47,13 @@ The default for most talking-head content. Works when wall-embed doesn't.
 For 9:16 aspect where the subject inevitably fills the middle.
 
 ### Conditions
+
 1. **Portrait aspect** (9:16, 1080×1920 etc.).
 2. **Subject occupies the vertical middle of frame**, leaving ~15-25% of the frame height clear at the top.
 3. **Optional crown at bottom** — only works if there's also clean space beneath the subject's waist, which is rare in close-crop portrait.
 
 ### What to watch
+
 - Subject's head top often approaches y=40 — top banner captions at `top: 30px` will get partially occluded by hair. Accept the partial occlusion (it reads as embed) or bump the caption size down to clear the hair.
 - If the subject already has **baked-in captions** (like the burned-in subtitles test case with yellow subtitles burned in), the skill should refuse — two caption systems compete.
 

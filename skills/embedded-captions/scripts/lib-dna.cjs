@@ -23,8 +23,15 @@ const DNA_DIR = path.join(SKILL_ROOT, "dna");
 const LEGACY = { "cinematic-cream": "cream" };
 
 function list() {
-  try { return fs.readdirSync(DNA_DIR).filter((f) => f.endsWith(".json")).map((f) => f.replace(/\.json$/, "")).sort(); }
-  catch (e) { return []; }
+  try {
+    return fs
+      .readdirSync(DNA_DIR)
+      .filter((f) => f.endsWith(".json"))
+      .map((f) => f.replace(/\.json$/, ""))
+      .sort();
+  } catch {
+    return [];
+  }
 }
 
 function load(name) {
@@ -35,7 +42,13 @@ function load(name) {
   return JSON.parse(fs.readFileSync(p, "utf8"));
 }
 
-function readJson(p) { try { return JSON.parse(fs.readFileSync(p, "utf8")); } catch (e) { return null; } }
+function readJson(p) {
+  try {
+    return JSON.parse(fs.readFileSync(p, "utf8"));
+  } catch {
+    return null;
+  }
+}
 
 // ── audio impact: where does this window's loudness rank within the clip? ──────
 // envelope.json = { hop, rms: [linear 0..1 per hop] } (audio-envelope.cjs)
@@ -43,13 +56,19 @@ function heroImpact(project, t0, t1) {
   const env = readJson(path.join(project, "envelope.json"));
   if (!env || !Array.isArray(env.rms) || !env.rms.length) return 0.6; // neutral default
   const hop = env.hop || 0.05;
-  const i0 = Math.max(0, Math.floor(t0 / hop)), i1 = Math.min(env.rms.length, Math.ceil(t1 / hop));
+  const i0 = Math.max(0, Math.floor(t0 / hop)),
+    i1 = Math.min(env.rms.length, Math.ceil(t1 / hop));
   if (i1 <= i0) return 0.6;
   const span = i1 - i0;
-  const mean = (arr, a, b) => { let s = 0; for (let i = a; i < b; i++) s += arr[i]; return s / (b - a); };
+  const mean = (arr, a, b) => {
+    let s = 0;
+    for (let i = a; i < b; i++) s += arr[i];
+    return s / (b - a);
+  };
   const target = mean(env.rms, i0, i1);
   // percentile of this window vs all same-length windows across the clip
-  let below = 0, total = 0;
+  let below = 0,
+    total = 0;
   for (let s = 0; s + span <= env.rms.length; s += Math.max(1, Math.floor(span / 2))) {
     total++;
     if (mean(env.rms, s, s + span) <= target) below++;
@@ -69,19 +88,50 @@ function resolveTokens(dna, project, opts) {
   // temperature, not harmonize with it — a sampled warm sienna inside a tungsten room
   // camouflages (the warm-on-warm failure a blind review caught across three DNAs).
   // Counter-pole = rotate the sampled hue 180° and push saturation/lightness hot.
-  let accent = dna.palette.accent === "scene"
-    ? (palette.accentSuggestion || dna.palette.accent_fallback || "#e3c06a")
-    : dna.palette.accent;
-  if (dna.palette.accentMode === "counter" && dna.palette.accent === "scene" && /^#([0-9a-f]{6})$/i.test(accent || "")) {
+  let accent =
+    dna.palette.accent === "scene"
+      ? palette.accentSuggestion || dna.palette.accent_fallback || "#e3c06a"
+      : dna.palette.accent;
+  if (
+    dna.palette.accentMode === "counter" &&
+    dna.palette.accent === "scene" &&
+    /^#([0-9a-f]{6})$/i.test(accent || "")
+  ) {
     const n = parseInt(accent.slice(1), 16);
-    let r = (n >> 16) / 255, g2 = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
-    const mx = Math.max(r, g2, b), mn = Math.min(r, g2, b), d = mx - mn;
+    let r = (n >> 16) / 255,
+      g2 = ((n >> 8) & 255) / 255,
+      b = (n & 255) / 255;
+    const mx = Math.max(r, g2, b),
+      mn = Math.min(r, g2, b),
+      d = mx - mn;
     let h = 0;
-    if (d > 0) { h = mx === r ? ((g2 - b) / d) % 6 : mx === g2 ? (b - r) / d + 2 : (r - g2) / d + 4; h *= 60; if (h < 0) h += 360; }
-    h = (h + 180) % 360; const s = 0.85, v = 0.92; // hot, acid, readable
-    const c = v * s, x = c * (1 - Math.abs(((h / 60) % 2) - 1)), m = v - c;
-    const [r2, g3, b2] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
-    const f = (q) => Math.round((q + m) * 255).toString(16).padStart(2, "0");
+    if (d > 0) {
+      h = mx === r ? ((g2 - b) / d) % 6 : mx === g2 ? (b - r) / d + 2 : (r - g2) / d + 4;
+      h *= 60;
+      if (h < 0) h += 360;
+    }
+    h = (h + 180) % 360;
+    const s = 0.85,
+      v = 0.92; // hot, acid, readable
+    const c = v * s,
+      x = c * (1 - Math.abs(((h / 60) % 2) - 1)),
+      m = v - c;
+    const [r2, g3, b2] =
+      h < 60
+        ? [c, x, 0]
+        : h < 120
+          ? [x, c, 0]
+          : h < 180
+            ? [0, c, x]
+            : h < 240
+              ? [0, x, c]
+              : h < 300
+                ? [x, 0, c]
+                : [c, 0, x];
+    const f = (q) =>
+      Math.round((q + m) * 255)
+        .toString(16)
+        .padStart(2, "0");
     accent = `#${f(r2)}${f(g3)}${f(b2)}`;
   }
 
@@ -117,10 +167,12 @@ function resolveTokens(dna, project, opts) {
       ...dna.hero,
       entrance: dna.hero.entrance || "emergence",
       dimOthers: dna.hero.dimOthers != null ? dna.hero.dimOthers : 0.45,
-      id: hg.id, minor: hg.minor === true,
-      in: hg.in, out: hg.out,
+      id: hg.id,
+      minor: hg.minor === true,
+      in: hg.in,
+      out: hg.out,
       amp,
-      heroColor: (dna.palette.heroColor === "accent") ? accent : null,
+      heroColor: dna.palette.heroColor === "accent" ? accent : null,
     };
   });
   const hero = heroes[0] || null; // back-compat single accessor
@@ -131,10 +183,12 @@ function resolveTokens(dna, project, opts) {
     blend: dna.palette.blend,
     accent,
     textShadow,
-    filterBg, filterFg,
+    filterBg,
+    filterFg,
     blurPx,
     motion: dna.motion,
-    hero, heroes,
+    hero,
+    heroes,
     heroCss: (dna.hero && dna.hero.css) || "",
     heroCase: (dna.hero && dna.hero.case) || "none",
     heroTracking: (dna.hero && dna.hero.tracking) || "0",

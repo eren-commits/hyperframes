@@ -14,9 +14,10 @@ A complete caption template (see `../_anatomy.md` for the scene engine, `../_mot
 
 ## Recipe
 
-| | |
-|---|---|
-bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (THIS skill — not remove-background)
+|     |     |
+| --- | --- |
+
+bash scripts/prepare.sh <project> # matte ∥ transcribe ∥ safe-zones (THIS skill — not remove-background)
 | **Font** | `'Inter'` |
 | **Fill** | text `#fff` - active-word accent `#ffe000` - climax fill: stroke |
 | **Flow reveal** | `karaoke` (per-word, from `transcribe`) -> active word gets the accent |
@@ -33,10 +34,26 @@ bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (
 ## Style (drop in beside the `_anatomy.md` base CSS)
 
 ```css
-.s-hormozi{--ff:'Inter';--cfill:#fff;--cacc:#ffe000}
-.s-hormozi .flow .w{-webkit-text-stroke:2px #000;paint-order:stroke fill}
-.s-hormozi .flow .w.act{background:#ffe000;color:#111;-webkit-text-stroke:0;border-radius:6px;padding:0 .1em}
-.s-hormozi .climax{-webkit-text-stroke:3px #000;paint-order:stroke fill}
+.s-hormozi {
+  --ff: "Inter";
+  --cfill: #fff;
+  --cacc: #ffe000;
+}
+.s-hormozi .flow .w {
+  -webkit-text-stroke: 2px #000;
+  paint-order: stroke fill;
+}
+.s-hormozi .flow .w.act {
+  background: #ffe000;
+  color: #111;
+  -webkit-text-stroke: 0;
+  border-radius: 6px;
+  padding: 0 0.1em;
+}
+.s-hormozi .climax {
+  -webkit-text-stroke: 3px #000;
+  paint-order: stroke fill;
+}
 ```
 
 ## Motion (names -> `../_motion.md`)
@@ -45,13 +62,13 @@ bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (
 - `CLIMAX_IN` = **boxpop** - `CLIMAX_OUT` = **fade** (ends `opacity:0`, hard exit)
 - Climax dwell **>=1 s** after the entrance settles; effects only at the climax.
 
-
 ## Reproduce
 
 ```bash
 bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (THIS skill — not remove-background)
 npx hyperframes transcribe   subject.mp4 --model small      # -> transcript.json
 ```
+
 Build the `_anatomy.md` scene with class `stage s-hormozi bg-creator`, feed the transcript to the flow, set `CLIMAX_IN=boxpop` / `CLIMAX_OUT=fade` from `_motion.md`, then `npx hyperframes lint && npx hyperframes validate`.
 
 ## Triggers

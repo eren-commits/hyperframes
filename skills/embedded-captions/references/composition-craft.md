@@ -30,6 +30,7 @@ Separately from template choice, decide whether captions are **embedded** (behin
 - **hybrid** (per-group `layer:` field) — when one cap (usually the climax) hits the "no place to fit bg" wall but the others (smaller body caps) still work fine in bg. **Body bg + climax fg** is the canonical hybrid pattern.
 
 **Rule of thumb:**
+
 - Small narrator/emphasis captions: bg almost always. Subject eating a few letter-edges = embed feature.
 - Climax: try bg first, sized to maximally cross subject. If that size won't fit frame width, AND no clean zone elsewhere, use fg.
 - Don't invert the hybrid: body fg + climax bg is the WRONG direction (sacrifices the easy bg embed wins on body, while the climax that needed protection from over-occlusion gets sent into the fire).
@@ -42,12 +43,24 @@ Subject fills the frame top-to-bottom (head_top y=126 / 10% from top). For body 
 {
   "caption_layer": "bg",
   "groups": [
-    { "id": "cg-0", "plane": "body",  "layer": "bg",
-      "css": "font-size: calc(0.055 * var(--h)); font-style: italic; ..." },  // narrator bg — face eats edges, embed texture
-    { "id": "cg-1", "plane": "body",  "layer": "bg",
-      "css": "font-size: calc(0.085 * var(--h)); font-weight: 800; text-transform: uppercase; ..." },  // emphasis bg — Vogue masthead
-    { "id": "cg-5", "plane": "crown", "layer": "fg",
-      "css": "font-size: calc(0.09 * var(--h)); font-weight: 900; text-transform: uppercase; ..." }
+    {
+      "id": "cg-0",
+      "plane": "body",
+      "layer": "bg",
+      "css": "font-size: calc(0.055 * var(--h)); font-style: italic; ..."
+    }, // narrator bg — face eats edges, embed texture
+    {
+      "id": "cg-1",
+      "plane": "body",
+      "layer": "bg",
+      "css": "font-size: calc(0.085 * var(--h)); font-weight: 800; text-transform: uppercase; ..."
+    }, // emphasis bg — Vogue masthead
+    {
+      "id": "cg-5",
+      "plane": "crown",
+      "layer": "fg",
+      "css": "font-size: calc(0.09 * var(--h)); font-weight: 900; text-transform: uppercase; ..."
+    }
     // ↑ climax fg: subject too dense for bg to land readably; fg fallback. Sized to fit frame width fully (single line).
   ]
 }
@@ -60,11 +73,13 @@ Set via `caption_layer: "bg" | "fg"` plan-level (default for groups without expl
 **Decision rule — bg is default, fg is fallback, hybrid is for mixed semantic content.**
 
 For BODY captions (narrator + emphasis):
+
 1. **Find the actual clean zone.** Sample frames at 20/50/80% and mentally trace where the subject is (head, shoulders, gesturing hands). The clean zone is what's left. Top band above the head, bottom band below the shoulders, or off-center side column.
 2. **Anchor the plane in that zone.** Body caps fit comfortably with NO subject overlap → `layer: "bg"`.
 3. **If body cap stack inherently overlaps subject heavily (>40% per check-occlusion peak)** even at smallest reasonable fonts → body `layer: "fg"`. Subject fills frame too much for embed.
 
 For CLIMAX caption (the payoff):
+
 1. **Default: `layer: "bg"`, sized to maximally cross subject for embed effect.** The face/body eating part of the climax word IS the visual win. Don't shrink to avoid occlusion. Use the largest size that fits frame WIDTH (sub-pixel readable letters fully on-screen) — vertical position should land it across the subject's hair / forehead / face.
 2. **`layer: "fg"` for climax** ONLY when frame width physically can't hold a font big enough to feel climactic AND there's no compositional way to break the word across multiple lines that bg embed could carry.
 3. **Hybrid (body bg + climax fg)** is the canonical pattern for subject-fills-frame scenes. Body small caps stay bg — subject eats letter edges = embed texture (cinematic, not a bug). Climax goes fg ONLY because at impactful size + subject filling frame there's no place where bg climax could land readably (would be 50%+ eaten = past cinematic into broken). The opposite direction (body fg + climax bg) sacrifices the easy bg embed wins on small caps and forces the climax into a slot it can't survive — never do that.
@@ -77,12 +92,14 @@ For CLIMAX caption (the payoff):
 The viewer's eye reads top-to-bottom: first the partially-veiled body line ("decorative, atmospheric"), then the clean climax statement ("the point"). Same Z-axis layering as Vogue / Apple Keynote (decorative top behind subject + clear bottom in front), but driven by cinematic-cream's existing per-cap `layer:` field — no new template, no separate masthead track.
 
 Two timing modes inside this layout:
+
 - **Sequential cross-fade (default)** — body fades out as climax fades in over 0.3-0.5s. The brief overlap window IS the editorial dual-layer moment. Standard cinematic-cream behavior.
 - **Sustained overlap** — extend body's `out` to coincide with or extend past climax's `in` so both are visible together for 1-2s. Use sparingly: works when body line is short (≤3 words) and acts as a "kicker" above the climax. Long body phrases sustained alongside a fg climax = visual noise.
 
 **The plane-conflict rule for sustained overlap (debugged in Startup_Host).** If you extend a body bg cap's `out` into a window that contains another cap with `layer: "fg"` IN THE SAME PLANE, the two will visually overlap in the final composite — bg pass renders the extended bg cap, fg pass renders the fg cap, both at identical plane position, screen-blended on top of each other. Result: muddy double-text at the same spot.
 
 Before extending any body bg's `out`:
+
 1. Check what other caps occupy the body plane during the extended window
 2. If ANY of them is `layer: "fg"`, the extension causes plane overlap → don't do it
 3. Workaround: either (a) skip sustained overlap and use sequential cross-fade only, or (b) author the body kicker on a DIFFERENT plane / absolute position so the two don't share a plane
@@ -90,13 +107,15 @@ Before extending any body bg's `out`:
 Concrete example: Startup_Host has cg-3 "diving deep" (body bg, plane=body, 3.1–4.15s) and cg-4 "into what it really takes to build a" (body fg fallback, plane=body, 4.15–6.42s). Both occupy `plane=body`. Extending cg-3 to overlap with the climax cg-5 (6.42–8.06s) ALSO drags cg-3 across cg-4's window where cg-3 (bg) and cg-4 (fg) collide on the body plane. Sequential editorial-split (climax in lower-third, body bg already faded out) was the only safe option for this case. AI_Insights had no fg in body plane between kicker and climax, so sustained overlap worked there.
 
 When NOT to use editorial split:
-- Body and climax are both information-carrying full sentences → forces viewer to read both at once, fails. Editorial split needs the body line to be *atmospheric / setup* (italic mood), climax to be *the payoff* (bold uppercase).
+
+- Body and climax are both information-carrying full sentences → forces viewer to read both at once, fails. Editorial split needs the body line to be _atmospheric / setup_ (italic mood), climax to be _the payoff_ (bold uppercase).
 - Subject takes the full vertical column (no top clean zone, no bottom clean zone) → there's no upper or lower band to anchor either layer. Fall back to all-fg with crown.
 - Climax is a long phrase that wraps to 3+ lines in lower-third → eats too much vertical real estate, leaves no room for the body bg above. Either shrink climax or split into more groups.
 
 This pattern was historically what we called "hybrid" but the spatial framing — upper bg behind / lower fg in front — is what makes it read as editorial design rather than just two unrelated caption tracks. Keep this in mind when authoring per-cap `layer:` for hybrid scenes.
 
 Common mistakes (debugged in real cases):
+
 - Defaulting to "right column" because memory-wall did it → narrow 400px column forces long phrases to wrap 4-5 lines, pushing the stack DOWN into the subject's body. Fix: use top-band full-width instead, wider wrap fits fewer lines.
 - **Flipping climax to fg because "viewer needs to read it" → kills cinematic embed.** Climax is supposed to feel half-eaten by subject; that's the magazine masthead energy. Don't fix what isn't broken.
 - All-fg whole plan when subject fills frame → safe but sterile. Hybrid (body bg + climax fg) is almost always better — small body caps eaten = embed texture, climax fully visible since it had no readable bg slot.
@@ -110,18 +129,19 @@ Before writing a single caption group, do a **pre-plan agentic pass** over the t
 
 **The grade is the SELECTION INPUT — it picks the render state** (`drop` / `rail` / `embed`); it is not itself a typography class (see SKILL.md § Caption model):
 
-| Grade | What it is | → render state |
-|---|---|---|
-| **drop** | Interjections/hesitation (um, uh, er, ah), self-corrections ("I think— I mean actually…" keep only final), pure stutters ("the the the") collapse to one | **drop** (not shown) |
-| **normal** | Ordinary spoken content — connective glue + the content words that carry the idea | **rail** (dense conversational glue may be trimmed for readability; content/structure words stay) |
-| **emphasis** | The 1–2 punch words in a phrase | **rail** + `emphasis` highlight (inline — stays on the rail) |
-| **peak** | The payoff of a beat/section — the line you'd say out loud paraphrasing it | **promote to embed** (apply the craft below); the single biggest of the whole piece = `apex` |
+| Grade        | What it is                                                                                                                                               | → render state                                                                                    |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| **drop**     | Interjections/hesitation (um, uh, er, ah), self-corrections ("I think— I mean actually…" keep only final), pure stutters ("the the the") collapse to one | **drop** (not shown)                                                                              |
+| **normal**   | Ordinary spoken content — connective glue + the content words that carry the idea                                                                        | **rail** (dense conversational glue may be trimmed for readability; content/structure words stay) |
+| **emphasis** | The 1–2 punch words in a phrase                                                                                                                          | **rail** + `emphasis` highlight (inline — stays on the rail)                                      |
+| **peak**     | The payoff of a beat/section — the line you'd say out loud paraphrasing it                                                                               | **promote to embed** (apply the craft below); the single biggest of the whole piece = `apex`      |
 
 A **peak** is per-beat, **not** per-clip: a short clip usually has one (its climax); a long/multi-section explainer has ~one per section. **Embed is scarce + spaced** — ≤1 per sentence/beat, never two adjacent or co-visible, ≥ a beat apart, at most one `apex`. (The old "1 climax / 2–4 emphasis / 4–10 body / 6–12 narrator / 2–8 drop per 10–20s clip" was calibrated for short single-beat clips; it generalises to "one peak per beat, spaced — everything else rides the rail.")
 
 **This step replaces any filler-word list.** If you find yourself reaching for a regex, you're doing it wrong — go back and judge per-token.
 
 Then build the plan from the annotated words:
+
 - drops → do not appear in any word entry
 - narrator → either fold into adjacent body groups OR become tiny italic subordinate groups if rhythm demands
 - body/emphasis/climax → shape the group structure, with typography matching role
@@ -131,6 +151,7 @@ Then build the plan from the annotated words:
 A **caption group** is a semantic phrase — typically 2–8 words bound by intonation and meaning. It is NOT a mechanical "2–4 word chunk". A group has ONE typography (one font-size, one weight, one case, one position) matching its role; the "every-word" feel comes from **per-word GSAP stagger INSIDE the group**, not from splitting the phrase into many tiny groups.
 
 Canonical reference — memory-wall, 12 spoken words, **4 groups**:
+
 - cg-0 `"Some memories feel soft"` (4 words, italic 600, right-top)
 - cg-1 `"like old film"` (3 words, italic 500, right-mid, smaller)
 - cg-2 `"but suddenly"` (2 words, upright 700 pivot, right-center)
@@ -147,6 +168,7 @@ If you find yourself producing 15+ groups for a 10s clip, stop — you're treati
 Every word the speaker says gets captioned. The skill no longer ships a "highlight" mode — curated/edited transcripts produced fewer beats but lost the rhythm of the spoken sentence and ended up feeling like generic subtitle tracks. Verbatim with strong typographic hierarchy (small italic narrator → emphasis upright → climax massive uppercase) gives the cinematic feel without dropping content.
 
 The only words you remove from the transcript:
+
 1. **Pure phonetic interjections** (um, uh, er, ah, hmm) — not words, not captioned.
 2. **Exact immediate stutters** ("the the the" → keep one; "is is is is" → keep one, aligned with the phrase that follows). The viewer should see one "the", not three.
 3. **Self-correction backtracks** ("I think— I mean actually…" → keep only "I mean actually").
@@ -179,9 +201,10 @@ Your plan.json can opt into this by declaring `planes` and assigning each group 
 
 The plane CSS owns positioning (top/left/right + display:flex/grid/block). Per-group CSS owns **typography only** (font-size, weight, style, case, letter-spacing, line-height). **No top/left/right/position on a group when it's inside a plane** — the parent decides.
 
-**Typography is agent-authored per group, NOT looked up from a preset.** The `cinematic-cream` template locks only the DNA (Inter family, motion curves, `mix-blend-mode`, `cap_color` palette, text-shadow/filter derived from luminance). Everything else — `font-size`, `font-weight`, `font-style` (italic vs upright), `text-transform` (uppercase vs mixed), `letter-spacing`, `line-height` — is written by the agent, per group, in `plan.json`'s `css` field. No "cap-1 must be italic 600, cap-2 must be uppercase 900" rule. Read the scene + transcript, pick typography that matches the semantic role (narrator/body/emphasis/climax) and the visual weight the frame can carry. See [references/typographic-moves.md](typographic-moves.md) for *recommended* combinations — treat as palette, not schema.
+**Typography is agent-authored per group, NOT looked up from a preset.** The `cinematic-cream` template locks only the DNA (Inter family, motion curves, `mix-blend-mode`, `cap_color` palette, text-shadow/filter derived from luminance). Everything else — `font-size`, `font-weight`, `font-style` (italic vs upright), `text-transform` (uppercase vs mixed), `letter-spacing`, `line-height` — is written by the agent, per group, in `plan.json`'s `css` field. No "cap-1 must be italic 600, cap-2 must be uppercase 900" rule. Read the scene + transcript, pick typography that matches the semantic role (narrator/body/emphasis/climax) and the visual weight the frame can carry. See [references/typographic-moves.md](typographic-moves.md) for _recommended_ combinations — treat as palette, not schema.
 
 When to use planes:
+
 - **Multi-phrase sentence in one home zone** — use a flex column plane. All body caps inside accumulate/stack automatically, no collision math. This is the memory-wall pattern.
 - **Body zone + climax zone** — two planes: body (flex stack) + crown (center). Body caps live in body-plane; climax pops in crown-plane. Cross-plane transition = earned break.
 - **Any clip with ≥3 body phrases** — single-plane flex stacking beats hand-placing each group's top% every time.
@@ -200,6 +223,7 @@ Before writing plane CSS, look at a frame sample. Mentally trace the subject's b
 Small-size italic narrator text is especially vulnerable — it disappears into mottled backgrounds or body occlusion. Keep smallest caps in the cleanest part of the zone, not at the edges where subject extends.
 
 When NOT to use planes (the remaining free-mode use cases):
+
 - **1–2 isolated groups** with deliberately different positions — free mode is simpler.
 - **Specific clip-spanning motion** where a group needs to drift/move independently.
 
@@ -218,11 +242,12 @@ Example patterns an agent can pick (not exhaustive, not ranked):
 Whichever pattern is picked, the agent's job is to **justify the choice**: "Subject is on the left, clean gradient sky on the right — I'll cascade right-aligned so captions have clean backdrop throughout." Write that reasoning as a `_notes` field in plan.json so the intent is inspectable.
 
 Anti-patterns to NEVER ship:
+
 - Alternating top↔bottom per chunk — reads as chaos (one sentence's words appearing in different vertical zones).
 - Locking every group to the same `top` value — reads as subtitle track, kills cinematic feel.
 - Placing body/narrator groups directly over the face when clean space exists — the Vogue-embed effect is for the CLIMAX word only, not default behavior.
 - **Dropping transcript words to fit caps in fewer blocks.** NEVER. Verbatim is verbatim. If 4 caps don't fit in 1 block, split into 2 sub-blocks of 2 caps each — keep all words. The only legitimate drops are SKILL.md's filler list (um/uh/exact-stutters/self-corrections), not "we ran out of room."
-- **Mechanically aligning all caps in a plane to share `out` time.** This makes everyone stay on screen longer, *increasing* density. Wrong fix for the no-jump problem. Correct fix: split natural-handoff caps into separate blocks where each block's caps share `out` (same exit moment, no jump), and `next_block.in ≥ prev_block.out` (clean handoff between blocks, no overlap).
+- **Mechanically aligning all caps in a plane to share `out` time.** This makes everyone stay on screen longer, _increasing_ density. Wrong fix for the no-jump problem. Correct fix: split natural-handoff caps into separate blocks where each block's caps share `out` (same exit moment, no jump), and `next_block.in ≥ prev_block.out` (clean handoff between blocks, no overlap).
 
 **Block boundary three laws** (must hold for every plane in every plan):
 
@@ -231,6 +256,7 @@ Anti-patterns to NEVER ship:
 3. `prev_block.out ≤ next_block.first_word.start` so next_block's first word still animates from its real spoken time (the in-time only constrains when the container mounts; word animations fire at their per-word `start`).
 
 A common mistake: setting `next_block.in` slightly EARLIER than `prev_block.out` to give the new block a head-start fade-in, while prev_block still has a different (later) `out`. The 50-300ms overlap looks invisible in the plan but produces a visible jump on screen because two caps with different `out` coexist in the same flex stack.
+
 - **Vertical gap between body bottom and crown top.** Looks disconnected ("The pace is" at top:3% with "UNPRECEDENTED" at top:20% creates 144px void). Bond the setup phrase + climax word in the SAME crown plane via flex-stack — the Street_Talk "and being / CONSISTENT" pattern.
 
 ### Zone coherence — one sentence, one home zone
@@ -238,6 +264,7 @@ A common mistake: setting `next_block.in` slightly EARLIER than `prev_block.out`
 **Never switch spatial zones mid-sentence.** A full semantic unit (sentence or clause) should live in ONE home zone (e.g. right column, or top band). The viewer's eye follows the phrase group. Ping-ponging between top/bottom/left/right for consecutive phrases of the SAME sentence reads as chaos — the reader has to re-find the caption every beat.
 
 Zone changes are earned at:
+
 - **Sentence boundaries** (period, long pause, topic shift) — allowed to move to a new home zone, often paired with a tonal shift (italic body → uppercase emphasis)
 - **The single climax** — the one break from the home zone, always allowed, often takes center-full-width
 
@@ -251,19 +278,19 @@ A climax caption that's the same size as body emphasis is a failed climax. The v
 
 Contrast floor — the climax must at least clear these:
 
-| Ratio | Feels like |
-|---|---|
-| **1.0-1.3× body emphasis** | Flat — the climax is just another beat. Fix it. |
-| **1.5-1.8× body emphasis** | Noticeable but not explosive. OK for subtle payoffs, weak for punchlines. |
-| **≥1.8× body emphasis** | Pops. Viewer's eye snaps to it. Target for "punchline" / "reveal" / "reaction" climaxes. |
-| **≥2.5× body italic** | Compare against the SMALLEST body tier too — the multi-tier jump is what creates hierarchy. |
+| Ratio                      | Feels like                                                                                  |
+| -------------------------- | ------------------------------------------------------------------------------------------- |
+| **1.0-1.3× body emphasis** | Flat — the climax is just another beat. Fix it.                                             |
+| **1.5-1.8× body emphasis** | Noticeable but not explosive. OK for subtle payoffs, weak for punchlines.                   |
+| **≥1.8× body emphasis**    | Pops. Viewer's eye snaps to it. Target for "punchline" / "reveal" / "reaction" climaxes.    |
+| **≥2.5× body italic**      | Compare against the SMALLEST body tier too — the multi-tier jump is what creates hierarchy. |
 
 A quick audit script — before shipping, dump every plan's max-body vs max-crown font-size ratio, and flag anything <1.8×:
 
 ```js
-const bodyMax  = Math.max(...plan.groups.filter(g => g.plane === 'body').map(fsize));
-const crownMax = Math.max(...plan.groups.filter(g => g.plane === 'crown').map(fsize));
-const ratio = crownMax / bodyMax;  // aim for ≥1.8
+const bodyMax = Math.max(...plan.groups.filter((g) => g.plane === "body").map(fsize));
+const crownMax = Math.max(...plan.groups.filter((g) => g.plane === "crown").map(fsize));
+const ratio = crownMax / bodyMax; // aim for ≥1.8
 ```
 
 **Split pattern — when one word alone should carry the climax.** If the climax phrase is 2+ words ("and being consistent", "not even kidding") and one of them is the actual payoff, split into setup + payoff BUT keep them spatially bonded:
@@ -273,6 +300,7 @@ const ratio = crownMax / bodyMax;  // aim for ≥1.8
 - **Both groups live in the SAME (crown) plane**, flex-column, gap 4-8px. Not two different planes — otherwise "and being" sits in the top band and "CONSISTENT" sits mid-frame and they read as two unrelated captions.
 
 Crown plane CSS for split climax:
+
 ```
 "crown": "top: 26%; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px;"
 ```
@@ -292,8 +320,9 @@ For "CONSISTENT" (10 chars), uppercase 900 (char_ratio 0.62), letter-spacing -0.
 Cinematic bleed is only OK when **a few pixels of 1-2 outer letters** get mild cropping from scale-in animation or sub-pixel rounding — that reads as "bigger than frame." Any bleed that forces the reader to mentally complete missing letters (>15-20px per side on a 10-char word) is a BUG, not style. "ONSISTE" with 80px each side clipped is NOT a valid climax — it's broken.
 
 Hard rules:
+
 - **Readable first.** Every letter should be fully on-screen, with at most a few-px crop on the first/last letter.
-- **If max legible size doesn't meet ratio target**, raise impact via *other* signals (weight 900, all-caps, bg head-cross, multi-line composition with setup word above), not via illegible bleed.
+- **If max legible size doesn't meet ratio target**, raise impact via _other_ signals (weight 900, all-caps, bg head-cross, multi-line composition with setup word above), not via illegible bleed.
 - **Never bleed body/narrator captions.** Only the crown/climax is allowed any edge crop at all.
 - `OCCLUSION_SKIP=1` is an escape hatch for iterating; the shipped plan should pass `check-occlusion-v2.py --strict` (pixel-perfect via headless Chromium DOM).
 
@@ -308,7 +337,7 @@ Two placement tweaks that separate "looks like a caption sitting in the scene" f
   How to place the crown with intent:
   1. Sample the matte PNG at climax time: `f_{frame_idx:04d}.png` where `frame_idx = round(climax_time * fps)`.
   2. Scan rows from top until `alpha > 128` — that y is the subject's topmost pixel (usually hair).
-  3. Position crown so the *bottom of the last line* lands 30-80px below that y. For a 2-line crown at 0.085h on 1290h frame, line heights ~104px each; total height ~200px. If subject top is at y=445, set `crown.top` such that `top + height = 445 + 50 ≈ 495` → `top = 295px ≈ 23%`.
+  3. Position crown so the _bottom of the last line_ lands 30-80px below that y. For a 2-line crown at 0.085h on 1290h frame, line heights ~104px each; total height ~200px. If subject top is at y=445, set `crown.top` such that `top + height = 445 + 50 ≈ 495` → `top = 295px ≈ 23%`.
   4. Verify with checker — the HERO/crown peak occlusion target is ~30–55% (the embed effect; the head crossing the middle). Below ~15% it reads as a floating label (the hero-weak advisory fires); above ~65% the word is eaten (the gate FAILs). Small narrator caps: ~20–30% texture.
 
   Practical rule of thumb: **crown peak occlusion 3-10%** is the sweet spot. The checker's number tells you directly — not a subjective "it looks good" judgment.
@@ -330,6 +359,7 @@ Two placement tweaks that separate "looks like a caption sitting in the scene" f
 **Frame-edge overflow** — the checker also flags when a measured word bbox extends past the canvas (text the ffmpeg crop would clip), reported as `cg-N  [overflow] "word" off-frame: left Xpx, right Ypx (@Ts)`. Because cropped body text is always wrong, a clear glyph clip (>8px past an edge) **fails `--strict`**; a sub-glyph graze (≤8px — the first/last-letter crop the climax is allowed) is a non-blocking `[overflow-warn]`.
 
 **The checker reports facts, the agent applies judgment.** A FAIL is NOT an automatic "must re-layout" signal — it's evidence to interpret. Two competing goals coexist:
+
 1. **Readability** — every sentence must remain comprehensible to the viewer
 2. **Cinematic embed** — partial occlusion is the desired vogue-masthead effect; zero occlusion looks like a pasted subtitle
 
@@ -338,13 +368,15 @@ When the checker reports a per-word obliteration (≥65%), apply this **3-step d
 **Step 1 — POS check.** Is the obliterated word a function word (the / a / an / of / in / on / at / to / I / it / is / are / was / be / that / this / which / and / or / but)? Function words are grammatically optional in most contexts — a 100%-eaten "the" or "I" or "of" usually does NOT break the sentence. Content words (nouns, verbs, adjectives, climax words) carry meaning — they MUST stay legible.
 
 **Step 2 — sentence parse without the word.** Mentally delete the obliterated word from the sentence. Does the remainder still convey the meaning?
+
 - "like this are why I travel" minus "I" → "like this are why travel" — first-person obvious from context, **OK**
 - "take it all in" minus "all" → "take it in" — complete English idiom on its own, **OK**
 - "a whole lot of information" minus "of" → "a whole lot information" — slightly broken but recoverable, **OK**
 - "diving deep into startups" minus "deep" → "diving into startups" — works fine, **OK**
 - "diving deep into startups" minus "diving" → "deep into startups" — loses the verb, sentence breaks, **NOT OK**
 
-**Step 3 — cinematic check.** A single content word at 30-65% partial occlusion is the *intended* embed look (vogue-masthead "subject grazes the text"). Don't "fix" it. Only escalate to re-layout when:
+**Step 3 — cinematic check.** A single content word at 30-65% partial occlusion is the _intended_ embed look (vogue-masthead "subject grazes the text"). Don't "fix" it. Only escalate to re-layout when:
+
 - a content word is ≥80% gone (not just partially eaten — almost fully missing)
 - two or more adjacent words are ≥50% obliterated (sequential damage compounds; "X X X really takes" with first three eaten is unrecoverable)
 - the obliterated word IS the climax / key noun the viewer is supposed to read (e.g. the subject of a sentence, a brand name, a product feature)
@@ -352,14 +384,15 @@ When the checker reports a per-word obliteration (≥65%), apply this **3-step d
 
 **Real examples from the 13-case batch** — all four caps below got a per-word obliteration FAIL, all four were correctly judged OK by this rule:
 
-| case | obliterated word @% | sentence | rule applied |
-|---|---|---|---|
-| Sunset_Stroll cg-1 | "I" 100% | "like this are why I travel" | function word + parses without it → OK |
-| Sunset_Stroll cg-3 | "all" 75% | "take it all in" | "take it in" is a complete idiom → OK |
-| yt_gtds cg-6 | "of" 69% | "a whole lot of information" | function word + recoverable → OK |
-| AI_Insights cg-2 | "that" 66% | "that don't replace human creativity" | relative pronoun, optional → OK |
+| case               | obliterated word @% | sentence                              | rule applied                           |
+| ------------------ | ------------------- | ------------------------------------- | -------------------------------------- |
+| Sunset_Stroll cg-1 | "I" 100%            | "like this are why I travel"          | function word + parses without it → OK |
+| Sunset_Stroll cg-3 | "all" 75%           | "take it all in"                      | "take it in" is a complete idiom → OK  |
+| yt_gtds cg-6       | "of" 69%            | "a whole lot of information"          | function word + recoverable → OK       |
+| AI_Insights cg-2   | "that" 66%          | "that don't replace human creativity" | relative pronoun, optional → OK        |
 
 **When the rule says re-layout** — what to change:
+
 - per-word obliterated AND content word AND breaks readability → switch THAT specific cap to `layer: "fg"` (per-cap override, not whole-plan), OR shrink/reposition, OR split the cap into a different block where the subject isn't crossing it.
 - per-cap fail (peak ≥50%) when the whole stack is in the head zone → lift y or shrink the block.
 - frame-edge overflow → shrink font OR tighten `letter-spacing` OR split the phrase. Cropped text is ALWAYS wrong, no aesthetic excuse.
@@ -371,6 +404,7 @@ When the checker reports a per-word obliteration (≥65%), apply this **3-step d
 Each scene's clean zone has a finite capacity for simultaneously-readable caps. **The agent must judge this before writing the plan**, not rely on CSS `bounded height` / `overflow: hidden` — those cause visual bugs (caps overflow off-screen, are clipped, or content is centered outside the plane bounds).
 
 Rule of thumb (capacity = max caps visible SIMULTANEOUSLY in one block):
+
 - **9:16 portrait, narrow right-column plane** (width ~380-420px) → max **2 caps** per block. Long phrases wrap to 2-3 lines; a 3rd cap starts spilling into the subject.
 - **16:9 landscape, subject centered** (e.g. selfie vlog) → max **2 caps** per block. Even if the frame is wider, a centered subject leaves narrow columns on both sides and hands reach far.
 - **16:9 landscape, subject on one side** (e.g. interview with clean opposite side — the memory-wall canonical scenario) → max **3-4 caps** per block. This is where accumulation shines.
@@ -379,6 +413,7 @@ Rule of thumb (capacity = max caps visible SIMULTANEOUSLY in one block):
 Capacity is about the specific scene — same orientation can have very different room depending on subject position and background complexity.
 
 When your phrase count exceeds the capacity, split into multiple accumulation blocks at **sentence or clause boundaries**. Example memory-wall canonical on a 12-word clip:
+
 - Block 1 (0–4.85s): `"Some memories feel soft"` + `"like old film"` — 2 caps accumulate, fade together at 4.85s
 - Block 2 (4.90–8.04s): `"but suddenly"` + `"EVERYTHING IS SHARP AGAIN"` — 2 caps accumulate on a cleared plane
 
@@ -387,6 +422,7 @@ All caps in one block share the same `out` time (sentence boundary). Next block'
 **Why the shared `out` is load-bearing.** The template's exit path is `tl.set(sel, { opacity: 0, display: "none" }, g.out)` — at `out`, each cap releases its flex space so the NEXT block's caps can take the top slot from the plane's origin (no permanent downward drift). If caps inside the same block had staggered `out` times, the plane would reflow mid-block (cap 1 vanishes, caps 2-3 jump up, cap 4 arrives… visible jitter). With block-synchronized `out`, the reflow happens ONCE at the boundary — invisible to the viewer because the block fades as a unit. **Never stagger `out` times within an accumulation block.** If you need individual fade-outs, you're not accumulating — switch to stagger-fade pattern (one group at a time, no flex plane needed).
 
 **Anti-pattern: bounded `height` + `justify-content: center` on planes.** Do NOT write `height: 70%; justify-content: center` on a flex-column plane hoping to vertically center the caps. When the block's total cap height exceeds the bounded height, flex centering pushes content OUTSIDE the plane bounds on BOTH top and bottom — the topmost cap ends up above the frame (off-screen, unreadable). Instead:
+
 - Let the plane grow with its content — set `top:` (origin anchor) and let caps stack down naturally.
 - Use `gap:` between caps; don't try to "center the stack".
 - Trust the block-capacity rule above to keep the stack within the clean zone — don't paper over overflow with `overflow: hidden` (it clips the very caps you wanted the viewer to read).
@@ -398,13 +434,16 @@ Accumulation works with multi-line phrases too — memory-wall canonical's group
 Math you must do before shipping accumulate:
 
 For each group, estimate its rendered height:
+
 - `line_count ≈ ceil(chars × font_px × 0.72 / usable_width_px)` (0.72 = Inter 900 uppercase; use 0.60 for italic/regular)
 - `group_height_pct ≈ line_count × font_size_pct × line_height × 100`
 
 Then for each pair (cg-N, cg-N+1) you want to coexist:
+
 - `cg-(N+1).top ≥ cg-N.top + cg-N_height_pct + 2%` (margin)
 
 If the math doesn't fit in the available clean zone (top-clear + bottom-clear zones minus face/body bbox), you have two options:
+
 - **Shrink fonts or merge phrases** so they fit.
 - **Switch persistence to stagger-fade** (groups don't coexist, no spacing constraint).
 
@@ -418,14 +457,15 @@ The group's `out` time is not a default, not a rule, not a formula. It's an aest
 
 Patterns to pick from:
 
-| Pattern | What happens | Good for | Bad for |
-|---|---|---|---|
-| **Accumulate-through-climax** (memory-wall) | All groups stay on screen until climax arrives, then all fade together | Poetic builds; emotional crescendo; ≤5 groups where each word matters | 8+ groups (screen crowds); punchy comedic beats (breaks the laugh) |
-| **Stagger-fade** (Sunset-style) | Each group fades ~0.8–1.5s after its words end; next enters into clean space | Independent punchy beats; clip where each phrase is its own moment | Long poetic builds that want the stanzas to coexist |
-| **Crossfade-handoff** | Current group fades during next's entrance (~200ms overlap) | Dense verbatim (6+ groups in short clip); conversational flow | Short sparse clips — feels like subtitle track |
-| **Rolling window** | Keep N=2–3 visible; earliest fades when N+1 enters | Longer transcripts (15s+) where full accumulation would crowd, but some layering is still cinematic | Clips <8s (rolling isn't perceptible) |
+| Pattern                                     | What happens                                                                 | Good for                                                                                            | Bad for                                                            |
+| ------------------------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| **Accumulate-through-climax** (memory-wall) | All groups stay on screen until climax arrives, then all fade together       | Poetic builds; emotional crescendo; ≤5 groups where each word matters                               | 8+ groups (screen crowds); punchy comedic beats (breaks the laugh) |
+| **Stagger-fade** (Sunset-style)             | Each group fades ~0.8–1.5s after its words end; next enters into clean space | Independent punchy beats; clip where each phrase is its own moment                                  | Long poetic builds that want the stanzas to coexist                |
+| **Crossfade-handoff**                       | Current group fades during next's entrance (~200ms overlap)                  | Dense verbatim (6+ groups in short clip); conversational flow                                       | Short sparse clips — feels like subtitle track                     |
+| **Rolling window**                          | Keep N=2–3 visible; earliest fades when N+1 enters                           | Longer transcripts (15s+) where full accumulation would crowd, but some layering is still cinematic | Clips <8s (rolling isn't perceptible)                              |
 
 Decision axes:
+
 - **Narrative arc** — crescendo/revelation → accumulate; list of independent points → stagger; dense conversation → crossfade
 - **Group count** — ≤4: any pattern works. 5–7: prefer stagger or rolling. 8+: crossfade is usually forced.
 - **Scene density** — busy background eats stale captions; accumulate only works when backdrop is clean enough that older captions stay legible.
@@ -444,6 +484,7 @@ This is where per-case judgment earns its keep. The skill gives you a palette of
 **Every plan has ONE primary slot.** Most groups land there. Secondary slots exist only for intentional rhythm-breaks (once every ~30s, never per-chunk alternation). The old autogen rotation that threw each chunk to a different corner violated this and read as chaos.
 
 Choose a primary slot based on scene:
+
 - **9:16 portrait, subject mid-frame** → primary slot is `top: 4–20%` (sky / clean zone above the head). Secondary: `top: 72–78%` (below shoulders, above UI). Never: bottom 22% (UI/hand zone per [rule 17](aesthetic-principles.md)).
 - **16:9 landscape, subject left** → primary slot is the right column (`left: 50–55%`, right-aligned or centered in the column). Secondary: below subject.
 - **16:9 landscape, subject centered** → primary slot is `top: 10–20%` OR `top: 70–80%`. Pick one and stick.
@@ -462,7 +503,7 @@ Typography per chunk — treat each chunk as a mini-beat. The sizes below are a 
 - **Emphasis / content words** (verbs, nouns carrying meaning) → upright 600–800, mid (~0.08–0.12h starting point), centered or cascaded position, present tone.
 - **Climax / hook words** (the payoff word of the sentence) → uppercase 800–900, large (~0.14–0.22h starting point), full-frame or near-frame-width, present tone with scale pop.
 
-**Size is always relative, never absolute.** What matters is the *contrast ratio* between a group and its neighbors inside the same plane — climax should be ~2× the emphasis, emphasis ~1.3–1.5× the narrator. An agent that writes `0.08h / 0.08h / 0.08h` for three caps in a plane has failed regardless of which bucket it picked from. The hierarchy is the point.
+**Size is always relative, never absolute.** What matters is the _contrast ratio_ between a group and its neighbors inside the same plane — climax should be ~2× the emphasis, emphasis ~1.3–1.5× the narrator. An agent that writes `0.08h / 0.08h / 0.08h` for three caps in a plane has failed regardless of which bucket it picked from. The hierarchy is the point.
 
 Spatial composition: use the full frame as a canvas. Filler chunks tuck to corners or sit small at subordinate positions; emphasis chunks claim the middle; climax chunks own the frame. **Don't lock everything to `bottom: 12%`** — that's the boring-subtitle trap.
 
@@ -471,6 +512,7 @@ Time windows: either spatially-separate overlapping groups (cascade, poem-accumu
 Layer: default `"bg"` for any chunk whose position has clean scene around it (sky, wall, the area above/below the subject) — that's the embed effect. Use `"fg"` only when the chunk's position would be ≥80% occluded by the body (e.g. chyron-style chunks at bottom in 9:16 portrait where the torso fills that zone).
 
 **Climax chunks across the subject — readability first.** The Vogue-masthead effect (big uppercase crossing the body) is the most cinematic move, but only if the word is still readable. Use `bg` across the subject when **all** of:
+
 1. The caption is multi-line (≥2 lines), so even if one line is mostly eaten, the others stay clean and the viewer can read the phrase. Single-line captions should never sit directly over the face/body — either reposition above/below the subject, or use `fg`.
 2. The subject's bounding box covers ≤40% of the caption's total pixel area. For 9:16 portrait with a typical head-and-shoulders subject (~30% vertical × ~50% horizontal at mid-frame), a caption at `top: 16%` spanning 4 lines × 0.14h meets this — the face eats one line, the other three read clean. A caption at `top: 40%` sitting directly on the face does not.
 3. Each individual word has visible letter endpoints on at least one side — a word that's split mid-letter with only interior strokes showing is unreadable even if "25% of total pixels" are covered.

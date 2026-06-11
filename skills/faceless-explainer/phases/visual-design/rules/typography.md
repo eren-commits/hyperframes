@@ -38,14 +38,14 @@ Phrase by tier ("hero word uses display tier, eyebrow uses mono uppercase"); do 
 
 Size alone is insufficient. Stack at least 2-3 dimensions per scene:
 
-| Dimension     | Strong contrast                         | Decision point                                                |
-| ------------- | --------------------------------------- | ------------------------------------------------------------- |
-| **Size**      | 3:1 or larger                           | hero word far larger than surroundings                        |
-| **Weight**    | 800-900 vs 300-400                      | extreme weights in one family beat two fonts                  |
-| **Color**     | high contrast against background        | see `color-system.md`                                         |
-| **Spacing**   | tight display + wide eyebrow            | tight = confidence; wide uppercase = metadata                 |
-| **Case**      | eyebrow UPPERCASE + body Sentence       | all one case = monotone                                       |
-| **Style mix** | italic serif inside heavy sans          | word-level emphasis (archive signature)                       |
+| Dimension     | Strong contrast                   | Decision point                                |
+| ------------- | --------------------------------- | --------------------------------------------- |
+| **Size**      | 3:1 or larger                     | hero word far larger than surroundings        |
+| **Weight**    | 800-900 vs 300-400                | extreme weights in one family beat two fonts  |
+| **Color**     | high contrast against background  | see `color-system.md`                         |
+| **Spacing**   | tight display + wide eyebrow      | tight = confidence; wide uppercase = metadata |
+| **Case**      | eyebrow UPPERCASE + body Sentence | all one case = monotone                       |
+| **Style mix** | italic serif inside heavy sans    | word-level emphasis (archive signature)       |
 
 Plan names tiers/tracking by intent; do not write `-0.045em` / `0.08em` (build work).
 

@@ -353,7 +353,9 @@ async function runAudio(argv) {
         if (st.status) reason = `bgm_status=${st.status}${st.message ? ` (${st.message})` : ""}`;
       } catch {}
     }
-    warns.push(`BGM enabled but ${bgmRel} is absent — ${reason}. Render proceeds without BGM (non-blocking).`);
+    warns.push(
+      `BGM enabled but ${bgmRel} is absent — ${reason}. Render proceeds without BGM (non-blocking).`,
+    );
   }
 
   // ---- CAPTIONS ----

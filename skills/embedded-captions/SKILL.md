@@ -99,7 +99,7 @@ Read the samples. Refuse if:
 
 1. **Shot-cut probe.** Sample frames at 20%, 50%, 80%. If a different subject/scene appears, **trim the clip** before the cut.
 2. **Letterbox / pillarbox probe.** Black bars on the first frame? Compute safe content rect and constrain caption placement inside it.
-3. **Luminance probe.** Sample the caption region's average luminance — `<60` → light text reads as-is, `60-180` → add the glyph scrim, `>180` → opaque text + scrim (never bare light text). **Cinematic templates are cream+`screen` and LOCKED** — use this probe to _pick a fitting identity_ (bright scenes → `ink`, or a rail-surface identity like `keynote · rail`), never to recolour one; **Standard** you set in the HTML per the chosen template.
+3. **Luminance probe.** Sample the caption region's average luminance — `<60` → light text reads as-is, `60-180` → add the glyph scrim, `180+` → opaque text + scrim (never bare light text). **Cinematic templates are cream+`screen` and LOCKED** — use this probe to _pick a fitting identity_ (bright scenes → `ink`, or a rail-surface identity like `keynote · rail`), never to recolour one; **Standard** you set in the HTML per the chosen template.
 4. **Identity recommendation by tone (you recommend; the user picks — see Step 0 + CATALOG.md).** explainer / interview / must-read words → rail/panel-surface identities; poetic / social / "cinematic" → column-flow identities by register; "炸 / 特效 / VFX" / named worlds → themed identities. When unsure → `keynote · rail` (words read, scene safe) — but present a shortlist and let the user choose.
 
 ---

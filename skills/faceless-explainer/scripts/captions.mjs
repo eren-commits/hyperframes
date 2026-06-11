@@ -600,13 +600,20 @@ async function runHtml(argv) {
       // collides (the px the first pass writes is re-hit by the second), leaving
       // width stuck at 1920 for portrait. Sentinels make the swap simultaneous.
       h = h
-        .split('data-width="1920"').join(`data-width="${skinW}"`)
-        .split('data-height="1080"').join(`data-height="${skinH}"`)
-        .split("1920px").join(" WPX ")
-        .split("1080px").join(" HPX ")
-        .split(" WPX ").join(`${skinW}px`)
-        .split(" HPX ").join(`${skinH}px`)
-        .split("width=1920, height=1080").join(`width=${skinW}, height=${skinH}`);
+        .split('data-width="1920"')
+        .join(`data-width="${skinW}"`)
+        .split('data-height="1080"')
+        .join(`data-height="${skinH}"`)
+        .split("1920px")
+        .join(" WPX ")
+        .split("1080px")
+        .join(" HPX ")
+        .split(" WPX ")
+        .join(`${skinW}px`)
+        .split(" HPX ")
+        .join(`${skinH}px`)
+        .split("width=1920, height=1080")
+        .join(`width=${skinW}, height=${skinH}`);
     }
     return h;
   }
@@ -1561,8 +1568,7 @@ async function runKeepout(argv) {
               ? Math.max(
                   0,
                   Math.floor(
-                    (CAPTION_BAND_TOP_Y - 20 - top.val - marginY.top - transformY.knownPx) /
-                      denom,
+                    (CAPTION_BAND_TOP_Y - 20 - top.val - marginY.top - transformY.knownPx) / denom,
                   ),
                 )
               : Math.max(0, CAPTION_BAND_TOP_Y - 20 - top.val - marginY.top);

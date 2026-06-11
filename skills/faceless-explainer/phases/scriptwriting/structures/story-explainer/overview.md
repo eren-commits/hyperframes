@@ -19,15 +19,15 @@ A **shallow V**: dip into the problem-in-context, pivot on the concept, climb th
 
 5–8 scene slots. `type` is from the fixed enum `hook | pain_point | product_intro | feature_showcase | benefit_highlight | social_proof | branding | cta`; for an explainer each is repurposed as noted.
 
-| Order | Type (enum)         | Means here (explainer)                                                              | Approx % | Job                                                                                  |
-| ----- | ------------------- | ----------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------ |
-| 1     | `hook`              | Scene-setting — drop the viewer into a concrete, relatable situation                | 8–12%    | Introduce the character/scenario; make the viewer recognize themselves               |
-| 2     | `pain_point`        | The problem-in-context — the friction/stakes inside the scenario                    | 12–18%   | Raise tension: what's going wrong, what's at stake, why the obvious move fails        |
-| 3     | `product_intro`     | The turning point — the **insight / concept / mechanism** enters as the hero        | 12–18%   | Name the idea. This is the pivot; the concept arrives as the answer to the tension    |
-| 4     | `feature_showcase`  | It plays out — the concept applied step-by-step inside the same scenario            | 15–22%   | Show the idea working on the character's actual problem (not abstract definition)     |
-| 5     | `benefit_highlight` | Why it works — the principle behind the resolution; what changed and why it matters | 12–18%   | Generalize from this one case to the underlying truth                                |
-| 6     | `social_proof`      | _(optional)_ Corroboration — a second instance, a real number, a "this is common"   | 8–12%    | Show the lesson isn't a one-off; widen from the character to the pattern              |
-| 7     | `branding` / `cta`  | The lesson — the one-sentence takeaway, or a "next time you see X, remember Y"       | 10–15%   | Crystallize the principle; optionally invite the viewer to apply it                   |
+| Order | Type (enum)         | Means here (explainer)                                                              | Approx % | Job                                                                                |
+| ----- | ------------------- | ----------------------------------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------- |
+| 1     | `hook`              | Scene-setting — drop the viewer into a concrete, relatable situation                | 8–12%    | Introduce the character/scenario; make the viewer recognize themselves             |
+| 2     | `pain_point`        | The problem-in-context — the friction/stakes inside the scenario                    | 12–18%   | Raise tension: what's going wrong, what's at stake, why the obvious move fails     |
+| 3     | `product_intro`     | The turning point — the **insight / concept / mechanism** enters as the hero        | 12–18%   | Name the idea. This is the pivot; the concept arrives as the answer to the tension |
+| 4     | `feature_showcase`  | It plays out — the concept applied step-by-step inside the same scenario            | 15–22%   | Show the idea working on the character's actual problem (not abstract definition)  |
+| 5     | `benefit_highlight` | Why it works — the principle behind the resolution; what changed and why it matters | 12–18%   | Generalize from this one case to the underlying truth                              |
+| 6     | `social_proof`      | _(optional)_ Corroboration — a second instance, a real number, a "this is common"   | 8–12%    | Show the lesson isn't a one-off; widen from the character to the pattern           |
+| 7     | `branding` / `cta`  | The lesson — the one-sentence takeaway, or a "next time you see X, remember Y"      | 10–15%   | Crystallize the principle; optionally invite the viewer to apply it                |
 
 The "insight enters" pivot (`product_intro`) is the structural heartbeat — it lands at **roughly 30–45%**. Don't reveal the concept in scene 1: a story explainer that defines the idea up front collapses into a `concept-explainer` and throws away the tension that makes the lesson stick.
 

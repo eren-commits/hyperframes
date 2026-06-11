@@ -14,9 +14,10 @@ A complete caption template (see `../_anatomy.md` for the scene engine, `../_mot
 
 ## Recipe
 
-| | |
-|---|---|
-bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (THIS skill — not remove-background)
+|     |     |
+| --- | --- |
+
+bash scripts/prepare.sh <project> # matte ∥ transcribe ∥ safe-zones (THIS skill — not remove-background)
 | **Font** | `'Archivo Black'` |
 | **Fill** | text `#fff` - active-word accent `#5ce0ff` - climax fill: solid |
 | **Flow reveal** | `pop` (per-word, from `transcribe`) -> active word gets the accent |
@@ -33,7 +34,11 @@ bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (
 ## Style (drop in beside the `_anatomy.md` base CSS)
 
 ```css
-.s-sonic{--ff:'Archivo Black';--cfill:#fff;--cacc:#5ce0ff}
+.s-sonic {
+  --ff: "Archivo Black";
+  --cfill: #fff;
+  --cacc: #5ce0ff;
+}
 ```
 
 ## Motion (names -> `../_motion.md`)
@@ -49,6 +54,7 @@ bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (
 bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (THIS skill — not remove-background)
 npx hyperframes transcribe   subject.mp4 --model small      # -> transcript.json
 ```
+
 Build the `_anatomy.md` scene with class `stage s-sonic bg-scifi`, feed the transcript to the flow, set `CLIMAX_IN=sonic` / `CLIMAX_OUT=fade` from `_motion.md`, then `npx hyperframes lint && npx hyperframes validate`.
 
 ## Triggers

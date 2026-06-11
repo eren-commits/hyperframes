@@ -242,12 +242,7 @@
             var at = Math.max(start, Number(w.start));
             tl.set(el, { className: "caption-word" }, start); // upcoming (also resets on reverse-seek)
             tl.set(el, { className: "caption-word is-active" }, at); // current
-            tl.fromTo(
-              el,
-              { scale: 0.9 },
-              { scale: 1, duration: 0.14, ease: "power2.inOut" },
-              at,
-            );
+            tl.fromTo(el, { scale: 0.9 }, { scale: 1, duration: 0.14, ease: "power2.inOut" }, at);
             if (i + 1 < words.length) {
               var nextAt = Math.max(start, Number(words[i + 1].start));
               tl.set(el, { className: "caption-word is-spoken" }, nextAt); // demote when next stamps

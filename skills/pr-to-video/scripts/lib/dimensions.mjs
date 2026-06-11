@@ -34,9 +34,7 @@ export const ORIENTATION_PRESETS = {
 export const DEFAULT_DIMENSIONS = ORIENTATION_PRESETS.landscape;
 
 function sane(w, h) {
-  return (
-    Number.isFinite(w) && Number.isFinite(h) && w >= 240 && h >= 240 && w <= 8192 && h <= 8192
-  );
+  return Number.isFinite(w) && Number.isFinite(h) && w >= 240 && h >= 240 && w <= 8192 && h <= 8192;
 }
 
 // Resolve canvas dims from (in priority order) explicit flags, an explicit

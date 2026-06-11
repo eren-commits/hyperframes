@@ -14,9 +14,10 @@ A complete caption template (see `../_anatomy.md` for the scene engine, `../_mot
 
 ## Recipe
 
-| | |
-|---|---|
-bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (THIS skill — not remove-background)
+|     |     |
+| --- | --- |
+
+bash scripts/prepare.sh <project> # matte ∥ transcribe ∥ safe-zones (THIS skill — not remove-background)
 | **Font** | `'Inter'` |
 | **Fill** | text `#ffffff` - active-word accent `#9aa0ff` - climax fill: solid |
 | **Flow reveal** | `weight` (per-word, from `transcribe`) -> active word gets the accent |
@@ -33,8 +34,14 @@ bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (
 ## Style (drop in beside the `_anatomy.md` base CSS)
 
 ```css
-.s-vary{--ff:'Inter';--cfill:#ffffff;--cacc:#9aa0ff}
-.s-vary .climax{font-weight:900}
+.s-vary {
+  --ff: "Inter";
+  --cfill: #ffffff;
+  --cacc: #9aa0ff;
+}
+.s-vary .climax {
+  font-weight: 900;
+}
 ```
 
 ## Motion (names -> `../_motion.md`)
@@ -50,6 +57,7 @@ bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (
 bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (THIS skill — not remove-background)
 npx hyperframes transcribe   subject.mp4 --model small      # -> transcript.json
 ```
+
 Build the `_anatomy.md` scene with class `stage s-vary bg-scifi`, feed the transcript to the flow, set `CLIMAX_IN=weight` / `CLIMAX_OUT=fade` from `_motion.md`, then `npx hyperframes lint && npx hyperframes validate`.
 
 ## Triggers

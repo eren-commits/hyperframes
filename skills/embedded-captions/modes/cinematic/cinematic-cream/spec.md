@@ -3,6 +3,7 @@
 The authoritative spec lives in [template.html](template.html)'s header comment (DNA-only:
 what's LOCKED vs OPEN, the LAYOUT/planes contract, READING ORDER + hand-off, hero sizing).
 Read that header before authoring plan.json. Quick contract:
+
 - LOCKED: Inter, soft/present motion, warm-cream palette, screen blend, shadow logic.
 - OPEN per group (css field): size/weight/style/transform/spacing + position WITHIN a plane.
 - LAYOUT: run scripts/safe-zones.cjs first. Narration planes HUG the silhouette — use

@@ -2,13 +2,13 @@
 
 Five named styles corresponding to the `cap-*` CSS classes. Pick one per caption group in `plan.json` based on the line's semantic role.
 
-| style | CSS | Use when |
-|---|---|---|
-| `intro` | 66px italic 500 | First line, filler ("You know…", "So…"), contemplative openings. Low visual weight. |
-| `phrase` | 78px upright 600 | Main statement clauses. Default for most lines. |
-| `emph` | 92px upright 800 | Lines with emotional peak or key achievement ("I've achieved incredible things"). |
-| `dream` | 82px italic 700 | Aspirational / "was dreaming of…" style lines. Italic signals memory/imagination. |
-| `crown` | 140px upright 900 uppercase | **Only for the climax line.** Used in center-stage `crown-plane`. Maximum one per composition — ideally the last caption. |
+| style    | CSS                         | Use when                                                                                                                  |
+| -------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `intro`  | 66px italic 500             | First line, filler ("You know…", "So…"), contemplative openings. Low visual weight.                                       |
+| `phrase` | 78px upright 600            | Main statement clauses. Default for most lines.                                                                           |
+| `emph`   | 92px upright 800            | Lines with emotional peak or key achievement ("I've achieved incredible things").                                         |
+| `dream`  | 82px italic 700             | Aspirational / "was dreaming of…" style lines. Italic signals memory/imagination.                                         |
+| `crown`  | 140px upright 900 uppercase | **Only for the climax line.** Used in center-stage `crown-plane`. Maximum one per composition — ideally the last caption. |
 
 ## Tone field
 
@@ -31,13 +31,14 @@ Scan each group's words:
 
 The `.cap-*` defaults in each template are tuned for a **~560px column** (the original champion composition). When the caption plane is wider than that, the fonts feel underweight — too much negative space around text. Scale up accordingly.
 
-| Plane width | intro | phrase | emph | dream | crown (centered, full-frame) | crown (clean-zone only) |
-|---|---|---|---|---|---|---|
-| 460-580 px (tight)  | 66 | 78  | 92  | 82  | 140 | n/a |
-| 600-760 px (medium) | 78 | 108 | 128 | 100 | 220 | 118 |
-| 780+ px (wide)      | 90 | 128 | 150 | 116 | 260 | 140 |
+| Plane width         | intro | phrase | emph | dream | crown (centered, full-frame) | crown (clean-zone only) |
+| ------------------- | ----- | ------ | ---- | ----- | ---------------------------- | ----------------------- |
+| 460-580 px (tight)  | 66    | 78     | 92   | 82    | 140                          | n/a                     |
+| 600-760 px (medium) | 78    | 108    | 128  | 100   | 220                          | 118                     |
+| 780+ px (wide)      | 90    | 128    | 150  | 116   | 260                          | 140                     |
 
 Notes:
+
 - Crown sizes assume landscape (1920×1080). For portrait 1080×1920, divide all crown sizes by 1.5.
 - "full-frame crown" = centered, designed to span `0.8+ × frame_width` and cross the subject's body. Use only when [layout-heuristics.md § Crown placement](layout-heuristics.md) conditions pass.
 - "clean-zone only crown" = crown positioned inside one clean zone, smaller font, tail letters lightly touch subject. Fallback when centered crown would eat too much.
@@ -54,6 +55,7 @@ Also: if a plane's `rotateY` is non-trivial (say > 8°), effective visible width
 ## When scene luminance affects color choice
 
 The default color is warm bone-white (`#fff5df`). Adjust in the template CSS:
+
 - Wall is mostly warm wood / tan → keep default, or shift cooler `#e8f0ff`
 - Wall is cool blue / tech-lab → push warmer `#fff0c0`
 - Wall has strong primary color → desaturate default, luminance first

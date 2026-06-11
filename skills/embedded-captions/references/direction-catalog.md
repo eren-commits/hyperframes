@@ -6,21 +6,21 @@ Current shipped templates (`modes/cinematic/*`) cover about 30% of this catalog.
 
 Classification matrix — pick direction by intersection:
 
-| Tone ↓ / Platform → | 9:16 portrait | 16:9 landscape | 1:1 square |
-|---|---|---|---|
-| **Documentary** | documentary-dignified (vertical variant) | documentary-dignified | broadcast-dignified |
-| **Conversational** | portrait-header + default | memory-wall OR champion | broadcast-dignified |
-| **Energetic** | high-energy-vlog | high-energy-vlog-wide | high-energy-vlog-sq |
-| **Poetic** | lyrical-poem-on-wall (portrait) | lyrical-poem-on-wall | chapter-card |
-| **Keynote/tech** | — (9:16 not ideal) | tech-keynote-confident | tech-keynote-confident |
-| **Investigative** | — | investigative-typewriter | investigative-typewriter |
-| **Music video** | k-pop-lyric | k-pop-lyric | k-pop-lyric |
+| Tone ↓ / Platform → | 9:16 portrait                            | 16:9 landscape           | 1:1 square               |
+| ------------------- | ---------------------------------------- | ------------------------ | ------------------------ |
+| **Documentary**     | documentary-dignified (vertical variant) | documentary-dignified    | broadcast-dignified      |
+| **Conversational**  | portrait-header + default                | memory-wall OR champion  | broadcast-dignified      |
+| **Energetic**       | high-energy-vlog                         | high-energy-vlog-wide    | high-energy-vlog-sq      |
+| **Poetic**          | lyrical-poem-on-wall (portrait)          | lyrical-poem-on-wall     | chapter-card             |
+| **Keynote/tech**    | — (9:16 not ideal)                       | tech-keynote-confident   | tech-keynote-confident   |
+| **Investigative**   | —                                        | investigative-typewriter | investigative-typewriter |
+| **Music video**     | k-pop-lyric                              | k-pop-lyric              | k-pop-lyric              |
 
 ---
 
 ## Direction specs
 
-### 1. documentary-dignified  *(Errol Morris / PBS Frontline)*  — Standard-mode direction (no prebuilt Cinematic template)
+### 1. documentary-dignified _(Errol Morris / PBS Frontline)_ — Standard-mode direction (no prebuilt Cinematic template)
 
 - **Family**: Söhne Mono OR GT Sectra for name cards; Inter for body
 - **Weights**: 500 body, 700 name card
@@ -30,7 +30,7 @@ Classification matrix — pick direction by intersection:
 - **Rules**: 2-line max. Speaker name card once at first utterance + after each cut. No emphasis styling — gravitas IS the style.
 - **Rhetorical**: aggressive filler suppression. Every word is chosen.
 
-### 2. cinematic-noir  *(Kyle Cooper / Se7en)*
+### 2. cinematic-noir _(Kyle Cooper / Se7en)_
 
 - **Family**: Distressed serif (Hoefler Text) + tight mono for detail
 - **Weights**: 700 mostly; thin italic ONLY for whispers
@@ -39,7 +39,7 @@ Classification matrix — pick direction by intersection:
 - **Placement**: off-axis — avoid dead-center, slightly high-left or low-right
 - **Rules**: no emoji, no rounded corners, everything hand-feeling
 
-### 3. tech-keynote-confident  *(Apple / Jony Ive ad)*
+### 3. tech-keynote-confident _(Apple / Jony Ive ad)_
 
 - **Family**: SF Pro Display OR Inter, nothing else
 - **Weights**: 800 headline keyword, 400 context
@@ -48,7 +48,7 @@ Classification matrix — pick direction by intersection:
 - **Placement**: dead center, large. NOT lower-third.
 - **Rules**: one caption on screen at a time. 2–5 words per caption. Long held silences between. Feels like slides.
 
-### 4. lyrical-poem-on-wall  *(extends current memory-wall template)*
+### 4. lyrical-poem-on-wall _(extends current memory-wall template)_
 
 - **Family**: Serif with personality — EB Garamond / GT Sectra / Caslon Italic
 - **Weights**: 400–500 only. **This direction rejects bold.**
@@ -57,7 +57,7 @@ Classification matrix — pick direction by intersection:
 - **Placement**: always on a surface in the scene (back wall, foam, whiteboard). Uses matte pipeline.
 - **Rules**: captions are **fewer** than spoken text — 40–60%. Intentional silences. No other tool does this; strong differentiation.
 
-### 5. high-energy-vlog  *(controlled Hormozi)*
+### 5. high-energy-vlog _(controlled Hormozi)_
 
 - **Family**: Inter ExtraBold, uppercase
 - **Weights**: 900 always
@@ -66,7 +66,7 @@ Classification matrix — pick direction by intersection:
 - **Placement**: center-frame, ~35% from top
 - **Rules**: max 3 words per frame. Hard break at breath pauses. Accent color on ~15% of words. **One full silence every 10s** (what Hormozi imitators miss).
 
-### 6. chapter-card  *(Wes Anderson / Grand Budapest)*
+### 6. chapter-card _(Wes Anderson / Grand Budapest)_
 
 - **Family**: Futura Bold (modern) / Archer (warm) / Bodoni (formal)
 - **Weights**: 700 chapter title, 400 attribution
@@ -75,7 +75,7 @@ Classification matrix — pick direction by intersection:
 - **Placement**: centered card for chapters; lower-left name card during speech
 - **Rules**: chapter cards get their own beat (0.8s silence before, 0.4s after). Feels authored.
 
-### 7. investigative-typewriter  *(Frontline / 60 Minutes / Morris Interrotron)*
+### 7. investigative-typewriter _(Frontline / 60 Minutes / Morris Interrotron)_
 
 - **Family**: IBM Plex Mono OR JetBrains Mono
 - **Weights**: 500
@@ -84,7 +84,7 @@ Classification matrix — pick direction by intersection:
 - **Placement**: bottom band with 40% opacity gradient up — **NOT a hard box**
 - **Rules**: one line only, two-line max. Every caption ends with 1-frame cursor-hold before next enters.
 
-### 8. k-pop-lyric  *(music video typographic flex)*
+### 8. k-pop-lyric _(music video typographic flex)_
 
 - **Family**: oversized display serif (Playfair Display / GT Super) + tiny mono detail line
 - **Weights**: display 900, mono 400
@@ -93,7 +93,7 @@ Classification matrix — pick direction by intersection:
 - **Placement**: intentionally LARGE — sometimes bigger than the face
 - **Rules**: emotional/musical moments only. Never informational content. **Breaks rule #1 (subject wins) on purpose** — that's the whole point.
 
-### 9. broadcast-dignified  *(BBC / NYT documentary standard)*
+### 9. broadcast-dignified _(BBC / NYT documentary standard)_
 
 - **Family**: Helvetica Now / Neue Haas Grotesk
 - **Weights**: 500 body, 700 name
@@ -102,7 +102,7 @@ Classification matrix — pick direction by intersection:
 - **Placement**: bottom-center, 10% margin, title-safe locked
 - **Rules**: strict BBC — 160–180wpm, 32–34 chars/line, 2 lines max, 1.5s min gap. "Export to broadcast" mode. Boring on purpose. Never wrong.
 
-### 10. conference-lower-third-killer  *(B2B but not lame)*
+### 10. conference-lower-third-killer _(B2B but not lame)_
 
 - **Family**: GT America / Aktiv Grotesk
 - **Weights**: dual-weight name card — role 400, name 700, same size
@@ -118,6 +118,7 @@ Classification matrix — pick direction by intersection:
 Current templates: `memory-wall` (roughly direction #4), `champion` (roughly a mix of #5 and #9), `portrait-header` (default vertical).
 
 Priority ship order based on competitive gap:
+
 1. **documentary-dignified** — no one else does this well; Errol Morris aesthetic is an unserved niche
 2. **lyrical-poem-on-wall** (as distinct template) — the one that most uses our matte-embed moat
 3. **high-energy-vlog** — matches but out-designs Hormozi/Submagic presets
