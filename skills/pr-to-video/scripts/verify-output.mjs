@@ -49,7 +49,14 @@ async function runRender(argv) {
   }
 
   const MIN_BYTES = 10 * 1024; // 10 KB — below this is a header-only / 0-frame render
-  const DUR_TOLERANCE_S = 0.5; // same tolerance the old finalize Step 6 used
+  // Deliberately generous container-duration tolerance: 0.5s is many frames at any
+  // supported fps (15 frames @ 30fps), so normal encoder frame-quantization + MP4
+  // timestamp rounding never trips it. It is NOT a precision check — the drift it
+  // actually catches is structural (a scene clip with the wrong data-duration, or a
+  // sub-comp static-frame fallback running full length; see the failure message below).
+  // There is no shared renderer constant to import, so this is the single point to
+  // sync: if the engine ever changes how it pads/trims trailing frames, widen here.
+  const DUR_TOLERANCE_S = 0.5;
 
   const hyperframesDir = resolve(flag("hyperframes", "."));
   const groupSpecPath = resolve(flag("group-spec", join(hyperframesDir, "group_spec.json")));
@@ -353,7 +360,9 @@ async function runAudio(argv) {
         if (st.status) reason = `bgm_status=${st.status}${st.message ? ` (${st.message})` : ""}`;
       } catch {}
     }
-    warns.push(`BGM enabled but ${bgmRel} is absent — ${reason}. Render proceeds without BGM (non-blocking).`);
+    warns.push(
+      `BGM enabled but ${bgmRel} is absent — ${reason}. Render proceeds without BGM (non-blocking).`,
+    );
   }
 
   // ---- CAPTIONS ----

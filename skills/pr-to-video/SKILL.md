@@ -144,7 +144,7 @@ Dispatch one subagent. prompt = full contents of `agents/story-design.md` + the 
 ```
 SKILL_DIR: <absolute path>
 PROJECT_DIR: <video project root>
-Schema validator: <SKILL_DIR>/scripts/validate.mjs narrator
+Schema validator: <SKILL_DIR>/scripts/validate-narrator.mjs
 PR facts: ./capture/pr.json                          # title / body / commits / files / +/- stats — read first
 Diff: ./capture/diff.patch                           # the actual change — pull 2-4 representative hunks
 Brief: ./capture/extracted/visible-text.txt          # the assembled narrative brief
@@ -206,7 +206,7 @@ Then dispatch the visual-design subagent. prompt = full contents of `agents/visu
 ```
 SKILL_DIR: <absolute path>
 PROJECT_DIR: <video project root>
-Schema validator: <SKILL_DIR>/scripts/validate.mjs section
+Schema validator: <SKILL_DIR>/scripts/validate-section.mjs
 Canvas: <width>×<height>   # default 1920×1080 (16:9 landscape); 1080×1920 (9:16 portrait) or 1080×1080 (1:1 square) if requested upstream (narrator_scripts.orientation/dimensions). Plan layouts for THIS aspect ratio — see composition.md "Portrait & Square".
 Captions: <enabled | disabled>   # Planning hint from the node -e above: enabled => leave the bottom ~17% of canvas height as caption territory in prose
 Dispatch packet: <PROJECT_DIR>/.dispatch/vd-dispatch.txt   # Step 0 reads it once for all inputs

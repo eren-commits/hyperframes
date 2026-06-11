@@ -65,7 +65,7 @@ Write `narrativeArchetype` as `"<outer> with <inner>"`, e.g. `"feature-reveal wi
 
 Every scene has five narrative fields (type, narrativeRole, keyMessage, persuasion, emotionalBeat), plus a separate transition spec:
 
-- **Type** — one of the enum values `hook / pain_point / product_intro / feature_showcase / benefit_highlight / social_proof / branding / cta`. The enum is schema-fixed (`validate.mjs` enforces it), so pr-to-video **repurposes** these labels for code changes. Use the mapping table below.
+- **Type** — one of the enum values `hook / pain_point / product_intro / feature_showcase / benefit_highlight / social_proof / branding / cta`. The enum is schema-fixed (`validate-narrator.mjs` enforces it), so pr-to-video **repurposes** these labels for code changes. Use the mapping table below.
 - **Narrative Role** — what this scene does in the explanation (its _job_, e.g. "Shows the request now retries on 5xx with backoff", not "Shows code").
 - **Key Message** — the one thing the viewer should walk away understanding (one sentence).
 - **Persuasion** — a _named_ rhetorical / clarity technique (catalog below). "Explain the change" is a failure mode; the standard is "Before/after contrast: the throw becomes a retry loop" / "Worked example: one failing request, now recovered."
@@ -74,7 +74,7 @@ Every scene has five narrative fields (type, narrativeRole, keyMessage, persuasi
 
 ### Type-enum repurposing (schema-fixed enum → PR roles)
 
-The enum values cannot change (`validate.mjs` enforces them; at least one scene must be `feature_showcase` or `product_intro`). Map your PR roles onto them as follows:
+The enum values cannot change (`validate-narrator.mjs` enforces them; at least one scene must be `feature_showcase` or `product_intro`). Map your PR roles onto them as follows:
 
 | PR role you want                                   | Use enum `type`     | Why this value                                                                   |
 | -------------------------------------------------- | ------------------- | -------------------------------------------------------------------------------- |
@@ -210,7 +210,7 @@ This is **optional and tasteful, not mandatory**: a one-line hotfix doesn't need
 
 The single largest quality bug in PR videos is **scripts that talk too long**. The narrator agent tends to write 30-50 words per scene "because the change has nuance," then estimate `"7s"`. The actual TTS at the Phase 3 default voice (ElevenLabs Rachel for technical narration) is **~2.2 words/second (~130 wpm)** — so a 45-word script is a 20-second scene, not a 7-second one. The visual phase then has to fill 13 seconds of unplanned tail with `sine-wave-loop` idle drift, and the viewer reads the whole film as "shimmering."
 
-**Budget the script by word count, not by gut-feel seconds.** The validator (`scripts/validate.mjs narrator`) enforces these as machine checks; failing the hard cap is fatal.
+**Budget the script by word count, not by gut-feel seconds.** The validator (`scripts/validate-narrator.mjs`) enforces these as machine checks; failing the hard cap is fatal.
 
 | Bound                             | Words (at 2.2 wps) | Duration     | When                                                                                                                                                                                      |
 | --------------------------------- | ------------------ | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -255,11 +255,11 @@ estimatedDuration ≈ word_count / 2.2     // round up to the nearest whole seco
 - Is there only one outer archetype (no splicing top-level frameworks)? Named inner-rhythm compounds are allowed.
 - Is the type-enum used per the repurposing table (≥1 `feature_showcase`/`product_intro`)?
 - Did you feature **2-4 real diff hunks** (named in transition `description`s), each a small legible snippet — not a whole file?
-- Did each scene's `script` fit the budget — **≤ 19 words / ≤ 9 s** as the default, with no more than 2 scenes claiming the ≤ 26 words / ≤ 12 s exception? Did you compute `estimatedDuration` as `ceil(word_count / 2.2)` for each, not guess? (See "Per-Scene Length Budget" above; `scripts/validate.mjs narrator` enforces the hard cap and warns on the soft target.)
+- Did each scene's `script` fit the budget — **≤ 19 words / ≤ 9 s** as the default, with no more than 2 scenes claiming the ≤ 26 words / ≤ 12 s exception? Did you compute `estimatedDuration` as `ceil(word_count / 2.2)` for each, not guess? (See "Per-Scene Length Budget" above; `scripts/validate-narrator.mjs` enforces the hard cap and warns on the soft target.)
 
 ## `narrator_scripts.json`: Canonical Schema
 
-Downstream agents expect these **exact** field names. Wrong names (e.g. `scene_id` instead of `sceneNumber`, `narration` instead of `script`, or flattened intent fields) are fatal in `validate.mjs narrator`.
+Downstream agents expect these **exact** field names. Wrong names (e.g. `scene_id` instead of `sceneNumber`, `narration` instead of `script`, or flattened intent fields) are fatal in `validate-narrator.mjs`.
 
 ```json
 {
@@ -296,7 +296,7 @@ Field rules:
 
 - Use `sceneNumber` (not `scene_id`), `sceneName` (not `scene_name`), `script` (not `narration`), and nest intent fields inside `narrativeIntent` (do not flatten them onto the scene object).
 - Every scene must have a `transition` field (`continuity` + `intent` + `description`; add `sharedMotif` for morph), including scene 1 (`continuity: "break"` + `intent: "cut"`). Scene 1's transition does not generate any transition downstream (it's ignored) — `intent: "cut"` is just a placeholder.
-- `continuity` is **decoupled from `intent`** (a soft hint). `continue` = same worker (a run of up to 3 scenes); `break` = new worker. `validate.mjs narrator` checks only enum membership + scene 1 = `break`.
+- `continuity` is **decoupled from `intent`** (a soft hint). `continue` = same worker (a run of up to 3 scenes); `break` = new worker. `validate-narrator.mjs` checks only enum membership + scene 1 = `break`.
 - `assetCandidates` is a **required** field and must be an array. For pr-to-video it is `[]` on essentially every scene; only a user-provided `public/<basename>` image yields a `{path, description}` entry (path must start with `public/`).
 - At least one scene must be `type: feature_showcase` or `product_intro`.
 - **Empty `script` is allowed** when the visual carries the information (a diff typing on, a before→after morph, a counter running). When you set `script: ""`, make `narrativeRole` especially strong.

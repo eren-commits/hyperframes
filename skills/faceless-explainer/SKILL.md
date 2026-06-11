@@ -94,7 +94,7 @@ Dispatch one subagent. prompt = full contents of `agents/scriptwriting.md` + the
 ```
 SKILL_DIR: <absolute path>
 PROJECT_DIR: <video project root>
-Schema validator: <SKILL_DIR>/scripts/validate.mjs narrator
+Schema validator: <SKILL_DIR>/scripts/validate-narrator.mjs
 Input text: ./capture/extracted/visible-text.txt   # The source article / notes / brief — the agent reads this first
 Style preset: pick one from the menu in the guide and emit it as the top-level `stylePreset` (default `pin-and-paper` when unsure); match the narration register to the chosen preset
 Orientation: <landscape | portrait | square>   # From the Step 0.0 aspect (16:9→landscape, 9:16→portrait, 1:1→square; default landscape). Emit it VERBATIM as the top-level `orientation` field — this is dictated, not a creative choice; it sets the canvas (portrait→1080×1920) for the whole pipeline.
@@ -178,7 +178,7 @@ Then dispatch the visual-design subagent. prompt = full contents of `agents/visu
 ```
 SKILL_DIR: <absolute path>
 PROJECT_DIR: <video project root>
-Schema validator: <SKILL_DIR>/scripts/validate.mjs section
+Schema validator: <SKILL_DIR>/scripts/validate-section.mjs
 Canvas: <width>×<height>   # default 1920×1080 (16:9 landscape); 1080×1920 (9:16 portrait) or 1080×1080 (1:1 square) if requested upstream (narrator_scripts.orientation/dimensions). Plan layouts for THIS aspect ratio — see composition.md "Portrait & square".
 Captions: <enabled | disabled>   # Planning hint from the node -e above: enabled => leave the bottom ~17% of canvas height as caption territory in prose
 Dispatch packet: <PROJECT_DIR>/.dispatch/vd-dispatch.txt   # Step 0 reads it once for all inputs

@@ -203,7 +203,14 @@ for (const visual of visualClips) {
   const start = visual.start_s;
   const dur = visual.duration_s;
   const sceneList = visual.scene_ids?.length ? ` (${visual.scene_ids.join(", ")})` : "";
-  body.push(`      <!-- ${id}${sceneList} (${start} → ${Number((start + dur).toFixed(3))}) -->`);
+  // CONTRACT (keep in lockstep with transitions.mjs visual-clip parser): the
+  // "HF-VISUAL-CLIP <id>" marker lets transitions.mjs count expected visual clips
+  // independently of the <div> attribute formatting and fail loudly if the emit
+  // shape below ever drifts out of sync with its regex. Do not rename the marker
+  // or collapse the per-attribute line layout without updating transitions.mjs.
+  body.push(
+    `      <!-- HF-VISUAL-CLIP ${id}${sceneList} (${start} → ${Number((start + dur).toFixed(3))}) -->`,
+  );
   body.push(
     `      <div`,
     `        id="el-${id}"`,

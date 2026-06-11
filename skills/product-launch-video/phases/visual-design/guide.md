@@ -77,12 +77,12 @@ Each scene in `section_plan.md` is one block, in the same order as `narrator_scr
 
 **Order inside the block is mandatory, and PrimarySubjectTimeline / Handoff must appear after all anchors and before prose** (immediately after SFX block). Reason is mechanical: `prep.mjs` defines `creative_brief = all text after the last recognized anchor`, and it recognizes `SFX` but **does not recognize** `PrimarySubjectTimeline` / `Handoff`; therefore those two lines must come after SFX so they enter the worker brief. If placed before SFX, they get sliced away and worker never receives them. Rules: 1. all `**Anchor:**` lines (including SFX bullet block, PST, Handoff) are grouped at the top; 2. only then comes free prose, whose **first sentence** is the emotional footnote (§4 item 1, "the dividing line between real plan and generic AI output"); 3. once prose starts, **no more `**Anchor:**` lines** (interleaving = validator fatal). For multi-act scenes, the brief may start with `**PrimarySubjectTimeline:**` followed immediately by emotional footnote; that is expected.
 
-`validate.mjs section` enforces (hard):
+`validate-section.mjs` enforces (hard):
 
 - **Effects:** 2-5 backtick-wrapped rule ids, comma-separated inside brackets; each id must be an existing rule under `hyperframes-animation/rules/` (the validator actually checks this). Normally cite only from dispatch `## Effects catalog`; order is timeline-layering order.
 - **Duration:** float seconds (source in §1)
 - Required anchors each stand alone on their own line, with no surrounding text; missing any required anchor -> downstream fatal -> rerun Phase 3
-- **PrimarySubjectTimeline + Handoff:** required for multi-act scenes or scenes where action/payoff + proof/supporting subject share the frame. Missing either -> validator fatal. **Position:** immediately after SFX block and before prose (machine reason in template note above - they must enter `creative_brief` for worker)
+- **PrimarySubjectTimeline + Handoff:** required for multi-act scenes or scenes where action/payoff + proof/supporting subject share the frame. Missing either -> validator fatal. **Position:** immediately after SFX block and before prose (machine reason in template note above - they must enter `creative_brief` for worker). The "is this scene risky" trigger is read from the optional `**Hierarchy:**` anchor when present (a schema check), else inferred from the prose — see the **Hierarchy anchor** subsection below
 - **Block order:** all `**Anchor:**` lines (including SFX bullets, PrimarySubjectTimeline, Handoff) must precede free prose; any `**Word:**` anchor line after prose begins -> validator fatal (interleaving makes worker brief unpredictable)
 - **File-level:** before the first `## Scene` only one H1 title + one `## Film Direction` block are allowed; **missing `## Film Direction` -> validator fatal**; Film Direction > 700 words -> fatal (it is a one-page header, not a second plan); any other preface -> fatal (see whole-file shape above)
 - **Per-scene prose length:** target ≤150 words; > 320 words -> validator fatal. Walls of prose are almost always film-level invariants restated per scene — move them into `## Film Direction`
@@ -110,6 +110,15 @@ Value of writing Blueprint anchor: (1) forces plan agent to explicitly commit to
 - harness handles everything: overlap, outgoing clip extension, track assignment, GSAP stamping, verification. You only name intent; **never write transition code, touch timing, or touch index.html**
 
 > This is the plan agent's explicit commitment about how scenes connect. It must align with the prose "eye destination" sentence (§4.2 item 6) — that sentence is human-readable creative direction; the `**Transition:**` anchor is the machine instruction for the harness.
+
+**Hierarchy anchor (optional / soft — declares the scene's focal profile):**
+
+A scene that stacks competing focal claims — it is multi-act, or an action/payoff (CTA) co-exists with proof (logos / stats) — must carry `**PrimarySubjectTimeline:**` + `**Handoff:**` (see the enforces list above). `validate-section.mjs` decides whether a scene is "risky" in one of two ways:
+
+- **Declare it (preferred — turns the check into a schema read).** Add a `**Hierarchy:**` anchor naming the profile from this fixed vocabulary: `simple` / `multi-act` / `action` / `social-proof` / `data-proof` (comma- or space-separated, e.g. `**Hierarchy:** action, social-proof`). Declared values are **authoritative**: a scene tagged `simple` is never treated as risky even if the prose mentions logos or a CTA, and one tagged `multi-act` is gated even if the prose reads calm. An out-of-vocabulary tag is a validator fatal, so a typo can't silently disable the gate.
+- **Omit it (fallback).** When absent, the validator infers the profile from the prose (the historical keyword classifier). This still works but is fuzzier and can mis-read incidental wording — declaring the anchor removes that ambiguity.
+
+The anchor is **validator-only**: prep strips it before the worker brief, so it never adds noise to scene content. Place it among the anchors, before prose (it's in the block-order anchor set).
 
 **SFX anchor (optional / soft - only write when using sound effects):**
 

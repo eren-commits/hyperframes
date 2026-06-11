@@ -70,7 +70,7 @@ Write `narrativeArchetype` as `"<outer> with <inner>"`, e.g. `"concept-explainer
 
 Define each scene's role in the explanation. Every scene has five narrative fields (type, narrativeRole, keyMessage, persuasion, emotionalBeat), plus a separate transition spec:
 
-- **Type** — one of the enum values `hook` / `pain_point` / `product_intro` / `feature_showcase` / `benefit_highlight` / `social_proof` / `branding` / `cta`. The enum is schema-fixed (validate.mjs enforces it), so FE **repurposes** these labels for teaching rather than selling. Use the mapping table below; pick the value whose downstream pacing matches the scene's job.
+- **Type** — one of the enum values `hook` / `pain_point` / `product_intro` / `feature_showcase` / `benefit_highlight` / `social_proof` / `branding` / `cta`. The enum is schema-fixed (validate-narrator.mjs enforces it), so FE **repurposes** these labels for teaching rather than selling. Use the mapping table below; pick the value whose downstream pacing matches the scene's job.
 - **Narrative Role** — what this scene does in the explanation (its _job_, e.g. "Concretizes compound interest as a snowball rolling downhill", not "Shows a chart").
 - **Key Message** — the one thing the viewer should walk away understanding (one sentence).
 - **Persuasion** — a _named_ rhetorical / clarity technique (see catalog below). "Explain the idea" / "show benefits" is a failure mode; the standard is "Analogy: tax brackets as a staircase, not a cliff" / "Progressive disclosure: reveal the formula one term at a time" / "Worked example with concrete round numbers."
@@ -79,7 +79,7 @@ Define each scene's role in the explanation. Every scene has five narrative fiel
 
 ### Type-enum repurposing (schema-fixed enum → explainer roles)
 
-The enum values cannot change (validate.mjs enforces them; at least one scene must be `feature_showcase` or `product_intro`). Map your explainer roles onto them as follows:
+The enum values cannot change (validate-narrator.mjs enforces them; at least one scene must be `feature_showcase` or `product_intro`). Map your explainer roles onto them as follows:
 
 | Explainer role you want          | Use enum `type`     | Why this value                                                                                         |
 | -------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------ |
@@ -250,7 +250,7 @@ Therefore:
 
 ## `narrator_scripts.json`: Canonical Schema
 
-Downstream agents expect these **exact** field names. Wrong names (e.g. `scene_id` instead of `sceneNumber`, `narration` instead of `script`, or flattened intent fields) are fatal in `validate.mjs narrator`.
+Downstream agents expect these **exact** field names. Wrong names (e.g. `scene_id` instead of `sceneNumber`, `narration` instead of `script`, or flattened intent fields) are fatal in `validate-narrator.mjs`.
 
 ```json
 {
@@ -284,10 +284,10 @@ Downstream agents expect these **exact** field names. Wrong names (e.g. `scene_i
 }
 ```
 
-Field rules (use exact field names above; wrong names are fatal in `validate.mjs narrator`):
+Field rules (use exact field names above; wrong names are fatal in `validate-narrator.mjs`):
 
 - Every scene must have a `transition` field (`continuity` + `intent` + `description`; add `sharedMotif` for morph), including scene 1 (`continuity: "break"` + `intent: "cut"`). **Scene 1 has no previous scene, so its `transition` does not generate any transition downstream (downstream ignores it) — `intent: "cut"` is just a placeholder.**
-- `continuity` is **decoupled from `intent`** (a soft hint). `continue` = same worker (a run of up to 3 scenes); `break` = new worker. `validate.mjs narrator` checks only enum membership + scene 1 = `break`.
+- `continuity` is **decoupled from `intent`** (a soft hint). `continue` = same worker (a run of up to 3 scenes); `break` = new worker. `validate-narrator.mjs` checks only enum membership + scene 1 = `break`.
 - `assetCandidates` is a **required** field and must be an array. For FE it is `[]` on essentially every scene; only a user-provided `public/<basename>` image yields a `{path, description}` entry.
 - `narrativeArchetype` names one of the four explainer structures (or a `"<outer> with <inner>"` compound). At least one scene must be `type: feature_showcase` or `product_intro`.
 
