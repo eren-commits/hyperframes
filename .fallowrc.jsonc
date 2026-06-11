@@ -43,6 +43,9 @@
     "packages/engine/tests/**",
     "skills/**/test-corpus/**",
     "skills/**/scripts/**",
+    // Bundled @font-face data (read at runtime via fs.readFileSync, invisible
+    // to the import graph) + its manual rebuild tool.
+    "skills/**/fonts/**",
     // Golden snapshot files: data consumed by toMatchFileSnapshot, not importable modules.
     "packages/**/__goldens__/**",
     "registry/**",
