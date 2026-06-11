@@ -14,9 +14,10 @@ A complete caption template (see `../_anatomy.md` for the scene engine, `../_mot
 
 ## Recipe
 
-| | |
-|---|---|
-bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (THIS skill — not remove-background)
+|     |     |
+| --- | --- |
+
+bash scripts/prepare.sh <project> # matte ∥ transcribe ∥ safe-zones (THIS skill — not remove-background)
 | **Font** | `'Playfair Display'` |
 | **Fill** | text `#f4efe6` - active-word accent `#b5462f` - climax fill: solid |
 | **Flow reveal** | `rise` (per-word, from `transcribe`) -> active word gets the accent |
@@ -33,9 +34,17 @@ bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (
 ## Style (drop in beside the `_anatomy.md` base CSS)
 
 ```css
-.s-mid{--ff:'Playfair Display';--cfill:#f4efe6;--cacc:#b5462f}
-.s-mid .flow{font-weight:700}
-.s-mid .climax{font-weight:900}
+.s-mid {
+  --ff: "Playfair Display";
+  --cfill: #f4efe6;
+  --cacc: #b5462f;
+}
+.s-mid .flow {
+  font-weight: 700;
+}
+.s-mid .climax {
+  font-weight: 900;
+}
 ```
 
 ## Motion (names -> `../_motion.md`)
@@ -44,13 +53,13 @@ bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (
 - `CLIMAX_IN` = **rise** - `CLIMAX_OUT` = **rise-off** (ends `opacity:0`, hard exit)
 - Climax dwell **>=1 s** after the entrance settles; effects only at the climax.
 
-
 ## Reproduce
 
 ```bash
 bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (THIS skill — not remove-background)
 npx hyperframes transcribe   subject.mp4 --model small      # -> transcript.json
 ```
+
 Build the `_anatomy.md` scene with class `stage s-mid bg-podcast`, feed the transcript to the flow, set `CLIMAX_IN=rise` / `CLIMAX_OUT=rise-off` from `_motion.md`, then `npx hyperframes lint && npx hyperframes validate`.
 
 ## Triggers

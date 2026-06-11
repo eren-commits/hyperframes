@@ -14,9 +14,10 @@ A complete caption template (see `../_anatomy.md` for the scene engine, `../_mot
 
 ## Recipe
 
-| | |
-|---|---|
-bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (THIS skill — not remove-background)
+|     |     |
+| --- | --- |
+
+bash scripts/prepare.sh <project> # matte ∥ transcribe ∥ safe-zones (THIS skill — not remove-background)
 | **Font** | `'Cinzel'` |
 | **Fill** | text `#d5dae2` - active-word accent `#c08a3e` - climax fill: solid |
 | **Flow reveal** | `pop` (per-word, from `transcribe`) -> active word gets the accent |
@@ -33,7 +34,11 @@ bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (
 ## Style (drop in beside the `_anatomy.md` base CSS)
 
 ```css
-.s-trailer{--ff:'Cinzel';--cfill:#d5dae2;--cacc:#c08a3e}
+.s-trailer {
+  --ff: "Cinzel";
+  --cfill: #d5dae2;
+  --cacc: #c08a3e;
+}
 ```
 
 ## Motion (names -> `../_motion.md`)
@@ -42,13 +47,13 @@ bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (
 - `CLIMAX_IN` = **monument** - `CLIMAX_OUT` = **sink** (ends `opacity:0`, hard exit)
 - Climax dwell **>=1 s** after the entrance settles; effects only at the climax.
 
-
 ## Reproduce
 
 ```bash
 bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (THIS skill — not remove-background)
 npx hyperframes transcribe   subject.mp4 --model small      # -> transcript.json
 ```
+
 Build the `_anatomy.md` scene with class `stage s-trailer bg-scifi`, feed the transcript to the flow, set `CLIMAX_IN=monument` / `CLIMAX_OUT=sink` from `_motion.md`, then `npx hyperframes lint && npx hyperframes validate`.
 
 ## Triggers

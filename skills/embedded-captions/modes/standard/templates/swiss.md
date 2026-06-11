@@ -14,9 +14,10 @@ A complete caption template (see `../_anatomy.md` for the scene engine, `../_mot
 
 ## Recipe
 
-| | |
-|---|---|
-bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (THIS skill — not remove-background)
+|     |     |
+| --- | --- |
+
+bash scripts/prepare.sh <project> # matte ∥ transcribe ∥ safe-zones (THIS skill — not remove-background)
 | **Font** | `'Inter'` |
 | **Fill** | text `#fafafa` - active-word accent `#ff2d2d` - climax fill: solid |
 | **Flow reveal** | `editwipe` (per-word, from `transcribe`) -> active word gets the accent |
@@ -33,9 +34,20 @@ bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (
 ## Style (drop in beside the `_anatomy.md` base CSS)
 
 ```css
-.s-swiss{--ff:'Inter';--cfill:#fafafa;--cacc:#ff2d2d}
-.s-swiss .flow{font-weight:800;letter-spacing:-.02em;text-transform:uppercase}
-.s-swiss .climax{font-weight:900;letter-spacing:-.04em}
+.s-swiss {
+  --ff: "Inter";
+  --cfill: #fafafa;
+  --cacc: #ff2d2d;
+}
+.s-swiss .flow {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+.s-swiss .climax {
+  font-weight: 900;
+  letter-spacing: -0.04em;
+}
 ```
 
 ## Motion (names -> `../_motion.md`)
@@ -44,13 +56,13 @@ bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (
 - `CLIMAX_IN` = **editwipe** - `CLIMAX_OUT` = **sweep-off** (ends `opacity:0`, hard exit)
 - Climax dwell **>=1 s** after the entrance settles; effects only at the climax.
 
-
 ## Reproduce
 
 ```bash
 bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (THIS skill — not remove-background)
 npx hyperframes transcribe   subject.mp4 --model small      # -> transcript.json
 ```
+
 Build the `_anatomy.md` scene with class `stage s-swiss bg-podcast`, feed the transcript to the flow, set `CLIMAX_IN=editwipe` / `CLIMAX_OUT=sweep-off` from `_motion.md`, then `npx hyperframes lint && npx hyperframes validate`.
 
 ## Triggers

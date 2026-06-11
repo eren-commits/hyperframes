@@ -14,9 +14,10 @@ A complete caption template (see `../_anatomy.md` for the scene engine, `../_mot
 
 ## Recipe
 
-| | |
-|---|---|
-bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (THIS skill — not remove-background)
+|     |     |
+| --- | --- |
+
+bash scripts/prepare.sh <project> # matte ∥ transcribe ∥ safe-zones (THIS skill — not remove-background)
 | **Font** | `'Archivo Black'` |
 | **Fill** | text `#ffffff` - active-word accent `#ff5cc8` - climax fill: solid |
 | **Flow reveal** | `fade-up` (per-word, from `transcribe`) -> active word gets the accent |
@@ -33,7 +34,11 @@ bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (
 ## Style (drop in beside the `_anatomy.md` base CSS)
 
 ```css
-.s-prism{--ff:'Archivo Black';--cfill:#ffffff;--cacc:#ff5cc8}
+.s-prism {
+  --ff: "Archivo Black";
+  --cfill: #ffffff;
+  --cacc: #ff5cc8;
+}
 ```
 
 ## Motion (names -> `../_motion.md`)
@@ -42,13 +47,13 @@ bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (
 - `CLIMAX_IN` = **prism** - `CLIMAX_OUT` = **prism-out** (ends `opacity:0`, hard exit)
 - Climax dwell **>=1 s** after the entrance settles; effects only at the climax.
 
-
 ## Reproduce
 
 ```bash
 bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (THIS skill — not remove-background)
 npx hyperframes transcribe   subject.mp4 --model small      # -> transcript.json
 ```
+
 Build the `_anatomy.md` scene with class `stage s-prism bg-neon`, feed the transcript to the flow, set `CLIMAX_IN=prism` / `CLIMAX_OUT=prism-out` from `_motion.md`, then `npx hyperframes lint && npx hyperframes validate`.
 
 ## Triggers

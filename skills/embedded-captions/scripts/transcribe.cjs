@@ -18,22 +18,35 @@ function hfRoot() {
     path.resolve(__dirname, "..", "..", ".."),
     path.join(os.homedir(), "Downloads", "hyperframes"),
   ].filter(Boolean);
-  for (const r of roots) if (fs.existsSync(path.join(r, "packages", "cli", "dist", "cli.js"))) return r;
-  console.error("[transcribe] hyperframes CLI not found — set HYPERFRAMES_ROOT"); process.exit(3);
+  for (const r of roots)
+    if (fs.existsSync(path.join(r, "packages", "cli", "dist", "cli.js"))) return r;
+  console.error("[transcribe] hyperframes CLI not found — set HYPERFRAMES_ROOT");
+  process.exit(3);
 }
 function ensureSource(project) {
   const src = path.join(project, "source.mp4");
   if (fs.existsSync(src)) return src;
   const EXCL = new Set(["final", "bg_plus_caps", "fg_caps", "audio"]);
-  let cands = fs.readdirSync(project)
-    .filter((f) => ["mp4", "mov", "webm", "mkv", "m4v"].includes(path.extname(f).slice(1).toLowerCase())
-      && !EXCL.has(path.basename(f, path.extname(f))) && !f.startsWith("index"))
+  let cands = fs
+    .readdirSync(project)
+    .filter(
+      (f) =>
+        ["mp4", "mov", "webm", "mkv", "m4v"].includes(path.extname(f).slice(1).toLowerCase()) &&
+        !EXCL.has(path.basename(f, path.extname(f))) &&
+        !f.startsWith("index"),
+    )
     .map((f) => path.join(project, f));
   let found = cands.sort((a, b) => fs.statSync(b).size - fs.statSync(a).size)[0];
-  if (found) { try { fs.symlinkSync(path.basename(found), src); } catch (e) { fs.copyFileSync(found, src); } }
+  if (found) {
+    try {
+      fs.symlinkSync(path.basename(found), src);
+    } catch {
+      fs.copyFileSync(found, src);
+    }
+  }
   return src;
 }
-function usableWords(d) {
+function _usableWords(d) {
   return d && Array.isArray(d.words) && d.words.some((w) => w && "start" in w && "end" in w);
 }
 // Mean loudness of the audio, for the no-speech guard below. Silence → whisper
@@ -41,12 +54,17 @@ function usableWords(d) {
 function meanVolumeDb(audio) {
   try {
     // ffmpeg writes volumedetect stats to STDERR — capture it (spawnSync, no throw).
-    const r = cp.spawnSync("ffmpeg", ["-hide_banner", "-nostats", "-i", audio, "-af", "volumedetect", "-f", "null", "-"],
-      { encoding: "utf8" });
+    const r = cp.spawnSync(
+      "ffmpeg",
+      ["-hide_banner", "-nostats", "-i", audio, "-af", "volumedetect", "-f", "null", "-"],
+      { encoding: "utf8" },
+    );
     const out = (r.stderr || "") + (r.stdout || "");
     const m = out.match(/mean_volume:\s*(-?[\d.]+) dB/);
     return m ? parseFloat(m[1]) : null;
-  } catch (e) { return null; }
+  } catch {
+    return null;
+  }
 }
 
 // Where does AUDIBLE content end? Whisper hallucinates trailing words over a silent
@@ -56,24 +74,42 @@ function meanVolumeDb(audio) {
 // tails. Returns {speechEnd, total} or null.
 function audibleEnd(audio) {
   try {
-    const r = cp.spawnSync("ffmpeg", ["-hide_banner", "-nostats", "-i", audio,
-      "-af", "silencedetect=noise=-35dB:d=0.6", "-f", "null", "-"], { encoding: "utf8" });
+    const r = cp.spawnSync(
+      "ffmpeg",
+      [
+        "-hide_banner",
+        "-nostats",
+        "-i",
+        audio,
+        "-af",
+        "silencedetect=noise=-35dB:d=0.6",
+        "-f",
+        "null",
+        "-",
+      ],
+      { encoding: "utf8" },
+    );
     const out = (r.stderr || "") + (r.stdout || "");
     const durM = out.match(/Duration:\s*(\d+):(\d+):([\d.]+)/);
-    const total = durM ? (+durM[1] * 3600 + +durM[2] * 60 + +durM[3]) : null;
+    const total = durM ? +durM[1] * 3600 + +durM[2] * 60 + +durM[3] : null;
     if (total == null) return null;
     const starts = [...out.matchAll(/silence_start:\s*([\d.]+)/g)].map((x) => +x[1]);
     const ends = [...out.matchAll(/silence_end:\s*([\d.]+)/g)].map((x) => +x[1]);
     if (!starts.length) return { speechEnd: total, total };
     const lastStart = starts[starts.length - 1];
-    const closed = ends.some((e) => e > lastStart);  // silence re-broken before EOF?
+    const closed = ends.some((e) => e > lastStart); // silence re-broken before EOF?
     return { speechEnd: closed ? total : lastStart, total };
-  } catch (e) { return null; }
+  } catch {
+    return null;
+  }
 }
 
 function main() {
   const project = path.resolve(process.argv[2] || "");
-  if (!process.argv[2]) { console.error("usage: transcribe.cjs <project-dir> [model] [language]"); process.exit(1); }
+  if (!process.argv[2]) {
+    console.error("usage: transcribe.cjs <project-dir> [model] [language]");
+    process.exit(1);
+  }
   // Default = multilingual `small`, NOT `small.en`. Per hyperframes-media: ".en models
   // mistranslate non-English and mis-handle accented speech; default to small (auto-detects
   // language)." We hardcoded small.en before — it hallucinated a wrong transcript on an
@@ -86,42 +122,80 @@ function main() {
   if (fs.existsSync(out)) {
     try {
       const d = JSON.parse(fs.readFileSync(out, "utf8"));
-      if (d && d.words && d.language_code) { console.log("[transcribe] already normalized, skipping"); return; }
-    } catch (e) {}
+      if (d && d.words && d.language_code) {
+        console.log("[transcribe] already normalized, skipping");
+        return;
+      }
+    } catch {}
   }
 
   const src = ensureSource(project);
-  if (!fs.existsSync(src)) { console.error(`[transcribe] no source in ${project}`); process.exit(2); }
+  if (!fs.existsSync(src)) {
+    console.error(`[transcribe] no source in ${project}`);
+    process.exit(2);
+  }
   const audio = path.join(project, "audio.mp3");
   if (!fs.existsSync(audio))
-    cp.execFileSync("ffmpeg", ["-y", "-i", src, "-vn", "-acodec", "libmp3lame", "-q:a", "2", audio], { stdio: "ignore" });
+    cp.execFileSync(
+      "ffmpeg",
+      ["-y", "-i", src, "-vn", "-acodec", "libmp3lame", "-q:a", "2", audio],
+      { stdio: "ignore" },
+    );
 
   // ── engine: WhisperX (preferred — wav2vec2 forced alignment gives word timings far
   // tighter than whisper.cpp's segment-interpolated ones; our gates are 80ms-strict) →
   // fallback hyperframes whisper.cpp. Force with TRANSCRIBE_ENGINE=whisper|whisperx.
-  let words = null, engine = null;
+  let words = null,
+    engine = null;
   const wantWx = (process.env.TRANSCRIBE_ENGINE || "whisperx") === "whisperx";
   if (wantWx) {
     try {
       const wav = path.join(project, "_wx_audio.wav");
-      cp.execFileSync("ffmpeg", ["-y", "-i", src, "-vn", "-ac", "1", "-ar", "16000", wav], { stdio: "ignore" });
+      cp.execFileSync("ffmpeg", ["-y", "-i", src, "-vn", "-ac", "1", "-ar", "16000", wav], {
+        stdio: "ignore",
+      });
       const outDir = path.join(project, "_wx_out");
       fs.mkdirSync(outDir, { recursive: true });
       const wxModel = model.replace(/\.en$/, ""); // whisperx model names are multilingual ids
-      const wxArgs = ["--python", "3.12", "--from", "whisperx", "whisperx", wav,
-        "--model", wxModel, "--device", "cpu", "--compute_type", "int8",
-        "--output_dir", outDir, "--output_format", "json", "--no_align_deletes", "--print_progress", "False"];
+      const wxArgs = [
+        "--python",
+        "3.12",
+        "--from",
+        "whisperx",
+        "whisperx",
+        wav,
+        "--model",
+        wxModel,
+        "--device",
+        "cpu",
+        "--compute_type",
+        "int8",
+        "--output_dir",
+        outDir,
+        "--output_format",
+        "json",
+        "--no_align_deletes",
+        "--print_progress",
+        "False",
+      ];
       if (language) wxArgs.push("--language", language);
       // strip our flag if this whisperx build doesn't know it
       let r = cp.spawnSync("uvx", wxArgs, { encoding: "utf8", timeout: 600000 });
-      if ((r.status || 0) !== 0 && /no_align_deletes/.test((r.stderr || ""))) {
-        r = cp.spawnSync("uvx", wxArgs.filter((a) => a !== "--no_align_deletes"), { encoding: "utf8", timeout: 600000 });
+      if ((r.status || 0) !== 0 && /no_align_deletes/.test(r.stderr || "")) {
+        r = cp.spawnSync(
+          "uvx",
+          wxArgs.filter((a) => a !== "--no_align_deletes"),
+          { encoding: "utf8", timeout: 600000 },
+        );
       }
-      if ((r.status || 0) !== 0) throw new Error((r.stderr || "whisperx failed").split("\n").slice(-4).join(" ").slice(0, 300));
+      if ((r.status || 0) !== 0)
+        throw new Error(
+          (r.stderr || "whisperx failed").split("\n").slice(-4).join(" ").slice(0, 300),
+        );
       const wxJson = JSON.parse(fs.readFileSync(path.join(outDir, "_wx_audio.json"), "utf8"));
       const wx = [];
-      for (const seg of (wxJson.segments || []))
-        for (const w of (seg.words || [])) {
+      for (const seg of wxJson.segments || [])
+        for (const w of seg.words || []) {
           // alignment occasionally yields a word with no timing (OOV) — interpolate from neighbors later; mark null now
           wx.push({ text: String(w.word || "").trim(), start: w.start, end: w.end, type: "word" });
         }
@@ -131,13 +205,21 @@ function main() {
           const prevEnd = i > 0 ? wx[i - 1].end : 0;
           const nextStart = wx.slice(i + 1).find((x) => x.start != null);
           const ns = nextStart ? nextStart.start : prevEnd + 0.3;
-          wx[i].start = prevEnd; wx[i].end = Math.max(prevEnd + 0.05, ns - 0.02);
+          wx[i].start = prevEnd;
+          wx[i].end = Math.max(prevEnd + 0.05, ns - 0.02);
         }
       }
-      if (wx.length) { words = wx.filter((w) => w.text); engine = `whisperx(${wxModel}+wav2vec2)`; }
-      try { fs.unlinkSync(wav); } catch (e) {}
+      if (wx.length) {
+        words = wx.filter((w) => w.text);
+        engine = `whisperx(${wxModel}+wav2vec2)`;
+      }
+      try {
+        fs.unlinkSync(wav);
+      } catch {}
     } catch (e) {
-      console.error(`[transcribe] whisperx unavailable (${String(e.message || e).slice(0, 160)}) — falling back to whisper.cpp`);
+      console.error(
+        `[transcribe] whisperx unavailable (${String(e.message || e).slice(0, 160)}) — falling back to whisper.cpp`,
+      );
     }
   }
 
@@ -152,14 +234,20 @@ function main() {
       const line = so.trim().split("\n").filter(Boolean).pop();
       info = JSON.parse(line);
     } catch (e) {
-      console.error("[transcribe] hyperframes whisper failed:", e.message); process.exit(1);
+      console.error("[transcribe] hyperframes whisper failed:", e.message);
+      process.exit(1);
     }
     const flatPath = info.transcriptPath || out;
     const flat = JSON.parse(fs.readFileSync(flatPath, "utf8"));
     const arr = Array.isArray(flat) ? flat : flat.words || [];
     words = arr
       .filter((w) => (w.text ?? w.word) != null)
-      .map((w) => ({ text: w.text ?? w.word, start: w.start ?? w.t0, end: w.end ?? w.t1, type: "word" }));
+      .map((w) => ({
+        text: w.text ?? w.word,
+        start: w.start ?? w.t0,
+        end: w.end ?? w.t1,
+        type: "word",
+      }));
     engine = `whisper.cpp(${model})`;
   }
 
@@ -172,14 +260,33 @@ function main() {
     const keep = words.filter((w) => w.start <= ae.speechEnd + 0.4);
     trimmedTail = words.length - keep.length;
     if (trimmedTail > 0) {
-      console.error(`[transcribe] ⚠ trimmed ${trimmedTail} trailing word(s) starting after the audible end ` +
-        `(${ae.speechEnd.toFixed(2)}s; clip ${ae.total.toFixed(2)}s) — whisper hallucinates over silent tails.`);
+      console.error(
+        `[transcribe] ⚠ trimmed ${trimmedTail} trailing word(s) starting after the audible end ` +
+          `(${ae.speechEnd.toFixed(2)}s; clip ${ae.total.toFixed(2)}s) — whisper hallucinates over silent tails.`,
+      );
       words = keep;
     }
   }
 
-  const text = words.map((w) => w.text).join(" ").replace(/\s+([,.!?;:])/g, "$1").trim();
-  fs.writeFileSync(out, JSON.stringify({ text, language_code: language || "en", engine, words, ...(trimmedTail ? { trimmed_tail_words: trimmedTail } : {}) }, null, 2));
+  const text = words
+    .map((w) => w.text)
+    .join(" ")
+    .replace(/\s+([,.!?;:])/g, "$1")
+    .trim();
+  fs.writeFileSync(
+    out,
+    JSON.stringify(
+      {
+        text,
+        language_code: language || "en",
+        engine,
+        words,
+        ...(trimmedTail ? { trimmed_tail_words: trimmedTail } : {}),
+      },
+      null,
+      2,
+    ),
+  );
   console.log(`[transcribe] ${engine} ${words.length} words → ${out}`);
   console.log(`[transcribe] text: ${text.slice(0, 160)}${text.length > 160 ? "…" : ""}`);
 
@@ -188,9 +295,15 @@ function main() {
   // it so an agent trusting the transcript can't sail past the gate.
   const meanDb = meanVolumeDb(audio);
   if (meanDb != null && meanDb < -45) {
-    console.error(`\n[transcribe] ⚠ NEAR-SILENT AUDIO — mean ${meanDb.toFixed(1)} dB (real speech ≈ -16..-26 dB).`);
-    console.error(`  This transcript is almost certainly a Whisper hallucination, NOT real speech.`);
-    console.error(`  Per the decision gate, REFUSE "no speech" — confirm with \`ffmpeg -i <src> -af silencedetect\`;`);
+    console.error(
+      `\n[transcribe] ⚠ NEAR-SILENT AUDIO — mean ${meanDb.toFixed(1)} dB (real speech ≈ -16..-26 dB).`,
+    );
+    console.error(
+      `  This transcript is almost certainly a Whisper hallucination, NOT real speech.`,
+    );
+    console.error(
+      `  Per the decision gate, REFUSE "no speech" — confirm with \`ffmpeg -i <src> -af silencedetect\`;`,
+    );
     console.error(`  do NOT author captions from fabricated words.`);
   }
 }

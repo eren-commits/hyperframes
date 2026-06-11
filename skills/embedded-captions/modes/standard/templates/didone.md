@@ -14,9 +14,10 @@ A complete caption template (see `../_anatomy.md` for the scene engine, `../_mot
 
 ## Recipe
 
-| | |
-|---|---|
-bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (THIS skill — not remove-background)
+|     |     |
+| --- | --- |
+
+bash scripts/prepare.sh <project> # matte ∥ transcribe ∥ safe-zones (THIS skill — not remove-background)
 | **Font** | `'Bodoni Moda'` |
 | **Fill** | text `#fbf7f2` - active-word accent `#caa14a` - climax fill: solid |
 | **Flow reveal** | `rise` (per-word, from `transcribe`) -> active word gets the accent |
@@ -33,9 +34,19 @@ bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (
 ## Style (drop in beside the `_anatomy.md` base CSS)
 
 ```css
-.s-didone{--ff:'Bodoni Moda';--cfill:#fbf7f2;--cacc:#caa14a}
-.s-didone .flow{font-weight:700;letter-spacing:.02em}
-.s-didone .climax{font-weight:900;font-style:italic}
+.s-didone {
+  --ff: "Bodoni Moda";
+  --cfill: #fbf7f2;
+  --cacc: #caa14a;
+}
+.s-didone .flow {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.s-didone .climax {
+  font-weight: 900;
+  font-style: italic;
+}
 ```
 
 ## Motion (names -> `../_motion.md`)
@@ -44,13 +55,13 @@ bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (
 - `CLIMAX_IN` = **rise** - `CLIMAX_OUT` = **rise-off** (ends `opacity:0`, hard exit)
 - Climax dwell **>=1 s** after the entrance settles; effects only at the climax.
 
-
 ## Reproduce
 
 ```bash
 bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (THIS skill — not remove-background)
 npx hyperframes transcribe   subject.mp4 --model small      # -> transcript.json
 ```
+
 Build the `_anatomy.md` scene with class `stage s-didone bg-beauty`, feed the transcript to the flow, set `CLIMAX_IN=rise` / `CLIMAX_OUT=rise-off` from `_motion.md`, then `npx hyperframes lint && npx hyperframes validate`.
 
 ## Triggers

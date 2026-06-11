@@ -23,7 +23,7 @@ const os = require("os");
 // accept ANY puppeteer@* the bun store holds (not a pinned version).
 const HF_ROOTS = [
   process.env.HYPERFRAMES_ROOT,
-  path.resolve(__dirname, "../../.."),          // skills/embedded-captions/scripts → repo root if in-repo
+  path.resolve(__dirname, "../../.."), // skills/embedded-captions/scripts → repo root if in-repo
   path.join(os.homedir(), "Downloads", "hyperframes"),
 ].filter(Boolean);
 let puppeteer = null;
@@ -33,17 +33,29 @@ for (const root of HF_ROOTS) {
   try {
     if (fs.existsSync(bunDir)) {
       for (const d of fs.readdirSync(bunDir)) {
-        if (d.startsWith("puppeteer@")) cands.push(path.join(bunDir, d, "node_modules", "puppeteer"));
+        if (d.startsWith("puppeteer@"))
+          cands.push(path.join(bunDir, d, "node_modules", "puppeteer"));
       }
     }
-  } catch (e) { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   for (const p of cands) {
-    try { if (fs.existsSync(p)) { puppeteer = require(p); break; } } catch (e) { /* try next */ }
+    try {
+      if (fs.existsSync(p)) {
+        puppeteer = require(p);
+        break;
+      }
+    } catch {
+      /* try next */
+    }
   }
   if (puppeteer) break;
 }
 if (!puppeteer) {
-  console.error("[measure] could not locate puppeteer — set HYPERFRAMES_ROOT to a built hyperframes checkout");
+  console.error(
+    "[measure] could not locate puppeteer — set HYPERFRAMES_ROOT to a built hyperframes checkout",
+  );
   process.exit(3);
 }
 
@@ -61,12 +73,22 @@ for (const root of HF_ROOTS) {
   try {
     if (fs.existsSync(bunDir)) {
       for (const d of fs.readdirSync(bunDir)) {
-        if (d.startsWith("gsap@")) cands.push(path.join(bunDir, d, "node_modules", "gsap", "dist", "gsap.min.js"));
+        if (d.startsWith("gsap@"))
+          cands.push(path.join(bunDir, d, "node_modules", "gsap", "dist", "gsap.min.js"));
       }
     }
-  } catch (e) { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   for (const p of cands) {
-    try { if (fs.existsSync(p)) { gsapSource = fs.readFileSync(p, "utf8"); break; } } catch (e) { /* try next */ }
+    try {
+      if (fs.existsSync(p)) {
+        gsapSource = fs.readFileSync(p, "utf8");
+        break;
+      }
+    } catch {
+      /* try next */
+    }
   }
   if (gsapSource) break;
 }
@@ -103,9 +125,10 @@ async function main() {
   }
 
   // Match render-and-composite's Chrome detection
-  const exe = process.platform === "darwin"
-    ? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-    : "/usr/bin/google-chrome";
+  const exe =
+    process.platform === "darwin"
+      ? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+      : "/usr/bin/google-chrome";
 
   const W = plan?.width || 720;
   const H = plan?.height || 1290;
@@ -114,8 +137,12 @@ async function main() {
   const browser = await puppeteer.launch({
     headless: "new",
     executablePath: fs.existsSync(exe) ? exe : undefined,
-    args: ["--disable-web-security", "--allow-file-access-from-files",
-           `--window-size=${W},${H}`, "--disable-dev-shm-usage"],
+    args: [
+      "--disable-web-security",
+      "--allow-file-access-from-files",
+      `--window-size=${W},${H}`,
+      "--disable-dev-shm-usage",
+    ],
   });
   try {
     const page = await browser.newPage();
@@ -141,20 +168,33 @@ async function main() {
     let ready = false;
     while (Date.now() - start < 15000) {
       const r = await page.evaluate(() => !!(window.__timelines && window.__timelines.main));
-      if (r) { ready = true; break; }
+      if (r) {
+        ready = true;
+        break;
+      }
       await new Promise((res) => setTimeout(res, 200));
     }
-    if (!ready) { console.error("[measure] GSAP timeline never registered"); process.exit(4); }
+    if (!ready) {
+      console.error("[measure] GSAP timeline never registered");
+      process.exit(4);
+    }
     // Inject the skill's bundled @font-face set so headless Chromium measures the SAME
     // glyph metrics the renderer will use. Without this, Inter/etc fall back to system
     // fonts here while the real render uses the true (often wider) face → wrapped line
     // counts differ → slot layout / occlusion verdicts are measured on the wrong text.
     try {
       const fontsCss = path.join(__dirname, "..", "modes", "standard", "fonts", "fonts.css");
-      if (fs.existsSync(fontsCss)) await page.addStyleTag({ content: fs.readFileSync(fontsCss, "utf8") });
-    } catch (e) { /* best-effort — fonts.css missing just reverts to old behavior */ }
+      if (fs.existsSync(fontsCss))
+        await page.addStyleTag({ content: fs.readFileSync(fontsCss, "utf8") });
+    } catch {
+      /* best-effort — fonts.css missing just reverts to old behavior */
+    }
     // let webfonts settle so measured glyph metrics match the render
-    await page.evaluate(async () => { try { await document.fonts.ready; } catch (e) {} });
+    await page.evaluate(async () => {
+      try {
+        await document.fonts.ready;
+      } catch {}
+    });
 
     const samples = [];
     for (const t of sampleTimes) {
@@ -163,7 +203,7 @@ async function main() {
         const tl = window.__timelines.main;
         tl.seek(t);
         // Force layout flush
-        document.body.offsetHeight;
+        void document.body.offsetHeight;
       }, t);
       // Tiny settle for animations / fonts
       await new Promise((r) => setTimeout(r, 30));
@@ -184,13 +224,15 @@ async function main() {
           const words = [];
           for (const w of ws) {
             const wcs = getComputedStyle(w);
-            if (wcs.opacity === "0") continue;  // not yet animated in
+            if (wcs.opacity === "0") continue; // not yet animated in
             const wb = w.getBoundingClientRect();
             if (wb.width === 0) continue;
             words.push({
               text: w.textContent,
-              x: +wb.x.toFixed(1), y: +wb.y.toFixed(1),
-              w: +wb.width.toFixed(1), h: +wb.height.toFixed(1),
+              x: +wb.x.toFixed(1),
+              y: +wb.y.toFixed(1),
+              w: +wb.width.toFixed(1),
+              h: +wb.height.toFixed(1),
               opacity: +wcs.opacity,
             });
           }
@@ -208,12 +250,17 @@ async function main() {
             }
           }
           out.push({
-            id, layer,
-            cap_bbox: { x: +cb.x.toFixed(1), y: +cb.y.toFixed(1),
-                        w: +cb.width.toFixed(1), h: +cb.height.toFixed(1) },
+            id,
+            layer,
+            cap_bbox: {
+              x: +cb.x.toFixed(1),
+              y: +cb.y.toFixed(1),
+              w: +cb.width.toFixed(1),
+              h: +cb.height.toFixed(1),
+            },
             opacity: +cs.opacity,
             lines,
-            words,  // also keep flat list
+            words, // also keep flat list
           });
         }
         return out;
@@ -225,7 +272,9 @@ async function main() {
     const layout = { width: W, height: H, fps: FPS, samples };
     const outPath = path.join(projectDir, "_layout.json");
     fs.writeFileSync(outPath, JSON.stringify(layout, null, 2));
-    console.log(`[measure] wrote ${outPath} (${sampleTimes.length} sample frames, ${samples.reduce((a,s)=>a+s.caps.length,0)} cap measurements)`);
+    console.log(
+      `[measure] wrote ${outPath} (${sampleTimes.length} sample frames, ${samples.reduce((a, s) => a + s.caps.length, 0)} cap measurements)`,
+    );
   } finally {
     // Chromium occasionally hangs on shutdown. This script runs synchronously
     // inside check-occlusion.cjs, which the render gate blocks on — a hung close
@@ -236,4 +285,9 @@ async function main() {
 
 // Force a hard exit so a lingering Chromium/libuv handle can't keep the process
 // (and the render gate that spawned it) alive indefinitely.
-main().then(() => process.exit(0)).catch((e) => { console.error(e); process.exit(1); });
+main()
+  .then(() => process.exit(0))
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });

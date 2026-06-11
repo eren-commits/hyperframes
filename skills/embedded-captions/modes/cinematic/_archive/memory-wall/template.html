@@ -106,26 +106,36 @@
     </style>
   </head>
   <body>
-    <div id="root"
-         data-composition-id="main"
-         data-start="0"
-         data-duration="{{DURATION}}"
-         data-width="{{WIDTH}}"
-         data-height="{{HEIGHT}}">
-
-      <video id="a-roll" src="source.mp4" muted playsinline
-             data-duration="{{DURATION}}" data-track-index="0"
-             style="z-index: 1"></video>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="{{DURATION}}"
+      data-width="{{WIDTH}}"
+      data-height="{{HEIGHT}}"
+    >
+      <video
+        id="a-roll"
+        src="source.mp4"
+        muted
+        playsinline
+        data-duration="{{DURATION}}"
+        data-track-index="0"
+        style="z-index: 1"
+      ></video>
 
       <div id="stage">
-        <div class="wall-plane">
-        {{GROUPS_HTML}}
-        </div>
+        <div class="wall-plane">{{GROUPS_HTML}}</div>
       </div>
 
-      <audio id="a-roll-audio" src="source.mp4"
-             data-start="0" data-duration="{{DURATION}}"
-             data-track-index="3" data-volume="1"></audio>
+      <audio
+        id="a-roll-audio"
+        src="source.mp4"
+        data-start="0"
+        data-duration="{{DURATION}}"
+        data-track-index="3"
+        data-volume="1"
+      ></audio>
     </div>
 
     <script>

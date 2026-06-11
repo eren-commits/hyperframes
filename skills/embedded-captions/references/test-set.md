@@ -9,16 +9,16 @@ mode, matte quality, baked-in graphics, luminance extremes, motion.
 All in `~/Downloads/heygen_relevant_videos/` (720×1290, ~8s, 9:16). Add
 landscape + 1:1 as we grow.
 
-| Case | Scene | Stress test |
-|---|---|---|
-| `Sunset_Stroll` | Outdoor selfie at sunset, palm trees, boardwalk | **Bright backdrop** → default `screen` blend fails; needs dark text + `normal` blend |
-| `Nature_Vibe` | Forest golden-hour + **baked timestamp** bottom-left + watermark top-right | Baked graphics avoidance; warm-mid luminance |
-| `Gym_Grind` | Dark gym + dark tank top + phone-mirror selfie | **Low luminance** → matte difficulty; screen blend natural fit |
-| `AI_Insights` | Podcast studio + neon "THE DIALOG" sign + window view | **Competing graphics in BG** (sign, city skyline); mid-tone |
-| `Kitchen_Buzz` | Warm kitchen, apron, smiling | Baseline friendly case |
-| `Tech_Trends` | Clean white studio + mic | **Max bright backdrop** — needs dark text or opaque BG |
-| `Street_Talk` | Walking city street, handheld | Handheld motion + bright outdoor |
-| `Outdoor_Hype` | Forest + **Instagram watermark** top + sun flare | Baked graphic + bright + motion |
+| Case            | Scene                                                                      | Stress test                                                                          |
+| --------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `Sunset_Stroll` | Outdoor selfie at sunset, palm trees, boardwalk                            | **Bright backdrop** → default `screen` blend fails; needs dark text + `normal` blend |
+| `Nature_Vibe`   | Forest golden-hour + **baked timestamp** bottom-left + watermark top-right | Baked graphics avoidance; warm-mid luminance                                         |
+| `Gym_Grind`     | Dark gym + dark tank top + phone-mirror selfie                             | **Low luminance** → matte difficulty; screen blend natural fit                       |
+| `AI_Insights`   | Podcast studio + neon "THE DIALOG" sign + window view                      | **Competing graphics in BG** (sign, city skyline); mid-tone                          |
+| `Kitchen_Buzz`  | Warm kitchen, apron, smiling                                               | Baseline friendly case                                                               |
+| `Tech_Trends`   | Clean white studio + mic                                                   | **Max bright backdrop** — needs dark text or opaque BG                               |
+| `Street_Talk`   | Walking city street, handheld                                              | Handheld motion + bright outdoor                                                     |
+| `Outdoor_Hype`  | Forest + **Instagram watermark** top + sun flare                           | Baked graphic + bright + motion                                                      |
 
 ## Usage
 
@@ -57,6 +57,7 @@ verify:
 ## Expansion plan
 
 Still need to add:
+
 - 1 × 16:9 landscape (from any heygen_relevant via letterboxing, or new source)
 - 1 × 1:1 square (if available)
 - 1 × multi-speaker (speaker diarization test)

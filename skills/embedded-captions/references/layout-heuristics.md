@@ -17,11 +17,13 @@ Read all three. Note: subject's head bbox, shoulder top line, and wherever hands
 The caption plane should live in pixels that are **always background** across the clip. Never where the body lands.
 
 Annotate approximate ranges:
+
 - Head bbox: `head_x_min`, `head_x_max`, `head_y_min`, `head_y_max`
 - Hand gesture envelope (if any): usually below `y = shoulder_top ≈ head_y_max + 40`
 - Props (mic, cup): typically static, note bbox
 
 **Clean zones**, in priority order:
+
 1. **Corner farthest from head** (usually opposite the gaze direction)
 2. **Upper strip above head_y_min minus 30px margin**
 3. **Lower-third** if upper is occupied (last resort — breaks "embedded" aesthetic)
@@ -31,29 +33,37 @@ Annotate approximate ranges:
 Once you know where the subject and baked graphics are, decide which side (left or right of the subject) hosts the caption column. Order of precedence:
 
 ### 1. Hard constraints first — baked graphics
+
 Logos, watermarks, date stamps, "60 Overtime"-style lower-thirds are already in the source. They occupy permanent zones you must avoid. Map them out from frame samples:
+
 - Jobs 60 Minutes: "2003" at upper-left (x=280-460, y=30-90); "60 Overtime" at bottom-left (x=280-770, y=960-1080). Left side partially constrained; still usable above/below these.
 - TikTok re-uploads: username watermark that rotates corners every few seconds — hard to plan around, often a refusal reason.
 
 If one side has a hard constraint that eats > 60% of that side's clean zone, default to the other side.
 
 ### 2. Subject body bias — pick the bigger clean zone
+
 Compute clean-zone widths on both sides:
+
 ```
 left_clean_width  = body_x_min − safe_left_margin
 right_clean_width = safe_right_margin − body_x_max
 ```
+
 Pick the side where clean zone is wider. If the difference is within 10% of frame width, the sides are ~equivalent → fall through to step 3.
 
 Worked examples:
+
 - **Champion** (Djokovic, 1920×1080): body x ≈ 550-1200. Left clean = 510, right clean = 720. Right is wider → but we put captions LEFT because of gaze (see step 3). The narrow difference made either workable.
 - **Jobs**: body x ≈ 700-1480 (right-of-center). Left clean = 420, right clean = 160. Left wins decisively. Captions went LEFT.
 - **Memory Wall**: surface location dictated the side (see note below about wall-embed).
 
 ### 3. Gaze direction — the "looking room" rule (tiebreaker and aesthetic)
+
 Classic cinematic framing: leave more empty space on the side the subject is **looking toward**. This preserves their gaze path and feels uncluttered. **Captions go to the OPPOSITE side** (the side the subject is facing away from), so they don't steal looking room.
 
 Quick check: sample 3 frames. Estimate the eye-line vector. Does it point more left or right?
+
 - Looking screen-right → captions on LEFT
 - Looking screen-left → captions on RIGHT
 - Looking forward at camera → no preference from gaze, use step 2 only
@@ -61,11 +71,13 @@ Quick check: sample 3 frames. Estimate the eye-line vector. Does it point more l
 The champion / Djokovic shot has him addressing camera slightly from the left — captions on LEFT actually read like text he's looking toward, which can feel like he's acknowledging them. That's fine here but is a flavor choice; generally prefer gaze-opposite.
 
 ### 4. Narrative emphasis (for optional crown)
+
 If you're using a **center-stage crown**, it sits across the subject — no left/right choice for it. But the other captions (the column) still follow steps 1-3.
 
 If you're using a **clean-zone crown** (shrunk, placed in one clean zone instead of crossing the body), put it in the **same side as the main column** for visual consistency. Don't split crown and column on opposite sides — it creates ping-pong.
 
 ### Special case — wall-embed
+
 When the template is `wall-embed`, the side is **dictated by where the usable surface is**, not by body bias or gaze. Memory Wall's foam panel was on the right, so captions went right even though the subject was slightly left-of-center. Surface location wins because the whole effect depends on the text sitting ON that specific surface.
 
 ### Decision summary
@@ -85,6 +97,7 @@ If the subject actively swings their gaze across the clip (turning head L→R), 
 ## Step 3: Pick template + position
 
 ### If scene has a flat back wall (acoustic foam, plaster, fabric backdrop)
+
 → `wall-embed.html`
 
 ```
@@ -102,6 +115,7 @@ wall_position: {
 `mix-blend-mode: overlay` in this template — works on mid-tone walls. If wall is near-black (luminance < 60), switch CSS to `screen`.
 
 ### If scene has a cluttered but dark backdrop (bookshelf, plants, set dressing)
+
 → `corner-column-crown.html`
 
 ```
@@ -120,6 +134,7 @@ crown_position: {
 `mix-blend-mode: screen` is correct here (bookshelf is dark).
 
 ### If subject fills >70% of frame
+
 Template doesn't matter — there's nowhere clean. **Refuse**, suggest classic lower-third.
 
 ## Step 3.5: Crown placement (when using `corner-column-crown`)
@@ -155,12 +170,12 @@ font-size: 118px  →  "THE / BEATLES" wraps to 2 lines, fits in x=230-770
 
 ### Rules of thumb for choosing
 
-| Subject occupies center X%+ of frame | Clean zones L/R | Crown approach |
-|---|---|---|
-| < 50%, roughly centered | both ≥ 15% of width | Centered crown, go BIG (frame_w × 0.8+) |
-| 50-70%, slightly offset | one side ≥ 25% | Crown shifted to larger clean zone |
-| > 70%, fills most of frame | neither side wide enough | Drop crown, use `emph` in column |
-| Close-crop face, fills > 80% | essentially none | No crown. All captions in a header/footer strip |
+| Subject occupies center X%+ of frame | Clean zones L/R          | Crown approach                                  |
+| ------------------------------------ | ------------------------ | ----------------------------------------------- |
+| < 50%, roughly centered              | both ≥ 15% of width      | Centered crown, go BIG (frame_w × 0.8+)         |
+| 50-70%, slightly offset              | one side ≥ 25%           | Crown shifted to larger clean zone              |
+| > 70%, fills most of frame           | neither side wide enough | Drop crown, use `emph` in column                |
+| Close-crop face, fills > 80%         | essentially none         | No crown. All captions in a header/footer strip |
 
 ## Step 4: Respect these invariants
 
@@ -173,17 +188,18 @@ font-size: 118px  →  "THE / BEATLES" wraps to 2 lines, fits in x=230-770
 ## Step 5: Validate before render
 
 Before calling `render-and-composite.sh`, sanity check:
+
 - Did you place the plane in the opposite quadrant from the face? ✓
 - Does the plane exit the frame anywhere? If yes, shrink.
-- Is the font too big for the plane width? Calculate: longest word in words[] × 0.55 × font_size < plane_width - padding*2.
+- Is the font too big for the plane width? Calculate: longest word in words[] × 0.55 × font_size < plane_width - padding\*2.
 - For `corner-column-crown`, did you set `crown_position.top` so the crown actually crosses the body (not above the head, not below the torso)?
 - **Pillarbox / letterbox hard check.** If the source has black bars (see pre-flight probe in SKILL.md), compute `leftmost_text_x` using the correct formula for the text alignment:
 
-  | Alignment | Formula |
-  |---|---|
-  | Left-aligned | `plane_left + padding_left` |
+  | Alignment                   | Formula                                            |
+  | --------------------------- | -------------------------------------------------- |
+  | Left-aligned                | `plane_left + padding_left`                        |
   | Right-aligned (main column) | `plane_right − padding_right − longest_word_width` |
-  | Center-aligned (crown) | `plane_center − longest_word_width / 2` |
+  | Center-aligned (crown)      | `plane_center − longest_word_width / 2`            |
 
   Where `longest_word_width ≈ font_size × char_count × 0.55` (adjust 0.55 down to ~0.50 for italic, up to ~0.62 for uppercase bold). **All** of these must be ≥ `pillarbox_left_edge + 10–20px` (safety margin). Mirror for the right bar.
 
@@ -196,15 +212,23 @@ Before calling `render-and-composite.sh`, sanity check:
 ## Worked examples
 
 ### memory-wall (1280×720, acoustic foam wall)
+
 ```json
 {
   "template": "wall-embed",
-  "wall_position": { "top": 40, "right": 30, "width": 720, "height": 520,
-                     "rotateY": -13, "rotateX": 1 }
+  "wall_position": {
+    "top": 40,
+    "right": 30,
+    "width": 720,
+    "height": 520,
+    "rotateY": -13,
+    "rotateX": 1
+  }
 }
 ```
 
 ### champion (1920×1080, bookshelf backdrop)
+
 ```json
 {
   "template": "corner-column-crown",

@@ -508,7 +508,9 @@ for (const e of errors) {
   bySceneId.get(e.sceneId).push(e);
 }
 
-console.error(`✗ ${errors.length} fatal violation(s) across ${bySceneId.size} composition/scene id(s):\n`);
+console.error(
+  `✗ ${errors.length} fatal violation(s) across ${bySceneId.size} composition/scene id(s):\n`,
+);
 for (const [sceneId, list] of bySceneId) {
   console.error(`  ${sceneId}:`);
   for (const e of list) {
@@ -522,5 +524,7 @@ if (anomalies.length > 0) {
     for (const a of list) console.error(`    [${a.rule}] ${a.detail}`);
   }
 }
-console.error(`\n  Fix the corresponding visual HTML (or have the orchestrator re-dispatch the worker) and rerun finalize.`);
+console.error(
+  `\n  Fix the corresponding visual HTML (or have the orchestrator re-dispatch the worker) and rerun finalize.`,
+);
 process.exit(1);

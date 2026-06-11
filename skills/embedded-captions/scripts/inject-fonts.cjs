@@ -28,15 +28,32 @@ const FONTS_CSS = path.join(SKILL_ROOT, "modes", "standard", "fonts", "fonts.css
 const MARKER = "hf-embedded-fonts";
 
 const GENERIC = new Set([
-  "serif", "sans-serif", "monospace", "cursive", "fantasy", "system-ui",
-  "ui-serif", "ui-sans-serif", "ui-monospace", "ui-rounded", "math", "emoji",
-  "fangsong", "inherit", "initial", "unset", "revert", "revert-layer",
+  "serif",
+  "sans-serif",
+  "monospace",
+  "cursive",
+  "fantasy",
+  "system-ui",
+  "ui-serif",
+  "ui-sans-serif",
+  "ui-monospace",
+  "ui-rounded",
+  "math",
+  "emoji",
+  "fangsong",
+  "inherit",
+  "initial",
+  "unset",
+  "revert",
+  "revert-layer",
 ]);
 
 // Parse fonts.css → Map<lowercased family, [ @font-face block strings ]>.
 function loadFontLibrary() {
   if (!fs.existsSync(FONTS_CSS)) {
-    console.error(`[inject-fonts] missing ${FONTS_CSS} — run modes/standard/fonts/build-fonts-css.cjs`);
+    console.error(
+      `[inject-fonts] missing ${FONTS_CSS} — run modes/standard/fonts/build-fonts-css.cjs`,
+    );
     process.exit(2);
   }
   const css = fs.readFileSync(FONTS_CSS, "utf8");
@@ -61,7 +78,11 @@ function usedFamilies(html) {
   const out = new Set();
   const add = (stack) => {
     for (const part of String(stack).split(",")) {
-      const name = part.trim().replace(/^['"]|['"]$/g, "").trim().toLowerCase();
+      const name = part
+        .trim()
+        .replace(/^['"]|['"]$/g, "")
+        .trim()
+        .toLowerCase();
       if (name && !GENERIC.has(name) && !/^var\(/.test(name)) out.add(name);
     }
   };
@@ -108,7 +129,8 @@ function injectInto(file, lib) {
   // Prefer right after <head...>; fall back to before </head>, then <html>, then prepend.
   if (/<head[^>]*>/i.test(html)) html = html.replace(/<head[^>]*>/i, (m0) => `${m0}\n${style}`);
   else if (/<\/head>/i.test(html)) html = html.replace(/<\/head>/i, `${style}\n</head>`);
-  else if (/<html[^>]*>/i.test(html)) html = html.replace(/<html[^>]*>/i, (m0) => `${m0}\n${style}`);
+  else if (/<html[^>]*>/i.test(html))
+    html = html.replace(/<html[^>]*>/i, (m0) => `${m0}\n${style}`);
   else html = style + "\n" + html;
 
   fs.writeFileSync(file, html);
@@ -117,7 +139,10 @@ function injectInto(file, lib) {
 
 function main() {
   const project = path.resolve(process.argv[2] || "");
-  if (!process.argv[2]) { console.error("usage: inject-fonts.cjs <project-dir> [file.html ...]"); process.exit(1); }
+  if (!process.argv[2]) {
+    console.error("usage: inject-fonts.cjs <project-dir> [file.html ...]");
+    process.exit(1);
+  }
   const lib = loadFontLibrary();
   let files = process.argv.slice(3);
   if (!files.length) files = ["index.html", "rail.html", "index_fg.html"];
@@ -127,9 +152,12 @@ function main() {
   for (const f of files) {
     const r = injectInto(f, lib);
     if (r == null) continue;
-    if (r.inlined.length) { console.log(`[inject-fonts] ${r.file}: embedded ${r.inlined.join(", ")}`); touched++; }
-    else console.log(`[inject-fonts] ${r.file}: no non-canonical fonts to embed`);
+    if (r.inlined.length) {
+      console.log(`[inject-fonts] ${r.file}: embedded ${r.inlined.join(", ")}`);
+      touched++;
+    } else console.log(`[inject-fonts] ${r.file}: no non-canonical fonts to embed`);
   }
-  if (!touched) console.log(`[inject-fonts] nothing embedded (all fonts canonical/system or already declared)`);
+  if (!touched)
+    console.log(`[inject-fonts] nothing embedded (all fonts canonical/system or already declared)`);
 }
 main();

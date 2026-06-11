@@ -14,9 +14,10 @@ A complete caption template (see `../_anatomy.md` for the scene engine, `../_mot
 
 ## Recipe
 
-| | |
-|---|---|
-bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (THIS skill — not remove-background)
+|     |     |
+| --- | --- |
+
+bash scripts/prepare.sh <project> # matte ∥ transcribe ∥ safe-zones (THIS skill — not remove-background)
 | **Font** | `'Archivo Black'` |
 | **Fill** | text `#e9eef4` - active-word accent `#fff` - climax fill: gradient |
 | **Flow reveal** | `fade-up` (per-word, from `transcribe`) -> active word gets the accent |
@@ -33,9 +34,20 @@ bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (
 ## Style (drop in beside the `_anatomy.md` base CSS)
 
 ```css
-.s-mercury{--ff:'Archivo Black';--cfill:#e9eef4;--cacc:#fff}
-.s-mercury .climax{filter:url(#liquid)}
-.s-mercury .climax span{background:linear-gradient(125deg,#6b7079,#fff 42%,#aeb6c0 58%,#5b6068);-webkit-background-clip:text;background-clip:text;color:transparent}
+.s-mercury {
+  --ff: "Archivo Black";
+  --cfill: #e9eef4;
+  --cacc: #fff;
+}
+.s-mercury .climax {
+  filter: url(#liquid);
+}
+.s-mercury .climax span {
+  background: linear-gradient(125deg, #6b7079, #fff 42%, #aeb6c0 58%, #5b6068);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
 ```
 
 ## Motion (names -> `../_motion.md`)
@@ -51,6 +63,7 @@ bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (
 bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (THIS skill — not remove-background)
 npx hyperframes transcribe   subject.mp4 --model small      # -> transcript.json
 ```
+
 Build the `_anatomy.md` scene with class `stage s-mercury bg-dark`, feed the transcript to the flow, set `CLIMAX_IN=liquid` / `CLIMAX_OUT=liquid-out` from `_motion.md`, then `npx hyperframes lint && npx hyperframes validate`.
 
 ## Triggers

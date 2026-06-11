@@ -114,12 +114,34 @@ const labels = Array.isArray(pr.labels)
 // just gets an avatar downloaded and can still be excluded by story-design.
 const BOT_DENYLIST = new Set(
   [
-    "claude", "graphite-app", "dependabot", "github-actions", "codecov",
-    "codecov-commenter", "coderabbitai", "sonarcloud", "sonarqubecloud", "vercel",
-    "netlify", "renovate", "snyk-bot", "greenkeeper", "mergify", "allcontributors",
-    "imgbot", "pre-commit-ci", "deepsource-autofix", "sentry-io", "semgrep-app",
-    "cubic-dev-ai", "gemini-code-assist", "copilot-pull-request-reviewer",
-    "github-advanced-security", "restyled-io", "changeset-bot", "bundlemon",
+    "claude",
+    "graphite-app",
+    "dependabot",
+    "github-actions",
+    "codecov",
+    "codecov-commenter",
+    "coderabbitai",
+    "sonarcloud",
+    "sonarqubecloud",
+    "vercel",
+    "netlify",
+    "renovate",
+    "snyk-bot",
+    "greenkeeper",
+    "mergify",
+    "allcontributors",
+    "imgbot",
+    "pre-commit-ci",
+    "deepsource-autofix",
+    "sentry-io",
+    "semgrep-app",
+    "cubic-dev-ai",
+    "gemini-code-assist",
+    "copilot-pull-request-reviewer",
+    "github-advanced-security",
+    "restyled-io",
+    "changeset-bot",
+    "bundlemon",
   ].map((s) => s.toLowerCase()),
 );
 const isBot = (login) => {
@@ -388,23 +410,31 @@ if (people.length) {
     const parts = committers
       .slice()
       .sort((a, b) => b.commitCount - a.commitCount)
-      .map((p) => `@${p.login}${p.commitCount ? ` (${p.commitCount} commit${p.commitCount === 1 ? "" : "s"})` : ""}`);
+      .map(
+        (p) =>
+          `@${p.login}${p.commitCount ? ` (${p.commitCount} commit${p.commitCount === 1 ? "" : "s"})` : ""}`,
+      );
     lines.push(`Commit authors: ${parts.join(", ")}`);
   }
   const reviewers = people.filter((p) => p.roles.includes("reviewer"));
   if (reviewers.length) {
     const parts = reviewers.map(
-      (p) => `@${p.login}${p.reviewState ? ` (${REVIEW_STATE_LABEL[p.reviewState] || p.reviewState.toLowerCase()})` : ""}`,
+      (p) =>
+        `@${p.login}${p.reviewState ? ` (${REVIEW_STATE_LABEL[p.reviewState] || p.reviewState.toLowerCase()})` : ""}`,
     );
     lines.push(`Reviewers: ${parts.join(", ")}`);
   }
   const commentersOnly = people.filter(
-    (p) => p.roles.includes("commenter") && !p.roles.includes("author") && !p.roles.includes("reviewer"),
+    (p) =>
+      p.roles.includes("commenter") && !p.roles.includes("author") && !p.roles.includes("reviewer"),
   );
-  if (commentersOnly.length) lines.push(`Commenters: ${commentersOnly.map((p) => `@${p.login}`).join(", ")}`);
+  if (commentersOnly.length)
+    lines.push(`Commenters: ${commentersOnly.map((p) => `@${p.login}`).join(", ")}`);
   if (reviewDecision) lines.push(`Review decision: ${reviewDecision}`);
   if (mergedByLogin) lines.push(`Merged by: @${mergedByLogin}`);
-  lines.push(`Avatars: public/avatars/<login>.png (${people.length} contributor(s) — see people.json)`);
+  lines.push(
+    `Avatars: public/avatars/<login>.png (${people.length} contributor(s) — see people.json)`,
+  );
   if (botsFiltered.size) lines.push(`(bots filtered out: ${[...botsFiltered].join(", ")})`);
   lines.push("");
 }

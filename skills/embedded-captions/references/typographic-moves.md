@@ -22,6 +22,7 @@ filling ~90% of the frame width so there's a small side margin. If you
 want edge-to-edge, drop to 0.65, but you lose a bit of safety margin.
 
 720px portrait:
+
 - 3-char word (15%): max ~330px (a single big number like "15%")
 - 5-char word (TAKE): max ~200px
 - 7-char word (AUGMENT / QUANTUM / MATTERS): max ~143px
@@ -29,12 +30,14 @@ want edge-to-edge, drop to 0.65, but you lose a bit of safety margin.
 - 13-char word (UNPRECEDENTED): max ~77px
 
 1920px landscape:
+
 - 7-char word: max ~380px
 - 10-char word: max ~267px
 
 For italic/upright 500-700 it's slightly narrower — increase max by ~10%.
 
 **If you want the word bigger than it fits:**
+
 - Split into multiple words per group (natural wrap), OR
 - Add explicit `<br>` between syllables, OR
 - Drop letter-spacing to -0.05em, OR
@@ -49,14 +52,14 @@ just broken. Use the heuristic.
 Portrait 9:16 (720×1290) and landscape 16:9 (1920×1080) have very
 different comfort ranges. Use `calc(<pct> * var(--h))` for responsive:
 
-| Feel | % of frame height | Example calc |
-|---|---|---|
-| Whisper / label | 4-6% | `calc(0.05 * var(--h))` |
-| Soft opener | 6-9% | `calc(0.07 * var(--h))` |
-| Narrative body | 9-14% | `calc(0.11 * var(--h))` |
-| Emphasis | 14-22% | `calc(0.18 * var(--h))` |
-| Climax / monumental | 22-35% | `calc(0.28 * var(--h))` |
-| Title-bigger-than-face | 40%+ | `calc(0.48 * var(--h))` |
+| Feel                   | % of frame height | Example calc            |
+| ---------------------- | ----------------- | ----------------------- |
+| Whisper / label        | 4-6%              | `calc(0.05 * var(--h))` |
+| Soft opener            | 6-9%              | `calc(0.07 * var(--h))` |
+| Narrative body         | 9-14%             | `calc(0.11 * var(--h))` |
+| Emphasis               | 14-22%            | `calc(0.18 * var(--h))` |
+| Climax / monumental    | 22-35%            | `calc(0.28 * var(--h))` |
+| Title-bigger-than-face | 40%+              | `calc(0.48 * var(--h))` |
 
 Use absolute px only when a specific scale needs to look identical
 across frame sizes (rare). Prefer `calc` + `var(--h)`.
@@ -64,53 +67,74 @@ across frame sizes (rare). Prefer `calc` + `var(--h)`.
 ## Named moves — pick per group
 
 **Italic contemplative opener** (memory-wall cap-1 lineage):
+
 ```css
-font-weight: 600; font-style: italic; letter-spacing: -0.01em;
+font-weight: 600;
+font-style: italic;
+letter-spacing: -0.01em;
 font-size: calc(0.075 * var(--h));
 ```
 
 **Italic continuation / dreamier continuation** (cap-2 lineage):
+
 ```css
-font-weight: 500; font-style: italic; letter-spacing: -0.005em;
+font-weight: 500;
+font-style: italic;
+letter-spacing: -0.005em;
 font-size: calc(0.065 * var(--h));
 ```
 
 **Upright pivot / statement** (cap-3 lineage — "but suddenly"):
+
 ```css
-font-weight: 700; letter-spacing: -0.015em;
+font-weight: 700;
+letter-spacing: -0.015em;
 font-size: calc(0.07 * var(--h));
 ```
 
 **Uppercase climax / monumental** (cap-4 lineage — "EVERYTHING IS SHARP AGAIN"):
+
 ```css
-font-weight: 900; text-transform: uppercase;
-letter-spacing: -0.03em; line-height: 0.95;
+font-weight: 900;
+text-transform: uppercase;
+letter-spacing: -0.03em;
+line-height: 0.95;
 font-size: calc(0.18 * var(--h));
 ```
 
 **Chapter card / full-frame Adam Curtis manifesto**:
+
 ```css
-font-weight: 700; text-transform: uppercase;
-letter-spacing: -0.015em; line-height: 0.9;
+font-weight: 700;
+text-transform: uppercase;
+letter-spacing: -0.015em;
+line-height: 0.9;
 font-size: calc(0.14 * var(--h));
 ```
 
 **News chyron / broadcast label** (small, locked):
+
 ```css
-font-weight: 500; letter-spacing: 0.02em;
+font-weight: 500;
+letter-spacing: 0.02em;
 font-size: calc(0.038 * var(--h));
 ```
 
 **Tiny side note / caption-on-surface**:
+
 ```css
-font-weight: 400; font-style: italic;
+font-weight: 400;
+font-style: italic;
 font-size: calc(0.045 * var(--h));
 ```
 
 **Vogue-masthead monumental**:
+
 ```css
-font-weight: 900; text-transform: uppercase;
-letter-spacing: -0.04em; line-height: 0.85;
+font-weight: 900;
+text-transform: uppercase;
+letter-spacing: -0.04em;
+line-height: 0.85;
 font-size: calc(0.32 * var(--h));
 ```
 
@@ -137,11 +161,13 @@ read the transcript and mark breath-groups.
 ## Position + layer vocabulary
 
 **Position** is where the caption lives in frame. Use:
+
 - `top / left / right / bottom` (percentages or px) for anchor
 - `transform: translateX/Y` for fine offsets
 - `text-align: center / left / right` for alignment
 
 **Layer** per group:
+
 - `bg` (default) — behind subject. Matte occludes. Cinematic embed. Works
   on clean zones (sky, walls) OR intentionally crosses subject for the
   Vogue-masthead effect.
@@ -149,6 +175,7 @@ read the transcript and mark breath-groups.
   when bg would be 100% occluded by body.
 
 **Tone** per group:
+
 - `soft` — gentle per-word opacity+y drift (0.45s power2.out). Use for
   introspective, dreamy, or narrative content.
 - `present` — snappy per-word opacity+y+scale pop (0.22s power3.out). Use
@@ -168,6 +195,7 @@ The DNA defaults prevent most ugly outcomes. But avoid in per-group CSS:
 ## When cinematic-cream is wrong
 
 This DNA assumes mid-to-dark backgrounds (luminance 60-180). For:
+
 - Bright white studios → cinematic-cream's cream + `screen` washes out, and the DNA is
   **locked** (you cannot recolour it) → use **Standard mode** (opaque rail) instead
 - Documentary formal → Standard mode (documentary-dignified direction; see references/direction-catalog.md §1)
@@ -182,27 +210,55 @@ Same output as the canonical memory-wall.html, but using slot-free plan:
   "template": "cinematic-cream",
   "caption_layer": "bg",
   "groups": [
-    { "id": "cg-0", "tone": "soft", "in": 0.2, "out": 4.85,
+    {
+      "id": "cg-0",
+      "tone": "soft",
+      "in": 0.2,
+      "out": 4.85,
       "css": "top: 14%; right: 6%; left: auto; text-align: right; font-size: calc(0.09 * var(--h)); font-weight: 600; font-style: italic; letter-spacing: -0.01em;",
-      "words": [{"text":"Some","start":0.24,"end":0.44},
-                {"text":"memories","start":0.48,"end":0.82},
-                {"text":"feel","start":0.92,"end":1.14},
-                {"text":"soft","start":1.20,"end":1.64}] },
-    { "id": "cg-1", "tone": "soft", "in": 2.55, "out": 4.85,
+      "words": [
+        { "text": "Some", "start": 0.24, "end": 0.44 },
+        { "text": "memories", "start": 0.48, "end": 0.82 },
+        { "text": "feel", "start": 0.92, "end": 1.14 },
+        { "text": "soft", "start": 1.2, "end": 1.64 }
+      ]
+    },
+    {
+      "id": "cg-1",
+      "tone": "soft",
+      "in": 2.55,
+      "out": 4.85,
       "css": "top: 26%; right: 10%; left: auto; text-align: right; font-size: calc(0.075 * var(--h)); font-weight: 500; font-style: italic;",
-      "words": [{"text":"like","start":2.66,"end":2.78},
-                {"text":"old","start":2.88,"end":3.02},
-                {"text":"film","start":3.16,"end":3.46}] },
-    { "id": "cg-2", "tone": "present", "in": 4.9, "out": 8.04,
+      "words": [
+        { "text": "like", "start": 2.66, "end": 2.78 },
+        { "text": "old", "start": 2.88, "end": 3.02 },
+        { "text": "film", "start": 3.16, "end": 3.46 }
+      ]
+    },
+    {
+      "id": "cg-2",
+      "tone": "present",
+      "in": 4.9,
+      "out": 8.04,
       "css": "top: 18%; right: 6%; left: auto; text-align: right; font-size: calc(0.085 * var(--h)); font-weight: 700;",
-      "words": [{"text":"but","start":5.04,"end":5.18},
-                {"text":"suddenly","start":5.24,"end":5.76}] },
-    { "id": "cg-3", "tone": "present", "in": 6.7, "out": 8.04,
+      "words": [
+        { "text": "but", "start": 5.04, "end": 5.18 },
+        { "text": "suddenly", "start": 5.24, "end": 5.76 }
+      ]
+    },
+    {
+      "id": "cg-3",
+      "tone": "present",
+      "in": 6.7,
+      "out": 8.04,
       "css": "top: 32%; right: 6%; left: auto; text-align: right; font-size: calc(0.11 * var(--h)); font-weight: 900; text-transform: uppercase; letter-spacing: -0.03em; line-height: 0.95;",
-      "words": [{"text":"everything","start":6.82,"end":7.14},
-                {"text":"is","start":7.18,"end":7.28},
-                {"text":"sharp","start":7.32,"end":7.52},
-                {"text":"again","start":7.58,"end":7.92}] }
+      "words": [
+        { "text": "everything", "start": 6.82, "end": 7.14 },
+        { "text": "is", "start": 7.18, "end": 7.28 },
+        { "text": "sharp", "start": 7.32, "end": 7.52 },
+        { "text": "again", "start": 7.58, "end": 7.92 }
+      ]
+    }
   ]
 }
 ```

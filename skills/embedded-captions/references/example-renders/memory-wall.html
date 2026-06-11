@@ -5,8 +5,13 @@
     <meta name="viewport" content="width=1280, height=720" />
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
     <style>
-      * { margin: 0; padding: 0; box-sizing: border-box; }
-      html, body {
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
         margin: 0;
         width: 1280px;
         height: 720px;
@@ -15,15 +20,21 @@
         font-family: "Inter", system-ui, sans-serif;
       }
 
-      #a-roll, #fg-overlay {
-        position: absolute; inset: 0;
-        width: 100%; height: 100%;
+      #a-roll,
+      #fg-overlay {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
         object-fit: cover;
       }
 
       /* Foreground matte sits above the captions so the person & mic occlude
          the text — classic cinematic lower-third layering. */
-      #fg-overlay { z-index: 3; pointer-events: none; }
+      #fg-overlay {
+        z-index: 3;
+        pointer-events: none;
+      }
 
       /*
         Caption stage — perspective container so the text plane lies on the
@@ -32,8 +43,10 @@
       */
       #stage {
         position: absolute;
-        top: 0; left: 0;
-        width: 1280px; height: 720px;
+        top: 0;
+        left: 0;
+        width: 1280px;
+        height: 720px;
         perspective: 1400px;
         perspective-origin: 30% 40%;
         pointer-events: none;
@@ -89,16 +102,33 @@
         Elegant serif-inflected sans, italic for the dreamy first half,
         upright for the second half. One look, one feeling, progressing.
       */
-      .cap-1 { font-size: 78px; font-weight: 600; font-style: italic;
-               letter-spacing: -0.01em; }
-      .cap-2 { font-size: 66px; font-weight: 500; font-style: italic;
-               letter-spacing: -0.005em;
-               padding-right: 44px; /* hanging indent on right for right-aligned flow */ }
-      .cap-3 { font-size: 72px; font-weight: 700; font-style: normal;
-               letter-spacing: -0.015em; }
-      .cap-4 { font-size: 90px; font-weight: 900; font-style: normal;
-               letter-spacing: -0.03em; text-transform: uppercase;
-               line-height: 1.0; }
+      .cap-1 {
+        font-size: 78px;
+        font-weight: 600;
+        font-style: italic;
+        letter-spacing: -0.01em;
+      }
+      .cap-2 {
+        font-size: 66px;
+        font-weight: 500;
+        font-style: italic;
+        letter-spacing: -0.005em;
+        padding-right: 44px; /* hanging indent on right for right-aligned flow */
+      }
+      .cap-3 {
+        font-size: 72px;
+        font-weight: 700;
+        font-style: normal;
+        letter-spacing: -0.015em;
+      }
+      .cap-4 {
+        font-size: 90px;
+        font-weight: 900;
+        font-style: normal;
+        letter-spacing: -0.03em;
+        text-transform: uppercase;
+        line-height: 1;
+      }
     </style>
   </head>
   <body>
@@ -115,7 +145,8 @@
         id="a-roll"
         class="clip"
         src="source.mp4"
-        muted playsinline
+        muted
+        playsinline
         data-duration="8.04"
         data-track-index="0"
         style="z-index: 1"
@@ -174,42 +205,46 @@
         {
           id: "cg-0",
           words: [
-            { text: "Some",     start: 0.24, end: 0.44 },
+            { text: "Some", start: 0.24, end: 0.44 },
             { text: "memories", start: 0.48, end: 0.82 },
-            { text: "feel",     start: 0.90, end: 1.14 },
-            { text: "soft",     start: 1.20, end: 1.64 },
+            { text: "feel", start: 0.9, end: 1.14 },
+            { text: "soft", start: 1.2, end: 1.64 },
           ],
-          in: 0.20, out: 4.85,
+          in: 0.2,
+          out: 4.85,
           tone: "soft",
         },
         {
           id: "cg-1",
           words: [
             { text: "like", start: 2.66, end: 2.78 },
-            { text: "old",  start: 2.86, end: 3.02 },
+            { text: "old", start: 2.86, end: 3.02 },
             { text: "film", start: 3.14, end: 3.46 },
           ],
-          in: 2.55, out: 4.85,
+          in: 2.55,
+          out: 4.85,
           tone: "soft",
         },
         {
           id: "cg-2",
           words: [
-            { text: "but",      start: 5.02, end: 5.16 },
+            { text: "but", start: 5.02, end: 5.16 },
             { text: "suddenly", start: 5.22, end: 5.76 },
           ],
-          in: 4.90, out: 8.04,
+          in: 4.9,
+          out: 8.04,
           tone: "present",
         },
         {
           id: "cg-3",
           words: [
-            { text: "everything", start: 6.80, end: 7.14 },
-            { text: "is",         start: 7.16, end: 7.28 },
-            { text: "sharp",      start: 7.30, end: 7.52 },
-            { text: "again",      start: 7.56, end: 7.92 },
+            { text: "everything", start: 6.8, end: 7.14 },
+            { text: "is", start: 7.16, end: 7.28 },
+            { text: "sharp", start: 7.3, end: 7.52 },
+            { text: "again", start: 7.56, end: 7.92 },
           ],
-          in: 6.70, out: 8.04,
+          in: 6.7,
+          out: 8.04,
           tone: "present",
         },
       ];
@@ -221,7 +256,9 @@
          ───────────────────────────────────────────────────────────────── */
       GROUPS.forEach(function (g) {
         var sel = "#" + g.id;
-        var words = g.words.map(function (_, i) { return sel + " .w[data-i='" + i + "']"; });
+        var words = g.words.map(function (_, i) {
+          return sel + " .w[data-i='" + i + "']";
+        });
 
         var isSoft = g.tone === "soft";
 
@@ -241,25 +278,28 @@
               words[i],
               { opacity: 0, y: 8 },
               {
-                opacity: 1, y: 0,
+                opacity: 1,
+                y: 0,
                 duration: 0.45,
                 ease: "power2.out",
                 overwrite: "auto",
               },
-              w.start
+              w.start,
             );
           } else {
             tl.fromTo(
               words[i],
               { opacity: 0, y: 6, scale: 1.04 },
               {
-                opacity: 1, y: 0, scale: 1.0,
+                opacity: 1,
+                y: 0,
+                scale: 1.0,
                 duration: 0.22,
                 ease: "power3.out",
                 overwrite: "auto",
                 transformOrigin: "50% 50%",
               },
-              w.start
+              w.start,
             );
           }
         });
@@ -267,7 +307,11 @@
         /* Group exit — soft groups linger and fade as the sentence turns,
            present groups hold to the end. Clean fades, no trickery. */
         if (g.out < DUR) {
-          tl.to(sel, { opacity: 0, duration: 0.5, ease: "power2.in", overwrite: "auto" }, g.out - 0.5);
+          tl.to(
+            sel,
+            { opacity: 0, duration: 0.5, ease: "power2.in", overwrite: "auto" },
+            g.out - 0.5,
+          );
         }
         tl.set(sel, { opacity: 0, visibility: "hidden" }, g.out);
       });

@@ -14,9 +14,10 @@ A complete caption template (see `../_anatomy.md` for the scene engine, `../_mot
 
 ## Recipe
 
-| | |
-|---|---|
-bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (THIS skill — not remove-background)
+|     |     |
+| --- | --- |
+
+bash scripts/prepare.sh <project> # matte ∥ transcribe ∥ safe-zones (THIS skill — not remove-background)
 | **Font** | `'JetBrains Mono'` |
 | **Fill** | text `#f4f4f4` - active-word accent `#ff2d2d` - climax fill: solid |
 | **Flow reveal** | `editwipe` (per-word, from `transcribe`) -> active word gets the accent |
@@ -33,9 +34,21 @@ bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (
 ## Style (drop in beside the `_anatomy.md` base CSS)
 
 ```css
-.s-brut{--ff:'JetBrains Mono';--cfill:#f4f4f4;--cacc:#ff2d2d}
-.s-brut .flow{font-weight:700;text-transform:uppercase;letter-spacing:-.02em}
-.s-brut .climax{font-weight:700;font-size:42cqh;letter-spacing:-.05em}
+.s-brut {
+  --ff: "JetBrains Mono";
+  --cfill: #f4f4f4;
+  --cacc: #ff2d2d;
+}
+.s-brut .flow {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+}
+.s-brut .climax {
+  font-weight: 700;
+  font-size: 42cqh;
+  letter-spacing: -0.05em;
+}
 ```
 
 ## Motion (names -> `../_motion.md`)
@@ -44,13 +57,13 @@ bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (
 - `CLIMAX_IN` = **editwipe** - `CLIMAX_OUT` = **sweep-off** (ends `opacity:0`, hard exit)
 - Climax dwell **>=1 s** after the entrance settles; effects only at the climax.
 
-
 ## Reproduce
 
 ```bash
 bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (THIS skill — not remove-background)
 npx hyperframes transcribe   subject.mp4 --model small      # -> transcript.json
 ```
+
 Build the `_anatomy.md` scene with class `stage s-brut bg-dark`, feed the transcript to the flow, set `CLIMAX_IN=editwipe` / `CLIMAX_OUT=sweep-off` from `_motion.md`, then `npx hyperframes lint && npx hyperframes validate`.
 
 ## Triggers

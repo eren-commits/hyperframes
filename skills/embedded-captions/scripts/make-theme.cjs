@@ -59,7 +59,7 @@ function readMatteFps() {
       10,
     );
     return v > 0 ? v : null;
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -72,7 +72,7 @@ function probeDuration() {
       { encoding: "utf8" },
     );
     return parseFloat(out.trim());
-  } catch (e) {
+  } catch {
     const n = fs.readdirSync(path.join(PROJECT, "frames_fg")).length;
     return n / FPS;
   }
@@ -87,7 +87,7 @@ const DUR = +(theme.duration || probeDuration()).toFixed(6);
 function readJson2(p) {
   try {
     return JSON.parse(fs.readFileSync(p, "utf8"));
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -287,7 +287,7 @@ const FONT_FACES = (() => {
   let css = "";
   try {
     css = fs.readFileSync(path.join(SKILL, "modes/standard/fonts/fonts.css"), "utf8");
-  } catch (e) {
+  } catch {
     return null;
   }
   return css
@@ -752,7 +752,7 @@ function paradigmTakeover() {
       .toUpperCase();
     const isHero = L.words.some((w) => w.isHero);
     const hot = isHero || L.words.some((w) => w.minor);
-    const contentish = txt.replace(/[^A-Z]/g, "").length;
+    const _contentish = txt.replace(/[^A-Z]/g, "").length;
     const px = isHero
       ? dna.hero.fontPx || 196
       : Math.min(

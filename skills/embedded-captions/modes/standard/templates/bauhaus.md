@@ -14,9 +14,10 @@ A complete caption template (see `../_anatomy.md` for the scene engine, `../_mot
 
 ## Recipe
 
-| | |
-|---|---|
-bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (THIS skill — not remove-background)
+|     |     |
+| --- | --- |
+
+bash scripts/prepare.sh <project> # matte ∥ transcribe ∥ safe-zones (THIS skill — not remove-background)
 | **Font** | `'Poppins'` |
 | **Fill** | text `#f7f4ec` - active-word accent `#ff3b2e` - climax fill: solid |
 | **Flow reveal** | `block` (per-word, from `transcribe`) -> active word gets the accent |
@@ -33,10 +34,25 @@ bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (
 ## Style (drop in beside the `_anatomy.md` base CSS)
 
 ```css
-.s-bauhaus{--ff:'Poppins';--cfill:#f7f4ec;--cacc:#ff3b2e}
-.s-bauhaus .flow{font-weight:800;text-transform:uppercase}
-.s-bauhaus .flow .w.act{color:#111;background:#ffd23f;border-radius:3px;padding:0 .08em}
-.s-bauhaus .climax{font-weight:900;color:#ffd23f}
+.s-bauhaus {
+  --ff: "Poppins";
+  --cfill: #f7f4ec;
+  --cacc: #ff3b2e;
+}
+.s-bauhaus .flow {
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.s-bauhaus .flow .w.act {
+  color: #111;
+  background: #ffd23f;
+  border-radius: 3px;
+  padding: 0 0.08em;
+}
+.s-bauhaus .climax {
+  font-weight: 900;
+  color: #ffd23f;
+}
 ```
 
 ## Motion (names -> `../_motion.md`)
@@ -45,13 +61,13 @@ bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (
 - `CLIMAX_IN` = **block** - `CLIMAX_OUT` = **fade** (ends `opacity:0`, hard exit)
 - Climax dwell **>=1 s** after the entrance settles; effects only at the climax.
 
-
 ## Reproduce
 
 ```bash
 bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (THIS skill — not remove-background)
 npx hyperframes transcribe   subject.mp4 --model small      # -> transcript.json
 ```
+
 Build the `_anatomy.md` scene with class `stage s-bauhaus bg-creator`, feed the transcript to the flow, set `CLIMAX_IN=block` / `CLIMAX_OUT=fade` from `_motion.md`, then `npx hyperframes lint && npx hyperframes validate`.
 
 ## Triggers

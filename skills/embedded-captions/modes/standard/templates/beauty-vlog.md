@@ -14,9 +14,10 @@ A complete caption template (see `../_anatomy.md` for the scene engine, `../_mot
 
 ## Recipe
 
-| | |
-|---|---|
-bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (THIS skill — not remove-background)
+|     |     |
+| --- | --- |
+
+bash scripts/prepare.sh <project> # matte ∥ transcribe ∥ safe-zones (THIS skill — not remove-background)
 | **Font** | `'Sora'` |
 | **Fill** | text `#fff` - active-word accent `#ff6fb5` - climax fill: solid |
 | **Flow reveal** | `karaoke` (per-word, from `transcribe`) -> active word gets the accent |
@@ -33,7 +34,11 @@ bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (
 ## Style (drop in beside the `_anatomy.md` base CSS)
 
 ```css
-.s-bvlog{--ff:'Sora';--cfill:#fff;--cacc:#ff6fb5}
+.s-bvlog {
+  --ff: "Sora";
+  --cfill: #fff;
+  --cacc: #ff6fb5;
+}
 ```
 
 ## Motion (names -> `../_motion.md`)
@@ -42,13 +47,13 @@ bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (
 - `CLIMAX_IN` = **shimmer** - `CLIMAX_OUT` = **shim-out** (ends `opacity:0`, hard exit)
 - Climax dwell **>=1 s** after the entrance settles; effects only at the climax.
 
-
 ## Reproduce
 
 ```bash
 bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (THIS skill — not remove-background)
 npx hyperframes transcribe   subject.mp4 --model small      # -> transcript.json
 ```
+
 Build the `_anatomy.md` scene with class `stage s-bvlog bg-beauty`, feed the transcript to the flow, set `CLIMAX_IN=shimmer` / `CLIMAX_OUT=shim-out` from `_motion.md`, then `npx hyperframes lint && npx hyperframes validate`.
 
 ## Triggers

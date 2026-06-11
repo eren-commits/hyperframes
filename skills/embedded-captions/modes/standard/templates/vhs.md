@@ -14,9 +14,10 @@ A complete caption template (see `../_anatomy.md` for the scene engine, `../_mot
 
 ## Recipe
 
-| | |
-|---|---|
-bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (THIS skill — not remove-background)
+|     |     |
+| --- | --- |
+
+bash scripts/prepare.sh <project> # matte ∥ transcribe ∥ safe-zones (THIS skill — not remove-background)
 | **Font** | `'VT323'` |
 | **Fill** | text `#ededed` - active-word accent `#f2e04b` - climax fill: solid |
 | **Flow reveal** | `type` (per-word, from `transcribe`) -> active word gets the accent |
@@ -33,9 +34,22 @@ bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (
 ## Style (drop in beside the `_anatomy.md` base CSS)
 
 ```css
-.s-vhs{--ff:'VT323';--cfill:#ededed;--cacc:#f2e04b}
-.s-vhs .flow{font-size:8.5cqh;text-shadow:2px 0 #ff3b5c,-2px 0 #3aa0ff}
-.s-vhs .climax{text-shadow:3px 0 #ff3b5c,-3px 0 #3aa0ff}
+.s-vhs {
+  --ff: "VT323";
+  --cfill: #ededed;
+  --cacc: #f2e04b;
+}
+.s-vhs .flow {
+  font-size: 8.5cqh;
+  text-shadow:
+    2px 0 #ff3b5c,
+    -2px 0 #3aa0ff;
+}
+.s-vhs .climax {
+  text-shadow:
+    3px 0 #ff3b5c,
+    -3px 0 #3aa0ff;
+}
 ```
 
 ## Motion (names -> `../_motion.md`)
@@ -44,13 +58,13 @@ bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (
 - `CLIMAX_IN` = **vhs** - `CLIMAX_OUT` = **vhs-out** (ends `opacity:0`, hard exit)
 - Climax dwell **>=1 s** after the entrance settles; effects only at the climax.
 
-
 ## Reproduce
 
 ```bash
 bash scripts/prepare.sh   <project>      # matte ∥ transcribe ∥ safe-zones (THIS skill — not remove-background)
 npx hyperframes transcribe   subject.mp4 --model small      # -> transcript.json
 ```
+
 Build the `_anatomy.md` scene with class `stage s-vhs bg-creator`, feed the transcript to the flow, set `CLIMAX_IN=vhs` / `CLIMAX_OUT=vhs-out` from `_motion.md`, then `npx hyperframes lint && npx hyperframes validate`.
 
 ## Triggers

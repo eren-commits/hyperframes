@@ -5,6 +5,7 @@ across the top of the frame, above the subject's head. Optional crown at
 the bottom for shots that include the subject's waist or below.
 
 **Visual identity (LOCKED):**
+
 - 5 typography slots: intro / phrase / emph / dream / crown (centered)
 - `mix-blend-mode: screen` over warm bone color (#fff5df)
 - Single-caption swap (caps stack at one position in the header strip)
@@ -13,6 +14,7 @@ the bottom for shots that include the subject's waist or below.
 ## When to apply
 
 ✅ **Good fit:**
+
 - 9:16 portrait video (1080×1920 typical)
 - Single subject filling the center of the frame
 - Clean band visible above the head
@@ -20,25 +22,27 @@ the bottom for shots that include the subject's waist or below.
   one true climax
 
 ❌ **Wrong fit:**
+
 - Subject's head crops to the very top of frame (no header band exists)
 - 16:9 landscape → use `champion` or `memory-wall` instead
 - Multiple speakers / cuts
 
 ## Layout decisions
 
-| Field | What | Example (1080×1920) |
-|---|---|---|
-| `header.top` | Y of the header strip. Should sit above the subject's head with ~30px breathing room. | `30` if hair top is around y=200 |
-| `header.height` | Height of the strip. Bigger for longer captions / 2-line wraps. | `280` |
-| `crown_top` | Y of the crown line (bottom of frame). Skip if no waist visible. | `1620` for a near-full-body shot |
+| Field           | What                                                                                                                    | Example (1080×1920)                  |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| `header.top`    | Y of the header strip. Should sit above the subject's head with ~30px breathing room.                                   | `30` if hair top is around y=200     |
+| `header.height` | Height of the strip. Bigger for longer captions / 2-line wraps.                                                         | `280`                                |
+| `crown_top`     | Y of the crown line (bottom of frame). Skip if no waist visible.                                                        | `1620` for a near-full-body shot     |
 | `crown_enabled` | Whether to render a bottom crown. Skip if subject body fills the lower half completely (matte will block crown anyway). | `false` for tight head-and-shoulders |
-| `font_scale` | Scale multiplier on locked sizes. | `1.0` for 1080×1920 |
+| `font_scale`    | Scale multiplier on locked sizes.                                                                                       | `1.0` for 1080×1920                  |
 
 ## Slot assignment
 
 Same arc as champion: intro / phrase / emph / dream / crown.
 
 For portrait-header specifically, header band is narrow (one strip), so:
+
 - Most groups fit on 1-2 lines
 - Don't use crown if it'd be hidden by the body matte (Pausch-style portraits
   often need to skip crown entirely and promote the climax to `emph` in the
