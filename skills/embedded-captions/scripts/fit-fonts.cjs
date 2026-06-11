@@ -90,11 +90,13 @@ function main() {
     process.exit(1);
   }
   const planPath = path.join(project, "plan.json");
-  if (!fs.existsSync(planPath)) {
+  let plan;
+  try {
+    plan = JSON.parse(fs.readFileSync(planPath, "utf8"));
+  } catch {
     console.error("[fit-fonts] no plan.json (Cinematic only) — skipping");
     process.exit(0);
   }
-  const plan = JSON.parse(fs.readFileSync(planPath, "utf8"));
   const W = plan.width || 1920,
     H = plan.height || 1080;
   const groups = (plan.groups || []).concat(plan.crown_group ? [plan.crown_group] : []);

@@ -50,13 +50,15 @@ const GENERIC = new Set([
 
 // Parse fonts.css → Map<lowercased family, [ @font-face block strings ]>.
 function loadFontLibrary() {
-  if (!fs.existsSync(FONTS_CSS)) {
+  let css;
+  try {
+    css = fs.readFileSync(FONTS_CSS, "utf8");
+  } catch {
     console.error(
       `[inject-fonts] missing ${FONTS_CSS} — run modes/standard/fonts/build-fonts-css.cjs`,
     );
     process.exit(2);
   }
-  const css = fs.readFileSync(FONTS_CSS, "utf8");
   const lib = new Map();
   // base64 data-URIs contain no "}", so [^}]* safely bounds a block.
   const blockRe = /@font-face\s*\{[^}]*\}/gi;
@@ -105,8 +107,12 @@ function declaredFamilies(html) {
 }
 
 function injectInto(file, lib) {
-  if (!fs.existsSync(file)) return null;
-  let html = fs.readFileSync(file, "utf8");
+  let html;
+  try {
+    html = fs.readFileSync(file, "utf8");
+  } catch {
+    return null;
+  }
   // drop any previous injection so this is idempotent
   html = html.replace(new RegExp(`\\s*<style id="${MARKER}">[\\s\\S]*?</style>`, "i"), "");
 

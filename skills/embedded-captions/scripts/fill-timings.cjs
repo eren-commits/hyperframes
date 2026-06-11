@@ -68,18 +68,20 @@ function main() {
   }
   const planPath = path.join(project, "plan.json");
   const trPath = path.join(project, "transcript.json");
-  if (!fs.existsSync(planPath)) {
+  let plan, trWordsRaw;
+  try {
+    plan = JSON.parse(fs.readFileSync(planPath, "utf8"));
+  } catch {
     console.error(`[fill-timings] no plan.json (Cinematic only) — skipping`);
     process.exit(0);
   }
-  if (!fs.existsSync(trPath)) {
+  try {
+    trWordsRaw = JSON.parse(fs.readFileSync(trPath, "utf8")).words || [];
+  } catch {
     console.error(`[fill-timings] no transcript.json — skipping`);
     process.exit(0);
   }
-  const plan = JSON.parse(fs.readFileSync(planPath, "utf8"));
-  const tw = (JSON.parse(fs.readFileSync(trPath, "utf8")).words || []).filter(
-    (w) => w && "start" in w && "end" in w,
-  );
+  const tw = trWordsRaw.filter((w) => w && "start" in w && "end" in w);
   if (!tw.length) {
     console.error(`[fill-timings] transcript has no word timings — skipping`);
     process.exit(0);
