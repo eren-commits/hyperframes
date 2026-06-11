@@ -171,6 +171,29 @@ export async function runCompileStage(input: CompileStageInput): Promise<Compile
       { videoCount: compiled.videos.length },
     );
   }
+  // Fast-capture 3D-transform gate, same shape as the video gate above.
+  // drawElementImage paints CSS 3D rendering contexts incorrectly:
+  // backface-visibility:hidden is ignored (mid-flip elements capture their
+  // mirrored backface), siblings of the 3D context can drop out, and the
+  // context's background is lost. Reproduced on macOS hardware GPU with
+  // real-world flip-card / rotationX-entrance comps (full-stream PSNR
+  // 27–46 dB avg, 17 dB min vs baseline). Routes to the platform's baseline
+  // capture; HF_FAST_CAPTURE_3D=true bypasses for R&D.
+  // Detection runs inside the compiler on PRE-CDN-inline HTML — GSAP's own
+  // source contains `transformPerspective`, so scanning compiled.html here
+  // would flag every composition that loads GSAP.
+  if (
+    cfg.useDrawElement &&
+    process.env.HF_FAST_CAPTURE_3D !== "true" &&
+    compiled.usesThreeDTransforms
+  ) {
+    cfg.useDrawElement = false;
+    log.info(
+      "[Render] Fast capture: composition uses a CSS 3D rendering context " +
+        "(perspective / preserve-3d / backface-visibility) — disabling drawElementImage " +
+        "for this render. Capture uses the platform's baseline route.",
+    );
+  }
   const callerForced = cfg.forceScreenshot || (needsAlpha && !cfg.useDrawElement);
   const { forceScreenshot: hintForced } = applyRenderModeHints(callerForced, compiled, log);
   let forceScreenshot = hintForced;
