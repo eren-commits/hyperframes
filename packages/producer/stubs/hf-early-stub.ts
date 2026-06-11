@@ -133,6 +133,12 @@ const activeProxies: TimelineProxy[] = [];
 const pendingOperations: TimelineOperation[] = [];
 let batchScheduled = false;
 let publishCheckScheduled = false;
+/**
+ * Tween targets whose vars got the opacity → autoAlpha rewrite. Resolved and
+ * visibility-hidden at flush completion when still at computed opacity 0 —
+ * see hideTransparentAutoAlphaTargets.
+ */
+const autoAlphaRewrittenTargets = new Set<unknown>();
 
 function requestBatchFrame(callback: FrameRequestCallback): number {
   const originalRequestAnimationFrame = window.__HF_VIRTUAL_TIME__?.originalRequestAnimationFrame;
@@ -200,9 +206,84 @@ function convertTweenArgs(method: TimelineOperationMethod, args: unknown[]): unk
   if (window.__HF_FAST_CAPTURE_AUTOALPHA__ !== true) return args;
   if (method === "add") return args;
   const out = args.slice();
-  if (out.length > 1) out[1] = convertVarsOpacityToAutoAlpha(out[1]);
-  if (method === "fromTo" && out.length > 2) out[2] = convertVarsOpacityToAutoAlpha(out[2]);
+  let rewritten = false;
+  if (out.length > 1) {
+    const converted = convertVarsOpacityToAutoAlpha(out[1]);
+    if (converted !== out[1]) rewritten = true;
+    out[1] = converted;
+  }
+  if (method === "fromTo" && out.length > 2) {
+    const converted = convertVarsOpacityToAutoAlpha(out[2]);
+    if (converted !== out[2]) rewritten = true;
+    out[2] = converted;
+  }
+  // convertVarsOpacityToAutoAlpha returns the input object untouched when no
+  // rewrite applies, so identity inequality means this target's opacity is
+  // GSAP-controlled via autoAlpha and is safe to visibility-hide at flush.
+  if (rewritten && out[0] !== null && out[0] !== undefined) {
+    autoAlphaRewrittenTargets.add(out[0]);
+  }
   return out;
+}
+
+/** Resolve a GSAP tween target (selector / Element / NodeList / array) to elements. */
+function resolveTweenTargets(target: unknown): Element[] {
+  if (typeof target === "string") {
+    try {
+      return Array.from(document.querySelectorAll(target));
+    } catch {
+      return [];
+    }
+  }
+  if (target instanceof Element) return [target];
+  if (Array.isArray(target) || (typeof NodeList !== "undefined" && target instanceof NodeList)) {
+    const out: Element[] = [];
+    for (const item of target as Iterable<unknown>) {
+      if (item instanceof Element) out.push(item);
+    }
+    return out;
+  }
+  return [];
+}
+
+/**
+ * Flush-time transparent-layer hide.
+ *
+ * The autoAlpha rewrite only fixes opacity GSAP touches. Elements created
+ * with inline `opacity: 0` (the gen_os caption-pill pattern:
+ * `pill.style.cssText = "... opacity:0"` then `tl.set(pill, {opacity: 1})`
+ * at each caption start) sit in the paint tree as transparent promoted
+ * layers from frame 0 until their first autoAlpha event — long enough to
+ * trigger the drawElementImage caption blackout mid-video.
+ *
+ * At flush completion (timeline built, still paused, nothing applied yet)
+ * every recorded rewrite target that is STILL at computed opacity 0 gets
+ * `visibility: hidden`. Safe by construction: only elements with a queued
+ * autoAlpha tween are touched, and that tween restores visibility
+ * (autoAlpha > 0 sets `visibility: inherit`) on its first applied frame.
+ * Elements faded in by CSS animations, WAAPI, or raw style writes are never
+ * recorded here and are left alone. Authors who set inline `visibility`
+ * themselves are also skipped, mirroring convertVarsOpacityToAutoAlpha.
+ */
+function hideTransparentAutoAlphaTargets(): void {
+  if (window.__HF_FAST_CAPTURE_AUTOALPHA__ !== true) return;
+  if (autoAlphaRewrittenTargets.size === 0) return;
+  const targets = Array.from(autoAlphaRewrittenTargets);
+  autoAlphaRewrittenTargets.clear();
+  for (const target of targets) {
+    for (const el of resolveTweenTargets(target)) {
+      const styled = el as Element & { style?: CSSStyleDeclaration };
+      if (!styled.style) continue;
+      if (styled.style.visibility !== "") continue;
+      let computedOpacity = "";
+      try {
+        computedOpacity = getComputedStyle(el).opacity;
+      } catch {
+        continue;
+      }
+      if (computedOpacity === "0") styled.style.visibility = "hidden";
+    }
+  }
 }
 
 function applyTimelineOperation(entry: TimelineOperation): void {
@@ -243,6 +324,7 @@ function flushPendingOperations(): void {
 
 function publishTimelinesBuilt(): void {
   publishCheckScheduled = false;
+  hideTransparentAutoAlphaTargets();
   window.__hfTimelinesBuilding = false;
   try {
     window.dispatchEvent(new CustomEvent("hf-timelines-built"));
