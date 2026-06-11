@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, mkdirSync, unlinkSync } from "node:fs";
 import { join, extname } from "node:path";
 import { tmpdir } from "node:os";
+import { randomUUID } from "node:crypto";
 import { ensureWhisper, ensureModel, hasFFmpeg, DEFAULT_MODEL } from "./manager.js";
 
 /**
@@ -121,10 +122,24 @@ function isVideoFile(filePath: string): boolean {
 }
 
 /**
+ * Unique path for the temporary 16kHz mono WAV fed to whisper.
+ *
+ * MUST be unique per call AND per process: callers run many `transcribe`
+ * invocations in parallel (e.g. the product-launch-video audio pipeline spawns
+ * one `hyperframes transcribe` per scene at once). A `Date.now()`-based name
+ * collides when two conversions land in the same millisecond — they clobber
+ * each other's WAV in the shared tmpdir, so whisper transcribes the wrong
+ * scene's audio and every colliding scene gets identical word timings.
+ */
+function tempWavPath(): string {
+  return join(tmpdir(), `hyperframes-audio-${process.pid}-${randomUUID()}.wav`);
+}
+
+/**
  * Extract audio from a video file as 16kHz mono WAV (whisper requirement).
  */
 function extractAudio(videoPath: string): string {
-  const wavPath = join(tmpdir(), `hyperframes-audio-${Date.now()}.wav`);
+  const wavPath = tempWavPath();
   execFileSync(
     "ffmpeg",
     ["-i", videoPath, "-vn", "-ar", "16000", "-ac", "1", "-f", "wav", "-y", wavPath],
@@ -166,7 +181,7 @@ function prepareAudio(audioPath: string): string {
   }
 
   // Convert to whisper-compatible WAV
-  const wavPath = join(tmpdir(), `hyperframes-audio-${Date.now()}.wav`);
+  const wavPath = tempWavPath();
   execFileSync(
     "ffmpeg",
     ["-i", audioPath, "-ar", "16000", "-ac", "1", "-f", "wav", "-y", wavPath],
