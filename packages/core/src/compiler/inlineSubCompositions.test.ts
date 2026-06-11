@@ -232,8 +232,6 @@ describe("inlineSubCompositions – #ID selector scoping divergence", () => {
     expect(innerRoot).not.toBeNull();
     expect(innerRoot!.querySelector(".s1-board")).not.toBeNull();
 
-    // Scoped CSS should use descendant selectors (not compound) since the
-    // inner root is a child of the host, not merged onto it.
     const scopedCss = result.styles.join("\n");
     expect(scopedCss).toContain("[data-composition-id=");
     expect(scopedCss).toContain(".scene_1-root");
@@ -453,47 +451,52 @@ describe("inlineSubCompositions – #ID selector scoping divergence", () => {
     expect(childMatchesCompound).toBe(false);
   });
 
-  it("flattenInnerRoot skips preparation when host lacks data-composition-id, preserving outerHTML", () => {
-    const subComp = `<template>
-  <div data-composition-id="scoped-text" data-width="1080" data-height="1920">
-    <div class="label">Scoped Text Should Stay Styled</div>
+  it("producer-style flattenInnerRoot without pixel dims preserves classes and layout", () => {
+    const subComp = `<template id="scene_1-template">
+  <div id="root" class="scene_1-root" data-composition-id="scene_1" data-width="1920" data-height="1080"
+       style="position:relative; width:1920px; height:1080px;">
+    <div class="content">Hello</div>
     <style>
-      [data-composition-id="scoped-text"] { background: rgb(12, 12, 12); }
-      [data-composition-id="scoped-text"] .label { color: rgb(255, 214, 10); font-size: 88px; }
+      .scene_1-root { background: #1a1a2e; }
+      .scene_1-root .content { color: #fff; }
     </style>
   </div>
 </template>`;
 
+    const lightFlatten = (innerRoot: Element): Element => {
+      const prepared = innerRoot.cloneNode(true) as Element;
+      prepared.removeAttribute("data-composition-id");
+      prepared.removeAttribute("data-start");
+      prepared.removeAttribute("data-duration");
+      if (prepared.getAttribute("id")) {
+        prepared.setAttribute("data-hf-authored-id", prepared.getAttribute("id")!);
+        prepared.removeAttribute("id");
+      }
+      prepared.setAttribute("data-hf-inner-root", "true");
+      return prepared;
+    };
+
     const { document } = parseHTML(`<!DOCTYPE html>
 <html><body>
-  <div data-composition-id="master">
-    <div data-composition-src="scoped-text.html"
-         data-start="0" data-duration="3" data-track-index="1"></div>
+  <div data-composition-id="main">
+    <div data-composition-id="scene_1" data-composition-src="scene_1.html"
+         data-start="0" data-duration="4" data-track-index="0"></div>
   </div>
 </body></html>`);
-    const host = document.querySelector('[data-composition-src="scoped-text.html"]')!;
+    const host = document.querySelector('[data-composition-src="scene_1.html"]')!;
 
-    expect(host.getAttribute("data-composition-id")).toBeNull();
-
-    const result = inlineSubCompositions(document, [host], {
+    inlineSubCompositions(document, [host], {
       resolveHtml: () => subComp,
       parseHtml: (html) => parseHTML(html).document,
-      flattenInnerRoot: prepareFlattenedInnerRoot,
+      flattenInnerRoot: lightFlatten,
     });
 
-    // When host has no compId, flattenInnerRoot is skipped — outerHTML preserves
-    // the inner root with its original data-composition-id intact so scoped CSS
-    // matches the correct element (not an extra wrapper that breaks flex layout).
-    expect(host.getAttribute("data-composition-id")).toBeNull();
-
-    const innerRoot = host.querySelector("[data-composition-id='scoped-text']");
+    // Inner root preserved as child with its class
+    const innerRoot = host.querySelector(".scene_1-root");
     expect(innerRoot).not.toBeNull();
-    expect(innerRoot!.querySelector(".label")).not.toBeNull();
-
-    // No data-hf-inner-root since preparation was skipped
-    expect(host.querySelector("[data-hf-inner-root]")).toBeNull();
-
-    const scopedCss = result.styles.join("\n");
-    expect(scopedCss).toContain('[data-composition-id="scoped-text"]');
+    // Original inline styles preserved (no pixel injection override)
+    expect(innerRoot!.getAttribute("style")).toContain("position:relative");
+    // data-composition-id stripped to avoid duplicate
+    expect(innerRoot!.getAttribute("data-composition-id")).toBeNull();
   });
 });

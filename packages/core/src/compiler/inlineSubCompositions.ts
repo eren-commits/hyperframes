@@ -344,11 +344,9 @@ export function inlineSubCompositions(
     if (innerRoot) {
       innerRoot.setAttribute("data-composition-file", src);
       for (const child of [...innerRoot.querySelectorAll("style, script")]) child.remove();
-      if (flattenInnerRoot && compId) {
+      if (flattenInnerRoot) {
         const prepared = flattenInnerRoot(innerRoot);
         hostEl.innerHTML = prepared.outerHTML || "";
-      } else if (flattenInnerRoot) {
-        hostEl.innerHTML = innerRoot.outerHTML || "";
       } else {
         hostEl.innerHTML = compId ? innerRoot.innerHTML || "" : innerRoot.outerHTML || "";
         // When the producer path strips the inner root (innerHTML), the
