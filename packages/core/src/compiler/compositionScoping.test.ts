@@ -660,4 +660,18 @@ window.__timelines['intro'] = tl;
     // data-hf-authored-id="intro" element, finding the .title child.
     expect(gsapTargets).toEqual([["HELLO"]]);
   });
+
+  it("innerRootClasses emits both compound and descendant selectors for root class", () => {
+    const css = `.scene_1-root { background: #1a1a2e; }
+.scene_1-root .title { color: red; }
+.unrelated { margin: 0; }`;
+    const result = scopeCssToComposition(css, "scene_1", undefined, null, {
+      innerRootClasses: ["scene_1-root"],
+    });
+    expect(result).toContain('[data-composition-id="scene_1"].scene_1-root');
+    expect(result).toContain('[data-composition-id="scene_1"] .scene_1-root');
+    expect(result).toContain('[data-composition-id="scene_1"].scene_1-root .title');
+    expect(result).toContain('[data-composition-id="scene_1"] .scene_1-root .title');
+    expect(result).toContain('[data-composition-id="scene_1"] .unrelated');
+  });
 });

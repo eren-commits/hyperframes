@@ -207,6 +207,10 @@ export function inlineSubCompositions(
       : contentDoc.querySelector("[data-composition-id]");
     const inferredCompId = innerRoot?.getAttribute("data-composition-id")?.trim() || "";
     const authoredRootId = innerRoot?.getAttribute("id")?.trim() || null;
+    const innerRootClassAttr = innerRoot?.getAttribute("class")?.trim() || "";
+    const innerRootClasses = innerRootClassAttr
+      ? innerRootClassAttr.split(/\s+/).filter(Boolean)
+      : [];
     const scopeCompId = compId || inferredCompId;
     const runtimeScope = runtimeCompId ? buildScopeSelector(runtimeCompId) : "";
 
@@ -232,6 +236,7 @@ export function inlineSubCompositions(
           scopeCompId
             ? scopeCssToComposition(css, scopeCompId, runtimeScope || undefined, authoredRootId, {
                 compoundAuthoredRoot: compoundAuthoredRoot === true,
+                innerRootClasses: !flattenInnerRoot && compId ? innerRootClasses : undefined,
               })
             : css,
         );
@@ -267,6 +272,7 @@ export function inlineSubCompositions(
         scopeCompId
           ? scopeCssToComposition(css, scopeCompId, runtimeScope || undefined, authoredRootId, {
               compoundAuthoredRoot: compoundAuthoredRoot === true,
+              innerRootClasses: !flattenInnerRoot && compId ? innerRootClasses : undefined,
             })
           : css,
       );
@@ -348,10 +354,14 @@ export function inlineSubCompositions(
         const prepared = flattenInnerRoot(innerRoot);
         hostEl.innerHTML = prepared.outerHTML || "";
       } else {
+        if (compId && innerRootClasses.length) {
+          const existing = (hostEl.getAttribute("class") || "").trim();
+          const merged = existing
+            ? `${existing} ${innerRootClasses.join(" ")}`
+            : innerRootClasses.join(" ");
+          hostEl.setAttribute("class", merged);
+        }
         hostEl.innerHTML = compId ? innerRoot.innerHTML || "" : innerRoot.outerHTML || "";
-        // When the producer path strips the inner root (innerHTML), the
-        // authored id attribute is lost. Propagate it to the host so that
-        // rewritten #ID selectors ([data-hf-authored-id="X"]) still resolve.
         if (compId && authoredRootId) {
           hostEl.setAttribute("data-hf-authored-id", authoredRootId);
         }

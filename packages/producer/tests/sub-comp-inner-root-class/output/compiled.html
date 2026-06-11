@@ -4,10 +4,10 @@
   <meta charset="utf-8">
   <style>html, body { margin: 0; padding: 0; background: #000; }
 
-[data-composition-id="scene_1"] .scene_1-root {
+[data-composition-id="scene_1"].scene_1-root, [data-composition-id="scene_1"] .scene_1-root {
         background: #1a1a2e;
       }
-      [data-composition-id="scene_1"] .scene_1-root .title-card {
+      [data-composition-id="scene_1"].scene_1-root .title-card, [data-composition-id="scene_1"] .scene_1-root .title-card {
         position: absolute;
         top: 50%;
         left: 50%;
@@ -18,7 +18,7 @@
         color: #e94560;
         text-align: center;
       }
-      [data-composition-id="scene_1"] .scene_1-root .subtitle {
+      [data-composition-id="scene_1"].scene_1-root .subtitle, [data-composition-id="scene_1"] .scene_1-root .subtitle {
         position: absolute;
         bottom: 200px;
         width: 100%;
@@ -30,7 +30,7 @@
 </head>
 <body>
   <div data-composition-id="main" data-width="1920" data-height="1080" data-duration="2" style="position:relative; width:1920px; height:1080px; overflow:hidden;">
-    <div data-hf-authored-id="scene_1" data-composition-file="scene_1.html" data-height="1080" data-width="1920" data-composition-id="scene_1" data-start="0" data-duration="2" data-track-index="0" style="position:absolute; inset:0;;width:1920px;height:1080px">
+    <div data-hf-authored-id="scene_1" data-composition-file="scene_1.html" class="scene_1-root" data-height="1080" data-width="1920" data-composition-id="scene_1" data-start="0" data-duration="2" data-track-index="0" style="position:absolute; inset:0;;width:1920px;height:1080px">
     
     <div class="title-card">INNER ROOT CLASS</div>
     <div class="subtitle">This text should be visible</div>
