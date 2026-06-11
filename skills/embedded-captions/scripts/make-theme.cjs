@@ -36,7 +36,7 @@
  */
 const fs = require("fs");
 const path = require("path");
-const { execSync } = require("child_process");
+const { execFileSync } = require("child_process");
 
 const PROJECT = path.resolve(process.argv[2] || ".");
 const SKILL = path.resolve(__dirname, "..");
@@ -67,8 +67,17 @@ const FPS = readMatteFps() || theme.fps || 24;
 
 function probeDuration() {
   try {
-    const out = execSync(
-      `ffprobe -v error -show_entries format=duration -of csv=p=0 "${path.join(PROJECT, "source.mp4")}"`,
+    const out = execFileSync(
+      "ffprobe",
+      [
+        "-v",
+        "error",
+        "-show_entries",
+        "format=duration",
+        "-of",
+        "csv=p=0",
+        path.join(PROJECT, "source.mp4"),
+      ],
       { encoding: "utf8" },
     );
     return parseFloat(out.trim());
@@ -1000,8 +1009,9 @@ function setpieceDrawon() {
   const fontPath = path.join(SKILL, "assets/strokefonts", dna.fonts.strokeFont);
   const gen = path.join(SKILL, "scripts/gen-stroke-path.py");
   const tw = Math.min(p.targetWidth || 640, W - 200);
-  const D = execSync(
-    `python3 "${gen}" "${fontPath}" "${heroDisplay.toLowerCase()}" ${tw} 185 ${Math.round(380 - tw / 2)}`,
+  const D = execFileSync(
+    "python3",
+    [gen, fontPath, heroDisplay.toLowerCase(), String(tw), "185", String(Math.round(380 - tw / 2))],
     { encoding: "utf8" },
   ).trim();
   const WIN = p.window || 0.78;

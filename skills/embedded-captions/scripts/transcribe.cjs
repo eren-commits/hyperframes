@@ -119,15 +119,13 @@ function main() {
   const out = path.join(project, "transcript.json");
 
   // already in our schema? skip.
-  if (fs.existsSync(out)) {
-    try {
-      const d = JSON.parse(fs.readFileSync(out, "utf8"));
-      if (d && d.words && d.language_code) {
-        console.log("[transcribe] already normalized, skipping");
-        return;
-      }
-    } catch {}
-  }
+  try {
+    const d = JSON.parse(fs.readFileSync(out, "utf8"));
+    if (d && d.words && d.language_code) {
+      console.log("[transcribe] already normalized, skipping");
+      return;
+    }
+  } catch {}
 
   const src = ensureSource(project);
   if (!fs.existsSync(src)) {
