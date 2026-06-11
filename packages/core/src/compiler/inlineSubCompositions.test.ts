@@ -452,4 +452,42 @@ describe("inlineSubCompositions – #ID selector scoping divergence", () => {
     const childMatchesCompound = innerChild?.getAttribute("data-composition-id") === "scene_1";
     expect(childMatchesCompound).toBe(false);
   });
+
+  it("flattenInnerRoot propagates inferred data-composition-id to host when host lacks one", () => {
+    const subComp = `<template>
+  <div data-composition-id="scoped-text" data-width="1080" data-height="1920">
+    <div class="label">Scoped Text Should Stay Styled</div>
+    <style>
+      [data-composition-id="scoped-text"] { background: rgb(12, 12, 12); }
+      [data-composition-id="scoped-text"] .label { color: rgb(255, 214, 10); font-size: 88px; }
+    </style>
+  </div>
+</template>`;
+
+    const { document } = parseHTML(`<!DOCTYPE html>
+<html><body>
+  <div data-composition-id="master">
+    <div data-composition-src="scoped-text.html"
+         data-start="0" data-duration="3" data-track-index="1"></div>
+  </div>
+</body></html>`);
+    const host = document.querySelector('[data-composition-src="scoped-text.html"]')!;
+
+    expect(host.getAttribute("data-composition-id")).toBeNull();
+
+    const result = inlineSubCompositions(document, [host], {
+      resolveHtml: () => subComp,
+      parseHtml: (html) => parseHTML(html).document,
+      flattenInnerRoot: prepareFlattenedInnerRoot,
+    });
+
+    expect(host.getAttribute("data-composition-id")).toBe("scoped-text");
+
+    const innerRoot = host.querySelector("[data-hf-inner-root]");
+    expect(innerRoot).not.toBeNull();
+    expect(innerRoot!.getAttribute("data-composition-id")).toBeNull();
+
+    const scopedCss = result.styles.join("\n");
+    expect(scopedCss).toContain('[data-composition-id="scoped-text"]');
+  });
 });

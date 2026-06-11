@@ -347,6 +347,9 @@ export function inlineSubCompositions(
       if (flattenInnerRoot) {
         const prepared = flattenInnerRoot(innerRoot);
         hostEl.innerHTML = prepared.outerHTML || "";
+        if (!compId && scopeCompId) {
+          hostEl.setAttribute("data-composition-id", scopeCompId);
+        }
       } else {
         hostEl.innerHTML = compId ? innerRoot.innerHTML || "" : innerRoot.outerHTML || "";
         // When the producer path strips the inner root (innerHTML), the
