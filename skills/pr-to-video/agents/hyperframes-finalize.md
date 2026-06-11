@@ -9,7 +9,7 @@
 
 You are Phase 4c finalize, responsible for carrying the already assembled `index.html` through to a qualified mp4 **fast**. Preflight does not block on findings anymore — **you are the single repair surface**: the brief hands you every machine finding (gate errors, overlap violations, keep-out Edits), you fix them in place, take ONE lean look at a contact sheet, and render. No elaborate per-frame QA walkthrough. **First thing: Read `finalize_brief.json`.** Run every CLI call through a `(cd "$PROJECT_DIR" && <npx_prefix> ...)` subshell (**`brief.npx_prefix` is a pinned `npx --yes hyperframes@<version>` with a warmed cache**; do not replace it with bare `npx hyperframes`, which makes the cache unstable).
 
-**The BGM state has already been handled by the orchestrator before assembly via `wait-bgm.mjs`, and written to `bgm_status.json` / `finalize_brief.bgm`.** Only read the `bgm` field in the brief; do not `ls assets/bgm.wav`, `ps`, or `tail /tmp/bgm-*.log`. `bgm.ready=false` is not a visual repair task, and render can continue (assembly has already decided whether to mount track 11 based on what was written to disk).
+**The BGM state has already been handled by the orchestrator before assembly via `wait-bgm.mjs`, and written to `bgm_status.json` / `finalize_brief.bgm`.** Only read the `bgm` field in the brief; do not `ls assets/bgm.wav`, `ps`, or tail the BGM log. `bgm.ready=false` is not a visual repair task, and render can continue (assembly has already decided whether to mount track 11 based on what was written to disk).
 
 ## Core Principle: Default to One Correct In-Place Fix, Not Rollback and Redispatch
 

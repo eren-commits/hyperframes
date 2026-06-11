@@ -68,11 +68,9 @@ async function main() {
     copyDir(join(CLI_ROOT, "src", "templates", tmpl), join(DIST, "templates", tmpl));
   }
 
-  // NOTE: this list uses main's skill names (`hyperframes` / `gsap`). On the
-  // feat/product-launch-v2 branch the skills were restructured (hyperframes-core,
-  // hyperframes-animation, …) so those two don't exist here. Guard with existsSync
-  // so a missing skill dir warns + skips instead of crashing the build.
-  // TODO(plv-branch): set this to the skills this branch's CLI should bundle.
+  // Skills bundled into the published CLI. Branches don't all carry the same
+  // skills/ tree (it gets restructured), so each entry is existsSync-guarded:
+  // a missing skill dir warns + skips instead of crashing the build.
   for (const skill of ["hyperframes", "hyperframes-cli", "gsap"]) {
     const src = join(REPO_ROOT, "skills", skill);
     if (!existsSync(src)) {

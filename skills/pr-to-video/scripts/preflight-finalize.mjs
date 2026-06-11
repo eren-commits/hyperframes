@@ -387,7 +387,7 @@ const preflightClean = gatesClean && overlapClean && keepoutClean;
 // ---------- 5b. BGM status ----------
 // wait-bgm.mjs runs before assemble-index.mjs. Surface its verdict here so the
 // finalize agent never has to do ad hoc `ls assets/bgm.wav`, `ps`, or
-// `/tmp/bgm-*.log` checks.
+// BGM-log checks.
 function readJson(path) {
   if (!existsSync(path)) return null;
   try {
