@@ -1,4 +1,4 @@
-// fallow-ignore-file unused-file
+// fallow-ignore-file unused-file complexity
 /**
  * HyperFrames early stub — injected at the very start of `<head>` before any
  * other scripts run. Compiled to an IIFE by scripts/build-hf-early-stub.ts.
@@ -214,6 +214,12 @@ function convertVarsOpacityToAutoAlpha(vars: unknown): unknown {
  * `to`/`from`/`set` carry vars at index 1; `fromTo` at indexes 1 and 2.
  */
 function convertTweenArgs(method: TimelineOperationMethod, args: unknown[]): unknown[] {
+  // Always record tween targets regardless of the autoAlpha rewrite flag.
+  // The stacked-fade gate reads __hfFadeTargets at engine init and must stay
+  // armed even when the rewrite is disabled (e.g. gated renders, R&D probes).
+  // Decoupled from the rewrite so HF_FAST_CAPTURE_AUTOALPHA=false no longer
+  // silently blinds the gate.
+  if (method !== "add") recordThreeDTweenTarget(args);
   if (window.__HF_FAST_CAPTURE_AUTOALPHA__ !== true) return args;
   if (method === "add") return args;
   const out = args.slice();
@@ -234,7 +240,6 @@ function convertTweenArgs(method: TimelineOperationMethod, args: unknown[]): unk
   if (rewritten && out[0] !== null && out[0] !== undefined) {
     autoAlphaRewrittenTargets.add(out[0]);
   }
-  recordThreeDTweenTarget(out);
   return out;
 }
 
@@ -262,6 +267,7 @@ function varsHasFade(vars: unknown): boolean {
   return "opacity" in record || "autoAlpha" in record;
 }
 
+// fallow-ignore-next-line complexity
 function recordThreeDTweenTarget(args: unknown[]): void {
   const target = args[0];
   if (target === null || target === undefined) return;

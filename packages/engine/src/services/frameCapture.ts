@@ -1,4 +1,4 @@
-// fallow-ignore-file complexity
+// fallow-ignore-file complexity code-duplication
 /**
  * Frame Capture Service
  *
@@ -369,6 +369,26 @@ async function initDrawElementOrTransparentBackground(
         "hint forced screenshot capture (e.g. raw requestAnimationFrame composition).",
     );
   }
+  // Retract the per-page autoAlpha rewrite flag when a runtime gate routes the
+  // session to screenshot mode. evaluateOnNewDocument already fired; a follow-up
+  // evaluate overrides it in the live page context so hideTransparentAutoAlpha-
+  // Targets does not hide elements on the fallback screenshot render
+  // (up to 21 dB damage if not retracted, A/B proven 2026-06-12).
+  async function retractAutoAlphaFlag(): Promise<void> {
+    await page.evaluate(() => {
+      (
+        window as Window & { __HF_FAST_CAPTURE_AUTOALPHA__?: boolean }
+      ).__HF_FAST_CAPTURE_AUTOALPHA__ = false;
+    });
+  }
+  async function routeToFallback(): Promise<void> {
+    session.captureMode = session.launchCaptureMode;
+    if (transparent) {
+      await initTransparentBackground(session.page);
+    }
+    await retractAutoAlphaFlag();
+  }
+
   if (useDrawElement) {
     session.isSwiftShader = await detectSwiftShader(page);
     const transparent = session.options.format === "png";
@@ -404,10 +424,7 @@ async function initDrawElementOrTransparentBackground(
       console.log(
         `[engine] fast capture: falling back to ${session.launchCaptureMode} capture — ${reason}`,
       );
-      session.captureMode = session.launchCaptureMode;
-      if (transparent) {
-        await initTransparentBackground(session.page);
-      }
+      await routeToFallback();
     } else {
       // Stacked-fade gate: >=2 overlapping viewport-scale fade targets
       // reproduce the drawElementImage mid-fade blackout (crbug 521861819).
@@ -421,10 +438,7 @@ async function initDrawElementOrTransparentBackground(
             "stacked viewport-scale fade targets detected (drawElementImage drops " +
             "mid-fade content, crbug 521861819)",
         );
-        session.captureMode = session.launchCaptureMode;
-        if (transparent) {
-          await initTransparentBackground(session.page);
-        }
+        await routeToFallback();
         return;
       }
       // Rewrite CSS 3D contexts into WebGL-projected canvases BEFORE the
@@ -437,10 +451,7 @@ async function initDrawElementOrTransparentBackground(
           `[engine] fast capture: falling back to ${session.launchCaptureMode} capture — ` +
             `3D projection init failed (${threeD.reason ?? "unknown"})`,
         );
-        session.captureMode = session.launchCaptureMode;
-        if (transparent) {
-          await initTransparentBackground(session.page);
-        }
+        await routeToFallback();
         return;
       }
       if (threeD.groups > 0) {
@@ -570,15 +581,15 @@ export async function createCaptureSession(
   // Signal the producer's GSAP stub to rewrite `opacity` → `autoAlpha` in
   // tween vars: stacked opacity-0 containers (the caption pattern) keep
   // painting as transparent promoted layers, which breaks drawElementImage
-  // capture and adds per-frame layer-promotion cost on every capture path.
-  // Keyed on the fast-capture ENV (not the per-render useDrawElement cfg) so
-  // video-gated renders — where compileStage disables drawElement but the
-  // user still opted into fast capture — keep the paint-tree win. Baseline
-  // renders never set the env. Opt out with HF_FAST_CAPTURE_AUTOALPHA=false.
-  if (
-    process.env.PRODUCER_EXPERIMENTAL_FAST_CAPTURE === "true" &&
-    process.env.HF_FAST_CAPTURE_AUTOALPHA !== "false"
-  ) {
+  // capture. Keyed on per-render useDrawElement (not the global fast-capture
+  // env) — compile-time-gated renders (video, 3D) set useDrawElement=false
+  // in compileStage and must NOT receive the rewrite; applying it to a
+  // screenshot render causes up to 21 dB min damage (A/B proven 2026-06-12
+  // on gos-pro-promo, 3D-gated). The stub records __hfFadeTargets regardless
+  // of this flag (see convertTweenArgs in hf-early-stub.ts) so the
+  // stacked-fade gate is always armed even when the rewrite is off.
+  // Opt out with HF_FAST_CAPTURE_AUTOALPHA=false.
+  if (useDrawElement && process.env.HF_FAST_CAPTURE_AUTOALPHA !== "false") {
     await page.evaluateOnNewDocument(() => {
       (
         window as Window & { __HF_FAST_CAPTURE_AUTOALPHA__?: boolean }

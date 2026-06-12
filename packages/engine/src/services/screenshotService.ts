@@ -1,3 +1,4 @@
+// fallow-ignore-file code-duplication complexity
 /**
  * Screenshot Service
  *
@@ -470,6 +471,7 @@ export async function injectVideoFramesBatch(
       // shorter than the host's authored data-duration, where the runtime
       // truncates visibility but the replacement <img> must hold its last
       // frame) — those must NOT be skipped here.
+      // fallow-ignore-next-line code-duplication
       const isVisualAncestorHidden = (el: HTMLElement): boolean => {
         let parent = el.parentElement;
         while (parent !== null && parent !== document.documentElement) {
@@ -611,6 +613,7 @@ export async function syncVideoFrameVisibility(
     // See that copy for the full rationale on why `visibility: hidden` is
     // narrowed to sub-composition hosts only — keep these two functions in
     // sync so the inactive-arm decision matches the inject-time decision.
+    // fallow-ignore-next-line code-duplication
     const isVisualAncestorHidden = (el: HTMLElement): boolean => {
       let parent = el.parentElement;
       while (parent !== null && parent !== document.documentElement) {

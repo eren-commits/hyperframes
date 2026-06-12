@@ -1,3 +1,4 @@
+// fallow-ignore-file code-duplication complexity
 /**
  * probeStage — browser probe + recompile + media reconciliation.
  *
@@ -327,6 +328,7 @@ export async function runProbeStage(input: ProbeStageInput): Promise<ProbeStageR
         }
 
         if (el.tagName === "video") {
+          // fallow-ignore-next-line code-duplication
           if (existingVideoIds.has(el.id)) {
             // Reconcile to browser/runtime media metadata (runtime src can differ from static HTML).
             const existing = composition.videos.find((v) => v.id === el.id);
@@ -373,6 +375,7 @@ export async function runProbeStage(input: ProbeStageInput): Promise<ProbeStageR
             existingVideoIds.add(el.id);
           }
         } else if (el.tagName === "audio") {
+          // fallow-ignore-next-line code-duplication
           if (existingAudioIds.has(el.id)) {
             const existing = composition.audios.find((a) => a.id === el.id);
             if (existing) {

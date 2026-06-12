@@ -39,6 +39,11 @@
   ],
   "ignorePatterns": [
     "docs/**",
+    // Chrome browser binaries downloaded by puppeteer — not project source.
+    "chrome/**",
+    // Standalone spike scripts and benchmark runners used during R&D.
+    "packages/engine/spikes/**",
+    "packages/producer/de-*.mjs",
     "packages/producer/tests/**",
     "packages/player/tests/**",
     "packages/engine/tests/**",
@@ -104,6 +109,12 @@
     {
       "file": "packages/cli/src/commands/render.ts",
       "exports": ["resolveBrowserGpuForCli", "renderLocal"],
+    },
+    // initThreeDProjectionInPage: passed to page.evaluate() for browser-side execution —
+    // Puppeteer serializes it at runtime, not an import-graph consumer.
+    {
+      "file": "packages/engine/src/services/threeDProjection.ts",
+      "exports": ["initThreeDProjectionInPage"],
     },
     // captureCost.ts: constants and helpers consumed by the runCaptureCalibration
     // orchestration function and tests, but the entry-point graph doesn't

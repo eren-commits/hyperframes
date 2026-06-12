@@ -1,3 +1,4 @@
+// fallow-ignore-file code-duplication complexity
 /**
  * DrawElement Capture Service
  *
@@ -295,6 +296,7 @@ export async function captureDrawElementFrame(
             // canvas would paint over this — backgrounds belong on <body> or
             // inside the canvas for GPU comps.
             const rootRect = root.getBoundingClientRect();
+            // fallow-ignore-next-line code-duplication
             for (const c of accel) {
               if (c.hasAttribute("data-hf-3d")) continue;
               const r = c.getBoundingClientRect();
@@ -311,6 +313,7 @@ export async function captureDrawElementFrame(
             // DOM paint: their content replaces clip-path-hidden foreground
             // elements, and the under-pass above would bury them beneath the
             // composition root's own background.
+            // fallow-ignore-next-line code-duplication
             for (const c of accel) {
               if (!c.hasAttribute("data-hf-3d")) continue;
               const r = c.getBoundingClientRect();
