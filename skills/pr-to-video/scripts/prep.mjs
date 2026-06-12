@@ -11,19 +11,17 @@
 //         product-launch-video orchestrator initializes that project root
 //         before calling prep.
 //
-// section_plan.md anchors recognised:
-//   **Effects:**     — required, 2-5 backtick-wrapped rule ids
-//   **Duration:**    — required, positive float seconds
-//   **Continuity:**  — required, "break" | "continue" (scene 1 must be break)
-//   (Components/Surface anchors removed — the design system is a style REFERENCE.
-//    Every available component path is forwarded to every worker in
-//    design_chunks.components[]; the Phase 4b worker self-picks by visual
-//    judgment. No scene-level surface commitment.)
-//   **SFX:**         — optional (soft), bullet list of "`<file>.mp3` at <T>s,
-//                      volume <V> — note" cues (T is scene-local). Resolved
-//                      against the SFX manifest; cues citing unknown files are
-//                      dropped with an anomaly (validate.mjs section catches
-//                      those typos earlier, in-loop). Omitted entirely → no SFX.
+// This file is the ORCHESTRATOR. The deterministic concern logic lives in
+// sibling lib/ modules so no single file carries every concern at once:
+//   lib/prep-assets.mjs   — capture media + fonts → public/, @font-face extract (Steps 2/2b/2c)
+//   lib/prep-section.mjs  — parse section_plan.md → film_direction + scenes      (Step 3)
+//   lib/prep-design.mjs   — resolve design-system chunks + brand tokens           (Step 4b)
+//   lib/prep-sfx.mjs      — SFX library copy + cue → global timing                (Step 6.5)
+// The section_plan.md anchors recognised by the parser are documented in
+// lib/prep-section.mjs. Steps 4 (rule_paths), 5 (audio-truth duration ladder),
+// 6 (continuity grouping), 6.6/6.7 (visual clips + transitions) and 7/8 (emit +
+// summary) stay here — they own the cap=N worker grouping that is pr-to-video's
+// decoupled-continuity model.
 //
 // Usage:
 //   node prep.mjs --section-plan <path> --narrator-scripts <path> \
@@ -35,18 +33,15 @@
 // Exit 1 = structural failure (missing anchor / missing rule / bad value) on stderr.
 
 import { spawnSync } from "node:child_process";
-import {
-  copyFileSync,
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  readdirSync,
-  statSync,
-  writeFileSync,
-} from "node:fs";
-import { basename, extname, join, resolve } from "node:path";
+import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { basename, join, resolve } from "node:path";
 import { loadTransitionRegistry, transitionsByName } from "./lib/transition-registry.mjs";
 import { resolveDimensions } from "./lib/dimensions.mjs";
+import { die } from "./lib/prep-log.mjs";
+import { copyBrandFonts, copyCaptureAssets, extractFontFaceCss } from "./lib/prep-assets.mjs";
+import { parseSectionPlan } from "./lib/prep-section.mjs";
+import { extractBrandTokensCss, resolveDesignChunks } from "./lib/prep-design.mjs";
+import { resolveSfx } from "./lib/prep-sfx.mjs";
 
 // ---------- argv ----------
 const argv = process.argv.slice(2);
@@ -54,10 +49,6 @@ const flag = (name, def) => {
   const i = argv.indexOf(`--${name}`);
   return i >= 0 && i + 1 < argv.length ? argv[i + 1] : def;
 };
-function die(msg) {
-  console.error(`✗ prep.mjs: ${msg}`);
-  process.exit(1);
-}
 const round3 = (n) => Number(n.toFixed(3));
 
 const sectionPlanPath = resolve(flag("section-plan", "./section_plan.md"));
@@ -110,262 +101,19 @@ if (!existsSync(hyperframesDir)) {
   if (r.status !== 0) die("npx hyperframes init failed");
 }
 
-// ---------- Step 2: copy capture assets → public/ ----------
+// ---------- Step 2/2b/2c: capture media + brand fonts → public/, @font-face ----------
+// See lib/prep-assets.mjs. copyCaptureAssets creates public/ first, so it must
+// run before copyBrandFonts (which writes public/fonts/).
 const publicDir = join(hyperframesDir, "public");
-mkdirSync(publicDir, { recursive: true });
-
-// `.bin` is the capture-stage fallback name for images with unrecognized MIME
-// (typically image/* with a missing or CDN-rewritten Content-Type). Downstream
-// Phase 4b workers reference them as <img src>; browsers render by magic bytes
-// and almost all display correctly. Include it in the allowlist to avoid orphaning files.
-const ASSET_EXTS = new Set([
-  ".png",
-  ".jpg",
-  ".jpeg",
-  ".webp",
-  ".svg",
-  ".bin",
-  // Video extensions — Phase 3 frequently quotes hero/demo .mp4 from the
-  // capture. Forgetting these forces Phase 4b workers to substitute poster
-  // .webp, losing motion fidelity. Keep in sync with the playable formats
-  // hyperframes-core accepts in <video>/clip sub-comps.
-  ".mp4",
-  ".mov",
-  ".webm",
-]);
-const collisions = [];
-let copied = 0;
-
-function walk(dir) {
-  if (!existsSync(dir)) return;
-  for (const ent of readdirSync(dir, { withFileTypes: true })) {
-    const p = join(dir, ent.name);
-    if (ent.isDirectory()) walk(p);
-    else if (ent.isFile() && ASSET_EXTS.has(extname(ent.name).toLowerCase())) {
-      const target = join(publicDir, ent.name);
-      if (existsSync(target)) {
-        collisions.push({ kept: target, skipped: p });
-      } else {
-        copyFileSync(p, target);
-        copied++;
-      }
-    }
-  }
-}
-// hyperframes capture writes assets/ + screenshots/ + extracted/ under
-// captureDir. We want only image/video media (assets/ + screenshots/), not
-// the JSON manifests under extracted/.
-walk(join(captureDir, "assets"));
-walk(join(captureDir, "screenshots"));
-
-// ---------- Step 2b: copy design-system/fonts → public/fonts/ ----------
-// Phase 1b's download-fonts.mjs writes self-hosted brand fonts into
-// design-system/fonts/. Copy them into public/fonts/ so the
-// renderer resolves the @font-face rules that index.html declares.
-const fontsSrcDir = join(designSystemDir, "fonts");
-let fontsCopied = 0;
-const FONT_EXTS = new Set([".woff2", ".woff", ".ttf", ".otf"]);
-if (existsSync(fontsSrcDir)) {
-  const fontsDestDir = join(publicDir, "fonts");
-  mkdirSync(fontsDestDir, { recursive: true });
-  for (const ent of readdirSync(fontsSrcDir, { withFileTypes: true })) {
-    if (!ent.isFile()) continue;
-    if (!FONT_EXTS.has(extname(ent.name).toLowerCase())) continue;
-    const src = join(fontsSrcDir, ent.name);
-    const dest = join(fontsDestDir, ent.name);
-    if (!existsSync(dest)) {
-      copyFileSync(src, dest);
-      fontsCopied++;
-    }
-  }
-}
-
-// ---------- Step 2c: extract @font-face block from design.html ----------
-// download-fonts.mjs wraps its injection with two comment anchors. Pull the
-// block out, rewrite url('fonts/<file>') → url('public/fonts/<file>') so the
-// paths resolve against the HyperFrames project root, and emit into group_spec.font_face_css
-// so Phase 4c can paste it into index.html's <head>. @font-face is global by
-// spec and cannot be class-scoped — declaring it once at the document root is
-// the only way it actually loads.
-let fontFaceCss = "";
-const designHtmlPath = join(designSystemDir, "design.html");
-if (existsSync(designHtmlPath)) {
-  const designHtml = readFileSync(designHtmlPath, "utf8");
-  const m = designHtml.match(
-    /\/\*\s*===\s*auto-injected by download-fonts\.mjs\s*===\s*\*\/([\s\S]*?)\/\*\s*===\s*end download-fonts\.mjs block\s*===\s*\*\//,
-  );
-  if (m) {
-    fontFaceCss = m[1].trim().replace(/url\(\s*(['"]?)fonts\//g, "url($1public/fonts/");
-  }
-}
+const { copied, collisions } = copyCaptureAssets(captureDir, publicDir);
+const fontsCopied = copyBrandFonts(designSystemDir, publicDir);
+const fontFaceCss = extractFontFaceCss(designSystemDir);
 
 // ---------- Step 3: parse section_plan.md ----------
+// See lib/prep-section.mjs (anchors, scene blocks, SFX cue parsing, film_direction).
 if (!existsSync(sectionPlanPath)) die(`section_plan.md not found at ${sectionPlanPath}`);
 const planText = readFileSync(sectionPlanPath, "utf8");
-
-const sceneHeadRe = /^## Scene\s+(\d+)\s*:\s*(.+?)\s*$/gm;
-const heads = [...planText.matchAll(sceneHeadRe)];
-if (heads.length === 0) die("no '## Scene N: <name>' headings found in section_plan.md");
-
-// Film Direction: the film-level header (`## Film Direction` ... up to the first
-// `## Scene`). Written once by visual-design; the orchestrator prepends it to
-// every scene worker's shared packet header and to the finalize dispatch, so
-// per-scene creative_brief can stay deltas-only. validate.mjs section enforces
-// presence and size; prep just extracts what is there (tolerant when absent).
-let film_direction = "";
-{
-  const fdHead = planText.match(/^## Film Direction[ \t]*$/m);
-  if (fdHead && fdHead.index < heads[0].index) {
-    film_direction = planText.slice(fdHead.index + fdHead[0].length, heads[0].index).trim();
-  }
-}
-
-const ANCHORS = ["Effects", "Duration", "Continuity"];
-// Components/Surface anchors removed — the design system is a style REFERENCE,
-// not a plan-time contract (workers self-pick components from the forwarded
-// library; no scene-level surface commitment). Blueprint + Bridge are kept only as
-// legacy optional anchors so old plans do not leak them into creative_brief; both ignored.
-const OPTIONAL_ANCHORS = ["Blueprint", "Transition", "Bridge"];
-
-function anchorRe(name) {
-  return new RegExp(`^\\*\\*${name}:\\*\\*\\s*(.*)$`, "m");
-}
-
-function parseSceneBlock(body, sceneId, isFirst) {
-  const raw = {};
-  let lastAnchorEnd = 0;
-  for (const a of ANCHORS) {
-    const m = body.match(anchorRe(a));
-    if (!m) die(`${sceneId}: missing **${a}:** anchor in section_plan.md`);
-    raw[a] = m[1].trim();
-    const end = m.index + m[0].length;
-    if (end > lastAnchorEnd) lastAnchorEnd = end;
-  }
-  // Optional anchors — include them in lastAnchorEnd when present to avoid leaking
-  // into creative_brief; missing optional anchors are fine.
-  for (const a of OPTIONAL_ANCHORS) {
-    const m = body.match(anchorRe(a));
-    if (m) {
-      raw[a] = m[1].trim();
-      const end = m.index + m[0].length;
-      if (end > lastAnchorEnd) lastAnchorEnd = end;
-    }
-  }
-
-  // Effects: ordered backtick-wrapped ids inside [...]
-  const effects = [...raw.Effects.matchAll(/`([^`]+)`/g)].map((m) => m[1]);
-  if (effects.length === 0) die(`${sceneId}: **Effects:** has no backtick-wrapped ids`);
-
-  // Duration: leading float
-  const durM = raw.Duration.match(/[\d.]+/);
-  if (!durM) die(`${sceneId}: **Duration:** could not parse float from "${raw.Duration}"`);
-  const estimatedDuration_s = parseFloat(durM[0]);
-  if (!isFinite(estimatedDuration_s) || estimatedDuration_s <= 0)
-    die(`${sceneId}: **Duration:** ${estimatedDuration_s} is not a positive float`);
-
-  // Continuity: break | continue (scene 1 must be break)
-  const cont = raw.Continuity.toLowerCase();
-  if (cont !== "break" && cont !== "continue")
-    die(`${sceneId}: **Continuity:** must be "break" or "continue" (got "${raw.Continuity}")`);
-  if (isFirst && cont !== "break") die(`${sceneId}: scene 1 must be **Continuity:** break`);
-
-  // Transition (OPTIONAL): how THIS scene is entered.
-  //   **Transition:** <type> [DIRECTION] [<dur>s]
-  // Parsed loosely here (validator already shape-checked); null when absent so
-  // Step 6.5 can default-fill. Scene 1's transition is the open (no between-
-  // scene transition precedes it) — parsed but ignored at injection time.
-  let transition = null;
-  if (raw.Transition) {
-    const tokens = raw.Transition.trim().split(/\s+/);
-    const type = tokens[0].toLowerCase();
-    let direction = null;
-    let durationOverride = null;
-    for (const tok of tokens.slice(1)) {
-      if (/^[\d.]+s$/i.test(tok)) durationOverride = parseFloat(tok);
-      else direction = tok.toUpperCase();
-    }
-    // Legacy Bridge anchor is intentionally ignored. Continue runs now use one
-    // shared-DOM group composition; break seams use only Tier-B wrapper transitions.
-    if (type) transition = { type, direction, duration_s: durationOverride, bridge_id: null };
-  }
-
-  // SFX (optional / soft anchor; omitted entirely = no SFX for this scene):
-  //   **SFX:**
-  //   - `impact-bass-1.mp3` at 0.2s, volume 0.35 — hero snap
-  //   - `whoosh-short.mp3` at 4.1s — exit
-  // (or `**SFX:** none`, or no anchor at all). The validator
-  // (validate.mjs section) no longer requires the anchor; when present it
-  // checks each cited file against the manifest. This parser accepts either
-  // form. "none" / any non-empty trailer skips the bullet scan (no cues).
-  // sfx_cues[].t is SCENE-LOCAL seconds (this function knows nothing about
-  // global timing; we add s.start_s offset in Step 6).
-  const sfxCues = [];
-  const sfxHeaderRe = /^\*\*SFX:\*\*[ \t]*(.*)$/m;
-  const sfxHeaderM = body.match(sfxHeaderRe);
-  if (sfxHeaderM) {
-    const sfxHeaderEnd = sfxHeaderM.index + sfxHeaderM[0].length;
-    if (sfxHeaderEnd > lastAnchorEnd) lastAnchorEnd = sfxHeaderEnd;
-  }
-  if (sfxHeaderM && sfxHeaderM[1].trim() === "") {
-    const sfxHeaderEnd = sfxHeaderM.index + sfxHeaderM[0].length;
-    const afterHeader = body.slice(sfxHeaderEnd);
-    const lines = afterHeader.split("\n");
-    let consumed = 0; // chars consumed past the header
-    for (let li = 0; li < lines.length; li++) {
-      const line = lines[li];
-      const trimmed = line.trim();
-      if (trimmed === "") {
-        consumed += line.length + 1;
-        continue;
-      }
-      if (!trimmed.startsWith("-")) break; // next anchor / prose / scene heading
-      // Parse: `<file>.mp3` at <T>s[, volume <V>][, — <note>]
-      const cueRe =
-        /^[\s\-*]+`([^`]+\.mp3)`\s+at\s+([\d.]+)\s*s(?:[,\s]+volume\s+([\d.]+))?(?:\s*[—–-]\s*(.*))?$/;
-      const m = trimmed.match(cueRe);
-      if (m) {
-        const file = m[1];
-        const tLocal = parseFloat(m[2]);
-        const volume = m[3] != null ? parseFloat(m[3]) : null;
-        const note = m[4] ? m[4].trim() : "";
-        if (!isFinite(tLocal) || tLocal < 0) {
-          die(`${sceneId}: **SFX:** invalid t for "${file}": "${m[2]}"`);
-        }
-        sfxCues.push({ file, t_local: tLocal, volume, note });
-      } else {
-        die(`${sceneId}: **SFX:** unparseable cue line: "${trimmed}"`);
-      }
-      consumed += line.length + 1;
-    }
-    const sfxBlockEnd = sfxHeaderEnd + consumed;
-    if (sfxBlockEnd > lastAnchorEnd) lastAnchorEnd = sfxBlockEnd;
-  }
-
-  // creative_brief = everything after the LAST anchor line, verbatim
-  const brief = body.slice(lastAnchorEnd).replace(/^\s*\n+/, "");
-
-  return {
-    effects,
-    estimatedDuration_s,
-    continuity: cont,
-    transition,
-    sfxCues,
-    creative_brief: brief,
-  };
-}
-
-const scenes = [];
-for (let i = 0; i < heads.length; i++) {
-  const m = heads[i];
-  const sceneNumber = parseInt(m[1], 10);
-  const sceneName = m[2].trim();
-  const start = m.index + m[0].length;
-  const end = i + 1 < heads.length ? heads[i + 1].index : planText.length;
-  const body = planText.slice(start, end);
-  const sceneId = `scene_${sceneNumber}`;
-  const parsed = parseSceneBlock(body, sceneId, i === 0);
-  scenes.push({ sceneNumber, sceneId, sceneName, ...parsed });
-}
+const { film_direction, scenes } = parseSectionPlan(planText);
 
 // ---------- Step 4: resolve rule_paths ----------
 const ruleStatCache = new Map();
@@ -395,104 +143,11 @@ for (const s of scenes) {
 // can append to it.
 const anomalies = [];
 
-// ---------- Step 4b: resolve design_chunks ----------
-// Phase 1b's emit-chunks.mjs writes design-system/chunks/{tokens.css, easings.js,
-// components/<id>.html, index.json}. Downstream Phase 4b workers read only the
-// chunks listed in their dispatch — never design.html — cutting per-worker
-// must-read load by ~4× (12 KB design.html → 1-3 KB per chunk file).
-//
-// Resolution policy:
-//   - chunks/index.json missing       → degrade gracefully: design_chunks = null
-//                                       for every scene, log an anomaly, and let
-//                                       the worker fall back to reading design.html.
-//   - index.json present              → every scene gets tokens_file + easings_file
-//                                       + the FULL component library (worker picks).
-const chunksDir = join(designSystemDir, "chunks");
-const chunksIndexPath = join(chunksDir, "index.json");
-let chunksIndex = null;
-if (existsSync(chunksIndexPath)) {
-  try {
-    chunksIndex = JSON.parse(readFileSync(chunksIndexPath, "utf8"));
-  } catch (e) {
-    anomalies.push(
-      `design-system/chunks/index.json present but unreadable (${e.message}) — workers will fall back to design.html`,
-    );
-  }
-} else {
-  anomalies.push(
-    `design-system/chunks/ missing — Phase 1b's emit-chunks.mjs was not run. Workers will fall back to reading design.html (slower).`,
-  );
-}
-
-let availableComponents = null;
-if (chunksIndex) {
-  availableComponents = new Map(
-    (chunksIndex.components || []).map((c) => [c.id, join(designSystemDir, c.file)]),
-  );
-}
-
-for (const s of scenes) {
-  if (!chunksIndex) {
-    s.design_chunks = null;
-    continue;
-  }
-  const tokensAbs = join(designSystemDir, chunksIndex.tokens_file || "chunks/tokens.css");
-  const easingsAbs = join(designSystemDir, chunksIndex.easings_file || "chunks/easings.js");
-  const voiceAbs = join(designSystemDir, chunksIndex.voice_file || "chunks/voice.md");
-  if (!existsSync(tokensAbs))
-    die(`design_chunks: tokens_file "${tokensAbs}" referenced by index.json but missing on disk`);
-  if (!existsSync(easingsAbs))
-    die(`design_chunks: easings_file "${easingsAbs}" referenced by index.json but missing on disk`);
-  if (!existsSync(voiceAbs))
-    die(`design_chunks: voice_file "${voiceAbs}" referenced by index.json but missing on disk`);
-
-  // Optional chunks (null when preset declared no §H / §T). Worker reads
-  // these on demand — paths are passed through dispatch verbatim. We only check
-  // file existence when index.json references one (consistency guard); the
-  // worker then opens it lazily without re-checking.
-  const hintsAbs = chunksIndex.hints_file ? join(designSystemDir, chunksIndex.hints_file) : null;
-  if (hintsAbs && !existsSync(hintsAbs))
-    die(`design_chunks: hints_file "${hintsAbs}" referenced by index.json but missing on disk`);
-  const typeRolesAbs = chunksIndex.type_roles_file
-    ? join(designSystemDir, chunksIndex.type_roles_file)
-    : null;
-  if (typeRolesAbs && !existsSync(typeRolesAbs))
-    die(
-      `design_chunks: type_roles_file "${typeRolesAbs}" referenced by index.json but missing on disk`,
-    );
-
-  // Components are a style REFERENCE library, not a plan-time citation. Forward
-  // EVERY available component to every worker; the worker picks which to use by
-  // visual judgment (see agents/hyperframes-scene.md). Existence is guaranteed by
-  // emit-chunks; filter defensively so a stale index entry never ships a missing path.
-  const componentPaths = availableComponents
-    ? [...availableComponents.values()].filter((abs) => existsSync(abs))
-    : [];
-  s.design_chunks = {
-    tokens_file: tokensAbs,
-    easings_file: easingsAbs,
-    voice_file: voiceAbs,
-    hints_file: hintsAbs,
-    type_roles_file: typeRolesAbs,
-    components: componentPaths,
-  };
-}
-
-// ---------- Step 4b: extract the :root token block from tokens.css ----------
-// tokens.css is a single global :root {…} block (brand colors, font roles,
-// spacing/radius). Emit it into group_spec.brand_tokens_css so assemble-index.mjs
-// can declare it ONCE in index.html's <head>. CSS custom properties inherit
-// through the light DOM into every mounted sub-composition, so scenes reference
-// var(--*) WITHOUT re-declaring the block locally (see agents/hyperframes-scene.md).
-let brandTokensCss = "";
-if (chunksIndex) {
-  const tokensAbs = join(designSystemDir, chunksIndex.tokens_file || "chunks/tokens.css");
-  if (existsSync(tokensAbs)) {
-    const tokensRaw = readFileSync(tokensAbs, "utf8");
-    const m = tokensRaw.match(/:root\s*\{[\s\S]*\}/);
-    brandTokensCss = (m ? m[0] : tokensRaw).trim();
-  }
-}
+// ---------- Step 4b: resolve design_chunks + extract :root brand tokens ----------
+// See lib/prep-design.mjs. resolveDesignChunks mutates scenes[].design_chunks and
+// appends anomalies; chunksIndex is reused for the brand-tokens block and summary.
+const { chunksIndex } = resolveDesignChunks({ designSystemDir, scenes, anomalies });
+const brandTokensCss = extractBrandTokensCss(chunksIndex, designSystemDir);
 
 // ---------- Step 5: cross-check narrator + audio merge ----------
 if (!existsSync(narratorScriptsPath))
@@ -874,85 +529,9 @@ if (txRegistry) {
 }
 
 // ---------- Step 6.5: SFX library copy + cue → global timing ----------
-// SFX library is OPT-IN: when orchestrator passes --sfx-lib the directory is
-// copied into <PROJECT_DIR>/assets/sfx/ and section_plan **SFX:** cues are
-// validated against manifest.json. Without --sfx-lib, scene cues are silently
-// dropped (warning only). Voice/bgm live under assets/; SFX matches.
-const sfx = [];
-if (sfxLibDir) {
-  const sfxManifestPath = join(sfxLibDir, "manifest.json");
-  if (!existsSync(sfxManifestPath)) {
-    die(`--sfx-lib points to ${sfxLibDir} but manifest.json is missing`);
-  }
-  let sfxManifest;
-  try {
-    sfxManifest = JSON.parse(readFileSync(sfxManifestPath, "utf8"));
-  } catch (e) {
-    die(`sfx manifest.json parse: ${e.message}`);
-  }
-  // Build filename → { duration, key } lookup so cues can reference by filename
-  // (matching v1 storyboard syntax: `impact-bass-1.mp3` not the manifest key).
-  const sfxByFile = new Map();
-  for (const [key, entry] of Object.entries(sfxManifest)) {
-    if (entry?.file && isFinite(entry.duration)) {
-      sfxByFile.set(entry.file, { key, duration: entry.duration });
-    }
-  }
-
-  // Copy entire SFX directory into <PROJECT_DIR>/assets/sfx/ (mp3 + manifest +
-  // CREDITS). Idempotent: skip files that already exist (e.g. re-runs).
-  const sfxDestDir = join(hyperframesDir, "assets", "sfx");
-  mkdirSync(sfxDestDir, { recursive: true });
-  let sfxCopied = 0;
-  for (const ent of readdirSync(sfxLibDir, { withFileTypes: true })) {
-    if (!ent.isFile()) continue;
-    const src = join(sfxLibDir, ent.name);
-    const dest = join(sfxDestDir, ent.name);
-    if (!existsSync(dest)) {
-      copyFileSync(src, dest);
-      sfxCopied++;
-    }
-  }
-
-  // Resolve each scene's cues against manifest + add scene.start_s offset.
-  for (const g of groups) {
-    for (const sid of g.scene_ids) {
-      const sceneEntry = g.scenes[sid];
-      const sceneCues = scenes.find((x) => x.sceneId === sid)?.sfxCues || [];
-      for (const cue of sceneCues) {
-        const hit = sfxByFile.get(cue.file);
-        if (!hit) {
-          anomalies.push(
-            `${sid}: SFX cue file "${cue.file}" not in manifest — dropping (known files: ${[...sfxByFile.keys()].slice(0, 5).join(", ")}${sfxByFile.size > 5 ? ", …" : ""})`,
-          );
-          continue;
-        }
-        const tGlobal = Number((sceneEntry.start_s + cue.t_local).toFixed(3));
-        sfx.push({
-          file: cue.file,
-          t: tGlobal,
-          duration: hit.duration,
-          volume: cue.volume != null ? cue.volume : 0.35,
-          scene_id: sid,
-          t_local: cue.t_local,
-          note: cue.note || "",
-        });
-      }
-    }
-  }
-  // Sort by global t for predictable index.html emission order.
-  sfx.sort((a, b) => a.t - b.t);
-  console.log(`  sfx lib copied: ${sfxCopied} file(s) → assets/sfx/`);
-} else {
-  // Surface plan cues that won't make it to the timeline because no lib was provided.
-  let droppedCueCount = 0;
-  for (const s of scenes) droppedCueCount += s.sfxCues?.length || 0;
-  if (droppedCueCount > 0) {
-    anomalies.push(
-      `section_plan declares ${droppedCueCount} SFX cue(s) but --sfx-lib not passed — all cues dropped`,
-    );
-  }
-}
+// See lib/prep-sfx.mjs. Runs after Step 6.7 (matching the original ordering) so
+// its "sfx lib copied" log and any cue anomalies land in the same sequence.
+const sfx = resolveSfx({ sfxLibDir, hyperframesDir, scenes, groups, anomalies });
 
 // ---------- Step 7: emit group_spec.json ----------
 const total_duration_s = scenes.reduce((sum, s) => sum + s.estimatedDuration_s, 0);

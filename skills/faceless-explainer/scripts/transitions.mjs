@@ -110,6 +110,23 @@ async function runInject(argv) {
   if (clips.size === 0)
     die(`no visual clip wrappers found in index.html for ids: ${[...visualIds].join(", ")}`);
 
+  // Completeness guard against assemble-index emit drift. Every "HF-VISUAL-CLIP <id>"
+  // marker (emitted by assemble-index.mjs immediately before each visual clip <div>)
+  // whose id is a known visual clip MUST have been parsed by clipRe above. If the
+  // <div id="el-<id>"> emit shape changes and the regex stops matching, this fails
+  // loudly here instead of silently dropping a clip from the ping-pong track
+  // reassignment below (which would surface much later as overlapping_clips_same_track).
+  // Older index.html without the marker → markerIds empty → no-op (backward compatible).
+  // Keep the marker string in lockstep with assemble-index.mjs.
+  const markerIds = [...html.matchAll(/<!--\s*HF-VISUAL-CLIP\s+([A-Za-z0-9_]+)\b/g)]
+    .map((m) => m[1])
+    .filter((id) => visualIds.has(id));
+  const missedIds = markerIds.filter((id) => !clips.has(id));
+  if (missedIds.length)
+    die(
+      `visual-clip parse drift: assemble-index marked ${markerIds.length} visual clip(s) but the parser missed ${missedIds.join(", ")} — the <div id="el-<id>"> emit format changed; resync transitions.mjs with assemble-index.mjs`,
+    );
+
   // ---------- apply overlaps ----------
   const gsapLines = [];
   const applied = [];

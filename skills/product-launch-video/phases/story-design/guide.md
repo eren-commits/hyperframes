@@ -289,7 +289,7 @@ Frontend (and downstream agents) expect these **exact** field names. Wrong names
 Field rules:
 
 - Use `sceneNumber` (not `scene_id`), `sceneName` (not `scene_name`), `script` (not `narration`), and nest intent fields inside `narrativeIntent` (do not flatten them onto the scene object).
-- Every scene must have a `transition` field (`intent` + `description`), including scene 1 (`intent: "cut"`). **Scene 1 has no previous scene, so its `transition` does not generate any transition downstream (downstream ignores it) - `intent: "cut"` is just a placeholder; fill it and do not design a real opening transition.** The legacy `continuity` / `sharedMotif` fields were removed (`validate.mjs narrator` rejects them).
+- Every scene must have a `transition` field (`intent` + `description`), including scene 1 (`intent: "cut"`). **Scene 1 has no previous scene, so its `transition` does not generate any transition downstream (downstream ignores it) - `intent: "cut"` is just a placeholder; fill it and do not design a real opening transition.** The legacy `continuity` / `sharedMotif` fields were removed (`validate-narrator.mjs` rejects them).
 - `assetCandidates` is a **required** field and must be an array. Truly text-only scenes (title cards, pure typography) use `[]`. Any scene with a visual hero must include at least one `{path, description}` entry.
 - Every `assetCandidates[].path` must be `public/<basename>`, and basename must exist in `capture/assets/`. Phase 4a `prep.mjs` fails when a file is missing.
 

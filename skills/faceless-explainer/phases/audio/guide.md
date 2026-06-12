@@ -23,7 +23,7 @@ assets/bgm.wav                          # BGM (optional; may not be written yet 
   "bgm_enabled": true | false,
   "bgm_pending": true | false,        // detached BGM may still be rendering; Step 7 wait-bgm.mjs verifies it
   "bgm_path": "assets/bgm.wav" | null,
-  "bgm_log": "/tmp/bgm-<timestamp>.log" | null,
+  "bgm_log": "<private mkdtemp dir>/bgm-<timestamp>.log" | null,
   "bgm_pid": 12345 | null,
   "bgm_mode": "detached-single" | "detached-seed-loop" | "detached-seed-trim" | null,
   "bgm_target_duration_s": 62.4 | null,  // BGM target duration (= measured total voice duration; trim/loop to this)

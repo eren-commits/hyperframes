@@ -26,7 +26,7 @@ A **code-change explainer, up to ~3 min** (sweet spot ~30-90s) for a dev-facing 
 
 ## ❗ Per-Scene Length Budget (validator enforces — fail to honor and your output is rejected)
 
-**Hard cap: > 26 words → validator fatal.** Default per scene: ≤ 19 words / ≤ 9 s; at most 2 scenes may reach ≤ 26 words / ≤ 12 s. `estimatedDuration = ceil(word_count / 2.2)` — compute it, don't guess. The validator (`scripts/validate.mjs narrator`) machine-checks both. See `phases/scriptwriting/guide.md` "Per-Scene Length Budget" for the full table and trim techniques.
+**Hard cap: > 26 words → validator fatal.** Default per scene: ≤ 19 words / ≤ 9 s; at most 2 scenes may reach ≤ 26 words / ≤ 12 s. `estimatedDuration = ceil(word_count / 2.2)` — compute it, don't guess. The validator (`scripts/validate-narrator.mjs`) machine-checks both. See `phases/scriptwriting/guide.md` "Per-Scene Length Budget" for the full table and trim techniques.
 
 ## Self-Check Before Reporting Done
 

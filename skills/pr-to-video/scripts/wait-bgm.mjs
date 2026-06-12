@@ -57,8 +57,12 @@ function readTail(path, maxChars = 6000) {
 function detectFailure(logTail) {
   if (!logTail) return "";
   const lines = logTail.split("\n");
+  // Bare "out of range" over-matched benign BGM-renderer logs (e.g. a "sample rate
+  // out of range, resampling" notice), mislabelling a healthy track as failed and
+  // silently dropping the music. Anchor to the actual crash strings instead:
+  // Python "(list) index out of range" and torch "index … out of bounds".
   const idx = lines.findIndex((line) =>
-    /(Traceback|IndexError|RuntimeError|Exception|Killed|No space left|Cannot allocate|out of range)/i.test(
+    /(Traceback|IndexError|RuntimeError|Exception|Killed|No space left|Cannot allocate|index out of range|out of bounds)/i.test(
       line,
     ),
   );

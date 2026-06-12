@@ -1,6 +1,6 @@
 Reference these effects in `section_plan.md` by **name** (wrapped in backticks).
 
-The actual source of truth for `validate.mjs section` is `hyperframes-animation/rules/`. This is the curated planner subset — **do not cite** the two skipped rules listed at the end (missing frontmatter).
+The actual source of truth for `validate-section.mjs` is `hyperframes-animation/rules/`. This is the curated planner subset — **do not cite** the two skipped rules listed at the end (missing frontmatter).
 
 ## SVG & Icons
 

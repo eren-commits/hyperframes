@@ -165,7 +165,12 @@ for (let i = 0; i < playOrder.length; i++) {
   // assemble-layer workaround since the skill can't patch core lint.)
   const next = playOrder[i + 1];
   const voiceDur = next ? next.scene.start_s - start : dur;
-  body.push(`      <!-- ${sid} (${start} → ${Number((start + dur).toFixed(3))}) -->`);
+  // CONTRACT (keep in lockstep with transitions.mjs scene-clip parser): the
+  // "HF-SCENE-CLIP <sid>" marker lets transitions.mjs count expected scene clips
+  // independently of the <div> attribute formatting and fail loudly if the emit
+  // shape below ever drifts out of sync with its regex. Do not rename the marker
+  // or collapse the per-attribute line layout without updating transitions.mjs.
+  body.push(`      <!-- HF-SCENE-CLIP ${sid} (${start} → ${Number((start + dur).toFixed(3))}) -->`);
   // (track 0) scene sub-comp clip — host data-composition-id MUST equal the
   // inner file's data-composition-id (= sid) or the runtime never finds the
   // timeline. No class="clip" on sub-comp host divs (proven: brex / style-10).

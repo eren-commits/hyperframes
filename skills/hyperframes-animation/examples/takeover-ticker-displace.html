@@ -128,11 +128,10 @@
         z-index: 20; /* above text during overlap */
         opacity: 0; /* fromTo will animate */
       }
-      .hero img {
+      .hero .logo-mark {
         width: 100%;
         height: 100%;
         display: block;
-        object-fit: contain;
         border-radius: 52px;
         box-shadow:
           0 0 70px rgba(24, 217, 232, 0.28),
@@ -172,7 +171,27 @@
 
         <!-- Hero logo asset -->
         <div class="hero" id="hero-logo">
-          <img src="assets/logo-hyperframes.png" alt="HyperFrames" />
+          <!-- Inline-SVG placeholder mark — swap for your logo image -->
+          <svg class="logo-mark" viewBox="0 0 100 100" role="img" aria-label="HyperFrames">
+            <defs>
+              <linearGradient id="hfMark" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#8b7bff" />
+                <stop offset="1" stop-color="#3ddc97" />
+              </linearGradient>
+            </defs>
+            <rect x="4" y="4" width="92" height="92" rx="22" fill="url(#hfMark)" />
+            <text
+              x="50"
+              y="63"
+              text-anchor="middle"
+              font-family="Inter, system-ui, sans-serif"
+              font-size="40"
+              font-weight="800"
+              fill="#fff"
+            >
+              HF
+            </text>
+          </svg>
         </div>
       </div>
     </div>

@@ -170,7 +170,7 @@ Both subagents depend only on Step 1 artifacts and do not read each other's outp
   ```
   SKILL_DIR: <absolute path>
   PROJECT_DIR: <video project root>
-  Schema validator: <SKILL_DIR>/scripts/validate.mjs narrator
+  Schema validator: <SKILL_DIR>/scripts/validate-narrator.mjs
   Design DNA: ./design-system/inference.json   # read site_dna once to set the narrative register
   Provided script: ./user_script.txt   # ONLY when the user supplied a script; omit the line otherwise
   Voice-over mode: <verbatim | restructure>   # pair with Provided script; omit otherwise
@@ -230,7 +230,7 @@ Dispatch the subagent: prompt = full `agents/visual-design.md` + `## Dispatch co
 ```
 SKILL_DIR: <absolute path>
 PROJECT_DIR: <video project root>
-Schema validator: <SKILL_DIR>/scripts/validate.mjs section
+Schema validator: <SKILL_DIR>/scripts/validate-section.mjs
 Canvas: <width>×<height>   # 1920×1080 default; 1080×1920 portrait / 1080×1080 square when narrator_scripts.orientation says so
 Captions: <enabled | disabled>   # the node -e hint above; enabled => plan keeps key content in the upper ~83%
 Dispatch packet: <PROJECT_DIR>/.dispatch/vd-dispatch.txt

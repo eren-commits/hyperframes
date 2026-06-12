@@ -50,6 +50,8 @@ import {
 import { homedir, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
+import { scratchPath } from "./lib/scratch-dir.mjs";
+
 // ---------- argv ----------
 const argv = process.argv.slice(2);
 function flag(name, def) {
@@ -296,9 +298,9 @@ if (provider === "heygen" && !voiceId) {
   voiceId = pick.voice_id;
 }
 
-// ---------- Step 4: write narration → /tmp/scene_<N>.txt ----------
+// ---------- Step 4: write narration → <scratch>/scene_<N>.txt ----------
 for (const s of scenes) {
-  writeFileSync(`/tmp/${s.sceneId}.txt`, s.script);
+  writeFileSync(scratchPath(`${s.sceneId}.txt`), s.script);
 }
 
 // ---------- Step 4b: pre-flight BGM-deps install (parallel with TTS) ----------
@@ -435,7 +437,7 @@ async function synthesizeHeygen(s) {
   const wordsAbs = join(hyperframesDir, `assets/voice/${s.sceneId}_words.json`);
   const wavAbs = join(hyperframesDir, `assets/voice/${s.sceneId}.wav`);
   try {
-    const text = readFileSync(`/tmp/${s.sceneId}.txt`, "utf8");
+    const text = readFileSync(scratchPath(`${s.sceneId}.txt`), "utf8");
     const reqBody = { text, voice_id: voiceId, speed: 1.0 };
     if (lang !== "en") reqBody.language = lang;
     const res = await fetch(HEYGEN_ENDPOINT, {
@@ -479,7 +481,7 @@ async function synthesizeHeygen(s) {
 }
 
 async function ttsScene(s) {
-  const txt = `/tmp/${s.sceneId}.txt`;
+  const txt = scratchPath(`${s.sceneId}.txt`);
   const wavRel = `assets/voice/${s.sceneId}.wav`;
 
   // HeyGen: inline REST (see synthesizeHeygen) — also writes the words JSON.
@@ -637,7 +639,7 @@ if (noBgm) {
   // Path A: Lyria (cloud)
   const totalS = bgmTargetDurationS;
   const prompt = inferBgmPrompt();
-  const log = `/tmp/bgm-${Date.now()}.log`;
+  const log = scratchPath(`bgm-${Date.now()}.log`);
   console.log(`BGM: launching Lyria (detached) — prompt: "${prompt.slice(0, 70)}…"`);
   console.log(`     log: ${log}`);
   const fd = openSync(log, "w");
@@ -678,7 +680,7 @@ if (noBgm) {
   //     target, so there are no hard per-segment seams.
   const totalS = bgmTargetDurationS;
   const prompt = inferBgmPrompt();
-  const log = `/tmp/bgm-${Date.now()}.log`;
+  const log = scratchPath(`bgm-${Date.now()}.log`);
   const targetS = Math.max(1, totalS);
   const seedS = Math.min(bgmSeedSeconds, 30);
   const loops = targetS > seedS ? Math.ceil(targetS / seedS) : 1;

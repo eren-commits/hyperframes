@@ -254,8 +254,15 @@ const mergedByLogin = pr.mergedBy?.login || null;
 // ---------- clean body ----------
 function cleanBody(raw) {
   if (!raw || typeof raw !== "string") return "";
-  let t = raw
-    .replace(/<!--[\s\S]*?-->/g, "") // strip HTML comments (PR templates)
+  // Strip HTML comments (PR templates) to a fixpoint, so fragments left by one
+  // pass can't reassemble into a new comment (CodeQL
+  // js/incomplete-multi-character-sanitization).
+  let t = raw;
+  for (let prev = null; prev !== t; ) {
+    prev = t;
+    t = t.replace(/<!--[\s\S]*?-->/g, "");
+  }
+  t = t
     .replace(/\r\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();

@@ -105,6 +105,23 @@ async function runInject(argv) {
   if (clips.size === 0)
     die(`no scene clip wrappers found in index.html for scene_ids: ${[...sceneIds].join(", ")}`);
 
+  // Completeness guard against assemble-index emit drift. Every "HF-SCENE-CLIP <sid>"
+  // marker (emitted by assemble-index.mjs immediately before each scene <div>) whose
+  // sid is a known scene MUST have been parsed by clipRe above. If the <div
+  // id="el-<sid>"> emit shape changes and the regex stops matching, this fails loudly
+  // here instead of silently dropping a scene from the ping-pong track reassignment
+  // below (which would surface much later as overlapping_clips_same_track). Older
+  // index.html without the marker → markerSids empty → no-op (backward compatible).
+  // Keep the marker string in lockstep with assemble-index.mjs.
+  const markerSids = [...html.matchAll(/<!--\s*HF-SCENE-CLIP\s+([A-Za-z0-9_]+)\b/g)]
+    .map((m) => m[1])
+    .filter((sid) => sceneIds.has(sid));
+  const missedSids = markerSids.filter((sid) => !clips.has(sid));
+  if (missedSids.length)
+    die(
+      `scene-clip parse drift: assemble-index marked ${markerSids.length} scene clip(s) but the parser missed ${missedSids.join(", ")} — the <div id="el-<sid>"> emit format changed; resync transitions.mjs with assemble-index.mjs`,
+    );
+
   // ---------- apply overlaps ----------
   const gsapLines = [];
   const applied = [];
