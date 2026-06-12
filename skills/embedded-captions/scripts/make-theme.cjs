@@ -1881,7 +1881,6 @@ function paradigmFlaprail() {
     words: L.words.map((w) => [w.display.toUpperCase(), +w.start.toFixed(3), w.minor ? 1 : 0]),
   }));
   const chy = b.chyron || {};
-  const nLines = LINES.length;
   const ctrVals = lineData.map((_, i) => String(i + 1).padStart(2, "0"));
   // odometer chip docks above the bar while the FIRST emphasis line reads
   const chipL = b.chip ? LINES.find((L) => L.words.some((w) => w.minor)) : null;
@@ -3597,8 +3596,7 @@ function paradigmScoperail() {
     HUD = dna.palette.hud || "#2f8f55";
   const bandH = b.bandH || 164;
   const bandTop = H - bandH;
-  const waveTop = bandTop + (b.waveTop || 80),
-    waveH = b.waveH || 84;
+  const waveH = b.waveH || 84;
   const NZ = +LASTWORD.start.toFixed(3); // the scope-death beat
   // line windows: exits collapse into the trace — early into dead air
   // (lastWordStart+0.67), else just before the next line needs the slot
@@ -6105,9 +6103,7 @@ function setpieceLasercage() {
   // and flickers; during the hold the array FANS OUT slowly behind the word
   // (the iconic concert fan) while the word looms. Exit: the beams sweep away
   // L→R carrying the letters (streak + blur) and the room lifts back up.
-  const h = dna.hero,
-    p = h.params || {},
-    I = heroIn;
+  const I = heroIn;
   const X0 = +(heroOut - 0.38).toFixed(3); // beams-carry-the-letters exit
   const A = dna.palette.accent,
     MG = dna.palette.magenta || "#ff4df0";
