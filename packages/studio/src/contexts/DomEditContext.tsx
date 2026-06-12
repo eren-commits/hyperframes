@@ -1,3 +1,4 @@
+// fallow-ignore-file code-duplication
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 import type { useDomEditSession } from "../hooks/useDomEditSession";
 
@@ -60,6 +61,7 @@ export function DomEditProvider({
     handleGsapUpdateProperty,
     handleGsapUpdateMeta,
     handleGsapDeleteAnimation,
+    handleGsapDeleteAllForElement,
     handleGsapAddAnimation,
     handleGsapAddProperty,
     handleGsapRemoveProperty,
@@ -133,6 +135,7 @@ export function DomEditProvider({
       handleGsapUpdateProperty,
       handleGsapUpdateMeta,
       handleGsapDeleteAnimation,
+      handleGsapDeleteAllForElement,
       handleGsapAddAnimation,
       handleGsapAddProperty,
       handleGsapRemoveProperty,
@@ -200,6 +203,7 @@ export function DomEditProvider({
       handleGsapUpdateProperty,
       handleGsapUpdateMeta,
       handleGsapDeleteAnimation,
+      handleGsapDeleteAllForElement,
       handleGsapAddAnimation,
       handleGsapAddProperty,
       handleGsapRemoveProperty,

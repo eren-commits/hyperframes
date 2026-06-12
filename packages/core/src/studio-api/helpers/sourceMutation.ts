@@ -223,6 +223,58 @@ function isSafeAttributeValue(name: string, value: string): boolean {
   return true;
 }
 
+// fallow-ignore-next-line complexity
+function patchStyleAttrString(style: string, property: string, value: string | null): string {
+  const props = new Map<string, string>();
+  const order: string[] = [];
+  // Tokenize declarations robustly: values can contain ';' inside quoted strings
+  // (e.g. content: ';') and ':' inside values (data URIs, url(), etc.).
+  // Split on ';' only when outside quotes and balanced parens; the first ':' in
+  // the resulting segment is the property/value separator (property names never
+  // contain ':').
+  let i = 0;
+  while (i < style.length) {
+    let depth = 0;
+    let inSingle = false;
+    let inDouble = false;
+    const start = i;
+    while (i < style.length) {
+      const ch = style[i];
+      if (ch === "'" && !inDouble) inSingle = !inSingle;
+      else if (ch === '"' && !inSingle) inDouble = !inDouble;
+      else if (!inSingle && !inDouble) {
+        if (ch === "(") depth++;
+        else if (ch === ")") depth = Math.max(0, depth - 1);
+        else if (ch === ";" && depth === 0) break;
+      }
+      i++;
+    }
+    const decl = style.slice(start, i).trim();
+    i++; // advance past ';'
+    if (!decl) continue;
+    const colon = decl.indexOf(":");
+    if (colon < 0) continue;
+    const key = decl.slice(0, colon).trim();
+    const val = decl.slice(colon + 1).trim();
+    if (!key) continue;
+    if (!props.has(key)) order.push(key);
+    props.set(key, val);
+  }
+  if (value === null) {
+    props.delete(property);
+    const idx = order.indexOf(property);
+    if (idx >= 0) order.splice(idx, 1);
+  } else {
+    if (!props.has(property)) order.push(property);
+    props.set(property, value);
+  }
+  return order
+    .map((k) => `${k}: ${props.get(k) ?? ""}`)
+    .filter((d) => d.trim())
+    .join("; ");
+}
+
+// fallow-ignore-next-line complexity
 export function patchElementInHtml(
   source: string,
   target: SourceMutationTarget,
@@ -236,10 +288,14 @@ export function patchElementInHtml(
   for (const op of operations) {
     switch (op.type) {
       case "inline-style":
-        if (op.value != null) {
-          htmlEl.style.setProperty(op.property, op.value);
-        } else {
-          htmlEl.style.removeProperty(op.property);
+        // linkedom's CSSStyleDeclaration does not support CSS custom properties
+        // (--foo) or newer individual transform properties (translate, rotate,
+        // scale) via style.setProperty(). Manipulate the style attribute string
+        // directly so all property names survive the round-trip.
+        {
+          const raw = htmlEl.getAttribute("style") ?? "";
+          const patched = patchStyleAttrString(raw, op.property, op.value);
+          htmlEl.setAttribute("style", patched);
         }
         break;
       case "attribute":

@@ -262,6 +262,7 @@ export function useDomEditSession({
     updateGsapProperty,
     updateGsapMeta,
     deleteGsapAnimation,
+    deleteAllForSelector,
     addGsapAnimation,
     addGsapProperty,
     removeGsapProperty,
@@ -329,6 +330,14 @@ export function useDomEditSession({
   // GSAP-aware: intercept offset/resize/rotation to commit via script mutation when animated.
   const handleGsapAwarePathOffsetCommit = useCallback(
     async (selection: DomEditSelection, next: { x: number; y: number }) => {
+      const hasGsapAnims = selectedGsapAnimations.length > 0;
+      if (hasGsapAnims && !STUDIO_GSAP_DRAG_INTERCEPT_ENABLED) {
+        showToast(
+          "This element is GSAP-animated — dragging via CSS would corrupt keyframes",
+          "error",
+        );
+        return;
+      }
       if (STUDIO_GSAP_DRAG_INTERCEPT_ENABLED && gsapCommitMutation) {
         const handled = await tryGsapDragIntercept(
           selection,
@@ -356,6 +365,7 @@ export function useDomEditSession({
       previewIframeRef,
       projectId,
       gsapSourceFile,
+      showToast,
     ],
   );
 
@@ -425,6 +435,7 @@ export function useDomEditSession({
     handleGsapUpdateProperty,
     handleGsapUpdateMeta,
     handleGsapDeleteAnimation,
+    handleGsapDeleteAllForElement,
     handleGsapAddAnimation,
     handleGsapAddProperty,
     handleGsapRemoveProperty,
@@ -442,6 +453,7 @@ export function useDomEditSession({
     updateGsapProperty,
     updateGsapMeta,
     deleteGsapAnimation,
+    deleteAllForSelector,
     addGsapAnimation,
     addGsapProperty,
     removeGsapProperty,
@@ -550,6 +562,7 @@ export function useDomEditSession({
     handleGsapUpdateProperty,
     handleGsapUpdateMeta,
     handleGsapDeleteAnimation,
+    handleGsapDeleteAllForElement,
     handleGsapAddAnimation,
     handleGsapAddProperty,
     handleGsapRemoveProperty,
