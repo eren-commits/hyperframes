@@ -353,7 +353,6 @@ export const PropertyPanel = memo(function PropertyPanel({
           </div>
         </div>
       </div>
-
       <div className="flex-1 overflow-y-auto">
         <TextSection
           element={element}
@@ -369,7 +368,6 @@ export const PropertyPanel = memo(function PropertyPanel({
         {element.dataAttributes.start != null && (
           <TimingSection element={element} onSetAttribute={onSetAttribute} />
         )}
-
         {isMediaElement(element) && (
           <MediaSection
             projectDir={projectDir}
@@ -585,7 +583,6 @@ export const PropertyPanel = memo(function PropertyPanel({
             </button>
           </div>
         )}
-
         {showEditableSections && (
           <StyleSections
             projectId={projectId}
