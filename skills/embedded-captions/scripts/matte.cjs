@@ -118,9 +118,15 @@ async function main() {
   }
 
   const fpsFile = path.join(project, "matte.fps");
-  const fps = fs.existsSync(fpsFile)
-    ? parseInt(fs.readFileSync(fpsFile, "utf8").replace(/\D/g, ""), 10) || probeFps(src)
-    : probeFps(src);
+  // read-with-catch (no exists-then-read TOCTOU): a missing/corrupt fps file
+  // simply falls through to probing the source.
+  let fps = 0;
+  try {
+    fps = parseInt(fs.readFileSync(fpsFile, "utf8").replace(/\D/g, ""), 10) || 0;
+  } catch {
+    /* no cached fps — probe below */
+  }
+  if (!fps) fps = probeFps(src);
   fs.writeFileSync(fpsFile, String(fps));
 
   const framesBg = path.join(project, "frames_bg");
