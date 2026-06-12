@@ -381,17 +381,16 @@ async function initDrawElementOrTransparentBackground(
       ).__HF_FAST_CAPTURE_AUTOALPHA__ = false;
     });
   }
-  async function routeToFallback(): Promise<void> {
-    session.captureMode = session.launchCaptureMode;
-    if (transparent) {
-      await initTransparentBackground(session.page);
-    }
-    await retractAutoAlphaFlag();
-  }
-
   if (useDrawElement) {
     session.isSwiftShader = await detectSwiftShader(page);
     const transparent = session.options.format === "png";
+    async function routeToFallback(): Promise<void> {
+      session.captureMode = session.launchCaptureMode;
+      if (transparent) {
+        await initTransparentBackground(session.page);
+      }
+      await retractAutoAlphaFlag();
+    }
     // Video compositions fall back to screenshot capture. <video> is a PROXY
     // signal: the actual trigger (bisect + standalone repro, 2026-06-09) is the
     // word-by-word caption opacity pattern — per-frame JS opacity writes on >=2
