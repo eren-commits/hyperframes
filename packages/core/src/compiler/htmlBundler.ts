@@ -1,5 +1,6 @@
 import { readFileSync, existsSync } from "fs";
 import { join, resolve, relative, dirname, isAbsolute, sep } from "path";
+import { CSS_URL_RE, isNonRelativeUrl } from "./assetPaths.js";
 import { transformSync } from "esbuild";
 import { compileHtml, type MediaDurationProber } from "./htmlCompiler";
 import {
@@ -72,14 +73,7 @@ function injectInterceptor(html: string, runtimeMode: "inline" | "placeholder" =
 }
 
 function isRelativeUrl(url: string): boolean {
-  if (!url) return false;
-  return (
-    !url.startsWith("http://") &&
-    !url.startsWith("https://") &&
-    !url.startsWith("//") &&
-    !url.startsWith("data:") &&
-    !isAbsolute(url)
-  );
+  return !isNonRelativeUrl(url) && !isAbsolute(url);
 }
 
 function safeReadFile(filePath: string): string | null {
@@ -93,8 +87,6 @@ function safeReadFile(filePath: string): string | null {
 
 const CSS_IMPORT_RE =
   /@import\s+(?:url\(\s*(["']?)([^)"']+)\1\s*\)|(["'])([^"']+)\3)\s*([^;]*);\s*/g;
-
-const REBASE_URL_RE = /\burl\(\s*(["']?)([^)"']+)\1\s*\)/g;
 
 const CSS_COMMENT_RE = /\/\*[\s\S]*?\*\//g;
 
@@ -123,7 +115,7 @@ function rebaseCssUrls(css: string, cssFileDir: string, projectDir: string): str
   const resolvedRoot = resolve(projectDir);
   const resolvedDir = resolve(cssFileDir);
   if (resolvedDir === resolvedRoot) return css;
-  return css.replace(REBASE_URL_RE, (full, quote: string, urlValue: string) => {
+  return css.replace(CSS_URL_RE, (full, quote: string, urlValue: string) => {
     if (!urlValue || !isRelativeUrl(urlValue)) return full;
     const { basePath, suffix } = splitUrlSuffix(urlValue.trim());
     if (!basePath) return full;
@@ -205,29 +197,24 @@ function appendSuffixToUrl(baseUrl: string, suffix: string): string {
   return baseUrl;
 }
 
-function guessMimeType(filePath: string): string {
-  const l = filePath.toLowerCase();
-  if (l.endsWith(".svg")) return "image/svg+xml";
-  if (l.endsWith(".json")) return "application/json";
-  if (l.endsWith(".txt")) return "text/plain";
-  if (l.endsWith(".xml")) return "application/xml";
-  return "application/octet-stream";
-}
-
-function shouldInlineAsDataUrl(filePath: string): boolean {
-  const l = filePath.toLowerCase();
-  return l.endsWith(".svg") || l.endsWith(".json") || l.endsWith(".txt") || l.endsWith(".xml");
-}
+const INLINE_MIME: Record<string, string> = {
+  ".svg": "image/svg+xml",
+  ".json": "application/json",
+  ".txt": "text/plain",
+  ".xml": "application/xml",
+};
 
 function maybeInlineRelativeAssetUrl(urlValue: string, projectDir: string): string | null {
   if (!urlValue || !isRelativeUrl(urlValue)) return null;
   const { basePath, suffix } = splitUrlSuffix(urlValue.trim());
   if (!basePath) return null;
   const filePath = resolveWithinProject(projectDir, basePath);
-  if (!filePath || !shouldInlineAsDataUrl(filePath)) return null;
+  if (!filePath) return null;
+  const ext = filePath.toLowerCase().match(/\.[^.]+$/)?.[0] ?? "";
+  const mimeType = INLINE_MIME[ext];
+  if (!mimeType) return null;
   const content = safeReadFileBuffer(filePath);
   if (content == null) return null;
-  const mimeType = guessMimeType(filePath);
   const dataUrl = `data:${mimeType};base64,${content.toString("base64")}`;
   return appendSuffixToUrl(dataUrl, suffix);
 }
@@ -479,14 +466,13 @@ function autoHealMissingCompositionIds(document: Document): void {
 function coalesceHeadStylesAndBodyScripts(document: Document): void {
   const headStyleEls = [...document.querySelectorAll("head style")];
   if (headStyleEls.length > 1) {
-    const importRe = /@import\s+url\([^)]*\)\s*;|@import\s+["'][^"']+["']\s*;/gi;
     const imports: string[] = [];
     const cssParts: string[] = [];
     const seenImports = new Set<string>();
     for (const el of headStyleEls) {
       const raw = (el.textContent || "").trim();
       if (!raw) continue;
-      const nonImportCss = raw.replace(importRe, (match) => {
+      const nonImportCss = raw.replace(CSS_IMPORT_RE, (match) => {
         const cleaned = match.trim();
         if (!seenImports.has(cleaned)) {
           seenImports.add(cleaned);
