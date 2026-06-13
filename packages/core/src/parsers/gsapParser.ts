@@ -18,6 +18,8 @@ import {
   type GsapMethod,
   type GsapPercentageKeyframe,
   type ParsedGsap,
+  serializeValue as valueToCode,
+  safeJsKey as safeKey,
 } from "./gsapSerialize";
 
 export type {
@@ -1132,17 +1134,6 @@ export function parseGsapScript(script: string): ParsedGsap {
 // in real compositions (variable targets, interleaved `gsap.set`, IIFE wrapper)
 // without regenerating — and discarding — the surrounding code.
 
-/** Render a model value to the JS source it should emit as. Mirrors gsapSerialize. */
-function valueToCode(value: number | string): string {
-  if (typeof value === "string" && value.startsWith("__raw:")) return value.slice(6);
-  if (typeof value === "string") return JSON.stringify(value);
-  return String(value);
-}
-
-function safeKey(key: string): string {
-  return /^[A-Za-z_$][\w$]*$/.test(key) ? key : JSON.stringify(key);
-}
-
 /**
  * Parse a value/expression snippet into a standalone AST expression node.
  * Uses an assignment (`__hf__ = <code>`) rather than wrapping in parens so an
@@ -1696,6 +1687,17 @@ function locateAnimation(
   return target ? { parsed, target } : null;
 }
 
+function locateAnimationWithFallback(
+  script: string,
+  animationId: string,
+): ReturnType<typeof locateAnimation> {
+  const loc = locateAnimation(script, animationId);
+  if (loc) return loc;
+  const convertedId = animationId.replace(/-from-|-fromTo-/, "-to-");
+  if (convertedId === animationId) return null;
+  return locateAnimation(script, convertedId);
+}
+
 /** Find the keyframes ObjectExpression node on a tween's varsArg, or null. */
 function findKeyframesObjectNode(varsArg: any): any | null {
   const node = findPropertyNode(varsArg, "keyframes");
@@ -1731,11 +1733,7 @@ function collapseKeyframesToFlat(varsArg: any, record: Record<string, unknown>):
  * updateKeyframeInScript.
  */
 function locateKeyframeCtx(script: string, animationId: string, percentage: number) {
-  let loc = locateAnimation(script, animationId);
-  if (!loc) {
-    const convertedId = animationId.replace(/-from-|-fromTo-/, "-to-");
-    loc = locateAnimation(script, convertedId);
-  }
+  const loc = locateAnimationWithFallback(script, animationId);
   if (!loc) return null;
   const kfNode = findKeyframesObjectNode(loc.target.call.varsArg);
   if (!kfNode) return null;
@@ -1754,21 +1752,13 @@ export function addKeyframeToScript(
   ease?: string,
   backfillDefaults?: Record<string, number | string>,
 ): string {
-  let loc = locateAnimation(script, animationId);
-  if (!loc) {
-    const convertedId = animationId.replace(/-from-|-fromTo-/, "-to-");
-    loc = locateAnimation(script, convertedId);
-  }
+  let loc = locateAnimationWithFallback(script, animationId);
   if (!loc) return script;
   let kfNode = findKeyframesObjectNode(loc.target.call.varsArg);
 
   if (!kfNode) {
     script = convertToKeyframesInScript(script, animationId);
-    loc = locateAnimation(script, animationId);
-    if (!loc) {
-      const convertedId = animationId.replace(/-from-|-fromTo-/, "-to-");
-      loc = locateAnimation(script, convertedId);
-    }
+    loc = locateAnimationWithFallback(script, animationId);
     if (!loc) return script;
     kfNode = findKeyframesObjectNode(loc.target.call.varsArg);
     if (!kfNode) return script;
@@ -2011,11 +2001,7 @@ export function convertToKeyframesInScript(
   animationId: string,
   resolvedFromValues?: Record<string, number | string>,
 ): string {
-  let loc = locateAnimation(script, animationId);
-  if (!loc) {
-    const convertedId = animationId.replace(/-from-|-fromTo-/, "-to-");
-    loc = locateAnimation(script, convertedId);
-  }
+  let loc = locateAnimationWithFallback(script, animationId);
   if (!loc) return script;
 
   const anim = loc.target.animation;
@@ -2046,11 +2032,7 @@ export function convertToKeyframesInScript(
  * last keyframe's properties.
  */
 export function removeAllKeyframesFromScript(script: string, animationId: string): string {
-  let loc = locateAnimation(script, animationId);
-  if (!loc) {
-    const convertedId = animationId.replace(/-from-|-fromTo-/, "-to-");
-    loc = locateAnimation(script, convertedId);
-  }
+  let loc = locateAnimationWithFallback(script, animationId);
   if (!loc) return script;
   const kfNode = findKeyframesObjectNode(loc.target.call.varsArg);
   if (!kfNode) return script;
@@ -2086,11 +2068,7 @@ export function materializeKeyframesInScript(
   easeEach?: string,
   resolvedSelector?: string,
 ): string {
-  let loc = locateAnimation(script, animationId);
-  if (!loc) {
-    const convertedId = animationId.replace(/-from-|-fromTo-/, "-to-");
-    loc = locateAnimation(script, convertedId);
-  }
+  let loc = locateAnimationWithFallback(script, animationId);
   if (!loc) return script;
 
   const varsArg = loc.target.call.varsArg;
@@ -2353,11 +2331,7 @@ export function splitIntoPropertyGroups(
   script: string,
   animationId: string,
 ): { script: string; ids: string[] } {
-  let loc = locateAnimation(script, animationId);
-  if (!loc) {
-    const convertedId = animationId.replace(/-from-|-fromTo-/, "-to-");
-    loc = locateAnimation(script, convertedId);
-  }
+  let loc = locateAnimationWithFallback(script, animationId);
   if (!loc) return { script, ids: [animationId] };
 
   const anim = loc.target.animation;
