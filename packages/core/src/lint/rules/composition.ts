@@ -1,5 +1,5 @@
 import type { LintContext, HyperframeLintFinding } from "../context";
-import { findHtmlTag, readAttr, readJsonAttr, truncateSnippet } from "../utils";
+import { findHtmlTag, readAttr, readJsonAttr, stripJsComments, truncateSnippet } from "../utils";
 import { COMPOSITION_VARIABLE_TYPES } from "../../core.types";
 
 // Agent guidance thresholds: warning-only nudges for files/tracks that become hard
@@ -397,8 +397,7 @@ export const compositionRules: Array<(ctx: LintContext) => HyperframeLintFinding
   ({ scripts }) => {
     const findings: HyperframeLintFinding[] = [];
     for (const script of scripts) {
-      // Strip comments to avoid false positives
-      const stripped = script.content.replace(/\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
+      const stripped = stripJsComments(script.content);
       if (/requestAnimationFrame\s*\(/.test(stripped)) {
         findings.push({
           code: "requestanimationframe_in_composition",
