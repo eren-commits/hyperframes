@@ -522,18 +522,22 @@ async function executeGsapMutation(
   }
 
   switch (body.type) {
-    case "update-property": {
+    case "update-property":
+    case "add-property": {
       const r = requireAnimation(block.scriptText, body.animationId);
       if ("err" in r) return r.err;
+      const val = body.type === "update-property" ? body.value : body.defaultValue;
       return updateAnimationInScript(block.scriptText, body.animationId, {
-        properties: { ...r.anim.properties, [body.property]: body.value },
+        properties: { ...r.anim.properties, [body.property]: val },
       });
     }
-    case "update-from-property": {
+    case "update-from-property":
+    case "add-from-property": {
       const r = requireFromToAnimation(block.scriptText, body.animationId);
       if ("err" in r) return r.err;
+      const val = body.type === "update-from-property" ? body.value : body.defaultValue;
       return updateAnimationInScript(block.scriptText, body.animationId, {
-        fromProperties: { ...(r.anim.fromProperties ?? {}), [body.property]: body.value },
+        fromProperties: { ...(r.anim.fromProperties ?? {}), [body.property]: val },
       });
     }
     case "update-meta": {
@@ -572,20 +576,6 @@ async function executeGsapMutation(
         script = removeAnimationFromScript(script, anim.id);
       }
       return script;
-    }
-    case "add-property": {
-      const r = requireAnimation(block.scriptText, body.animationId);
-      if ("err" in r) return r.err;
-      return updateAnimationInScript(block.scriptText, body.animationId, {
-        properties: { ...r.anim.properties, [body.property]: body.defaultValue },
-      });
-    }
-    case "add-from-property": {
-      const r = requireFromToAnimation(block.scriptText, body.animationId);
-      if ("err" in r) return r.err;
-      return updateAnimationInScript(block.scriptText, body.animationId, {
-        fromProperties: { ...(r.anim.fromProperties ?? {}), [body.property]: body.defaultValue },
-      });
     }
     case "remove-property": {
       const r = requireAnimation(block.scriptText, body.animationId);
