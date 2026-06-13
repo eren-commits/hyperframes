@@ -1237,6 +1237,18 @@ function findStatementPath(path: any): any {
   return null;
 }
 
+function insertAfterAnchor(parsed: ParsedGsapAst, newStatement: any): void {
+  const lastCall = parsed.located[parsed.located.length - 1]?.call;
+  const anchorPath = lastCall
+    ? findStatementPath(lastCall.path)
+    : findTimelineDeclarationPath(parsed.ast, parsed.timelineVar);
+  if (anchorPath) {
+    anchorPath.insertAfter(newStatement);
+  } else {
+    parsed.ast.program.body.push(newStatement);
+  }
+}
+
 /** Build the source for a single `tl.method(selector, vars, position)` call. */
 function buildTweenStatementCode(timelineVar: string, anim: Omit<GsapAnimation, "id">): string {
   const selector = JSON.stringify(anim.targetSelector);
@@ -1319,17 +1331,7 @@ export function addAnimationToScript(
   const id = `anim-${Date.now()}`;
   const statementCode = buildTweenStatementCode(parsed.timelineVar, animation);
   const newStatement = parseScript(statementCode).program.body[0];
-
-  const lastCall = parsed.located[parsed.located.length - 1]?.call;
-  const anchorPath = lastCall
-    ? findStatementPath(lastCall.path)
-    : findTimelineDeclarationPath(parsed.ast, parsed.timelineVar);
-
-  if (anchorPath) {
-    anchorPath.insertAfter(newStatement);
-  } else {
-    parsed.ast.program.body.push(newStatement);
-  }
+  insertAfterAnchor(parsed, newStatement);
   return { script: recast.print(parsed.ast).code, id };
 }
 
@@ -1365,16 +1367,7 @@ export function addAnimationWithKeyframesToScript(
   const stmtCode = `${parsed.timelineVar}.to(${selector}, { ${varEntries.join(", ")} }, ${posCode});`;
 
   const newStatement = parseScript(stmtCode).program.body[0];
-  const lastCall = parsed.located[parsed.located.length - 1]?.call;
-  const anchorPath = lastCall
-    ? findStatementPath(lastCall.path)
-    : findTimelineDeclarationPath(parsed.ast, parsed.timelineVar);
-
-  if (anchorPath) {
-    anchorPath.insertAfter(newStatement);
-  } else {
-    parsed.ast.program.body.push(newStatement);
-  }
+  insertAfterAnchor(parsed, newStatement);
 
   const result = recast.print(parsed.ast).code;
   const reParsed = parseGsapAst(result);
@@ -2107,6 +2100,25 @@ export function materializeKeyframesInScript(
 
 // ── Arc Path (motionPath) AST Mutations ──────────────────────────────────
 
+function numericXY(props: Record<string, number | string>): { x: number; y: number } | null {
+  const x = props.x;
+  const y = props.y;
+  return typeof x === "number" && typeof y === "number" ? { x, y } : null;
+}
+
+function extractArcWaypoints(anim: GsapAnimation): Array<{ x: number; y: number }> {
+  const kfs = anim.keyframes?.keyframes ?? [];
+  const waypoints = kfs.map((kf) => numericXY(kf.properties)).filter((p) => p !== null);
+  if (waypoints.length >= 2) return waypoints;
+  const px = anim.properties.x;
+  const py = anim.properties.y;
+  if (typeof px !== "number" && typeof py !== "number") return waypoints;
+  return [
+    { x: 0, y: 0 },
+    { x: typeof px === "number" ? px : 0, y: typeof py === "number" ? py : 0 },
+  ];
+}
+
 function buildMotionPathObjectCode(config: {
   waypoints: Array<{ x: number; y: number }>;
   segments: ArcPathSegment[];
@@ -2199,26 +2211,7 @@ export function setArcPathInScript(
     return recast.print(loc.parsed.ast).code;
   }
 
-  // Extract x/y waypoints from keyframes or flat tween properties
-  const kfs = anim.keyframes?.keyframes ?? [];
-  const waypoints: Array<{ x: number; y: number }> = [];
-  for (const kf of kfs) {
-    const x = typeof kf.properties.x === "number" ? kf.properties.x : undefined;
-    const y = typeof kf.properties.y === "number" ? kf.properties.y : undefined;
-    if (x !== undefined && y !== undefined) waypoints.push({ x, y });
-  }
-
-  // For flat tweens with x/y in properties, synthesize start → end waypoints
-  if (waypoints.length < 2) {
-    const px = anim.properties.x;
-    const py = anim.properties.y;
-    if (typeof px === "number" || typeof py === "number") {
-      waypoints.length = 0;
-      waypoints.push({ x: 0, y: 0 });
-      waypoints.push({ x: typeof px === "number" ? px : 0, y: typeof py === "number" ? py : 0 });
-    }
-  }
-
+  const waypoints = extractArcWaypoints(anim);
   if (waypoints.length < 2) return script;
 
   // Build segments — use provided segments or create defaults
@@ -2282,15 +2275,7 @@ export function updateArcSegmentInScript(
 
   segments[segmentIndex] = { ...segments[segmentIndex]!, ...update };
 
-  // Rebuild the full motionPath with updated segments
-  const kfs = anim.keyframes?.keyframes ?? [];
-  const waypoints: Array<{ x: number; y: number }> = [];
-  for (const kf of kfs) {
-    const x = typeof kf.properties.x === "number" ? kf.properties.x : undefined;
-    const y = typeof kf.properties.y === "number" ? kf.properties.y : undefined;
-    if (x !== undefined && y !== undefined) waypoints.push({ x, y });
-  }
-
+  const waypoints = extractArcWaypoints(anim);
   if (waypoints.length < 2) return script;
 
   const motionPathCode = buildMotionPathObjectCode({
