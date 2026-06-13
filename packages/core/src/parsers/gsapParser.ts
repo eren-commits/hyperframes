@@ -1358,15 +1358,7 @@ export function addAnimationWithKeyframesToScript(
   }
 
   const selector = JSON.stringify(targetSelector);
-  const kfEntries = keyframes.map((kf) => {
-    const propEntries = Object.entries(kf.properties).map(
-      ([k, v]) => `${safeKey(k)}: ${valueToCode(v)}`,
-    );
-    if (kf.ease) propEntries.push(`ease: ${JSON.stringify(kf.ease)}`);
-    if (kf.auto) propEntries.push(`_auto: 1`);
-    return `${JSON.stringify(`${kf.percentage}%`)}: { ${propEntries.join(", ")} }`;
-  });
-  const kfCode = `{ ${kfEntries.join(", ")} }`;
+  const kfCode = buildKeyframeObjectCode(keyframes);
   const varEntries = [`keyframes: ${kfCode}`, `duration: ${valueToCode(duration)}`];
   if (ease) varEntries.push(`ease: ${JSON.stringify(ease)}`);
   const posCode = valueToCode(position);
@@ -1634,6 +1626,25 @@ function sortedKeyframes(
 
 function keyframePropsToCode(kf: { properties: Record<string, number | string> }): string[] {
   return Object.entries(kf.properties).map(([k, v]) => `${safeKey(k)}: ${valueToCode(v)}`);
+}
+
+function buildKeyframeObjectCode(
+  keyframes: Array<{
+    percentage: number;
+    properties: Record<string, number | string>;
+    ease?: string;
+    auto?: boolean;
+  }>,
+  options?: { easeEach?: string },
+): string {
+  const entries = keyframes.map((kf) => {
+    const props = keyframePropsToCode(kf);
+    if (kf.ease) props.push(`ease: ${JSON.stringify(kf.ease)}`);
+    if (kf.auto) props.push(`_auto: 1`);
+    return `${JSON.stringify(`${kf.percentage}%`)}: { ${props.join(", ")} }`;
+  });
+  if (options?.easeEach) entries.push(`easeEach: ${JSON.stringify(options.easeEach)}`);
+  return `{ ${entries.join(", ")} }`;
 }
 
 /** Remove a named property from an ObjectExpression's properties array. */
@@ -2078,17 +2089,7 @@ export function materializeKeyframesInScript(
     loc.target.call.node.arguments[0] = parseExpr(JSON.stringify(resolvedSelector));
   }
 
-  const entries: string[] = [];
-  for (const kf of sortedKeyframes(keyframes)) {
-    const propEntries = keyframePropsToCode(kf);
-    if (kf.ease) propEntries.push(`ease: ${JSON.stringify(kf.ease)}`);
-    entries.push(`${JSON.stringify(kf.percentage + "%")}: { ${propEntries.join(", ")} }`);
-  }
-  if (easeEach) {
-    entries.push(`easeEach: ${JSON.stringify(easeEach)}`);
-  }
-
-  const kfObjCode = `{ ${entries.join(", ")} }`;
+  const kfObjCode = buildKeyframeObjectCode(sortedKeyframes(keyframes), { easeEach });
   const kfParent = varsArg.properties.find(
     (p: any) => isObjectProperty(p) && propKeyName(p) === "keyframes",
   );
@@ -2524,16 +2525,11 @@ export function unrollDynamicAnimations(
   // Build replacement code: individual tl.to() calls for each element
   const calls: string[] = [];
   for (const el of elements) {
-    const kfEntries: string[] = [];
-    for (const kf of sortedKeyframes(el.keyframes)) {
-      const propEntries = keyframePropsToCode(kf);
-      kfEntries.push(`${JSON.stringify(kf.percentage + "%")}: { ${propEntries.join(", ")} }`);
-    }
-    if (el.easeEach) {
-      kfEntries.push(`easeEach: ${JSON.stringify(el.easeEach)}`);
-    }
+    const kfCode = buildKeyframeObjectCode(sortedKeyframes(el.keyframes), {
+      easeEach: el.easeEach,
+    });
     calls.push(
-      `${loc.parsed.timelineVar}.to(${JSON.stringify(el.selector)}, { keyframes: { ${kfEntries.join(", ")} }, duration: ${duration}, ease: ${JSON.stringify(ease)} }, ${posCode});`,
+      `${loc.parsed.timelineVar}.to(${JSON.stringify(el.selector)}, { keyframes: ${kfCode}, duration: ${duration}, ease: ${JSON.stringify(ease)} }, ${posCode});`,
     );
   }
 

@@ -403,6 +403,11 @@ function dedupeVariants(variants: LocatedFontVariant[]): LocatedFontVariant[] {
   return Array.from(seen.values());
 }
 
+export function getSystemProfilerFamilies(): string[] {
+  const index = getSystemProfilerIndex();
+  return Array.from(index.keys());
+}
+
 export function clearSystemFontCache(): void {
   cache.clear();
   profilerCache = null;
