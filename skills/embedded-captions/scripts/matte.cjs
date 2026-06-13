@@ -62,7 +62,16 @@ function ensureSource(project) {
   return src;
 }
 
-function probeFps(src) {
+function rateOf(expr) {
+  const [n, d] = String(expr || "").split("/");
+  const f = parseFloat(n) / parseFloat(d || "1");
+  return Number.isFinite(f) && f > 0 ? f : 0;
+}
+
+// Prefer avg_frame_rate (frames/duration — the truth) over r_frame_rate (the
+// container's nominal tick rate, which lies on VFR sources: a 24fps screen
+// recording can carry r_frame_rate=60 and would 2.5x-desync the matte).
+function probeRates(src) {
   try {
     const out = cp
       .execFileSync("ffprobe", [
@@ -71,19 +80,32 @@ function probeFps(src) {
         "-select_streams",
         "v:0",
         "-show_entries",
-        "stream=r_frame_rate",
+        "stream=r_frame_rate,avg_frame_rate",
         "-of",
         "default=nk=1:nw=1",
         src,
       ])
       .toString()
-      .trim();
-    const [n, d] = out.split("/");
-    const f = parseFloat(n) / parseFloat(d || "1");
-    return f > 0 ? Math.max(1, Math.round(f)) : 24;
+      .trim()
+      .split("\n");
+    return { r: rateOf(out[0]), avg: rateOf(out[1]) };
   } catch {
-    return 24;
+    return { r: 0, avg: 0 };
   }
+}
+
+function probeFps(src) {
+  const { r, avg } = probeRates(src);
+  const f = avg || r;
+  return f > 0 ? Math.max(1, Math.round(f)) : 24;
+}
+
+// VFR when nominal and actual disagree by >5% — the remove-background engine
+// mishandles VFR timestamps (observed: 2251 fg frames vs 902 bg on one clip),
+// so VFR sources get normalized to CFR before matting.
+function isVfr(src) {
+  const { r, avg } = probeRates(src);
+  return r > 0 && avg > 0 && Math.abs(r - avg) / avg > 0.05;
 }
 
 function extractFrames(src, dst, fps, extra = []) {
@@ -140,7 +162,41 @@ async function main() {
     return;
   }
 
-  // 1) subject matte via hyperframes (ProRes 4444 keeps the alpha lossless)
+  // 1) subject matte via hyperframes (ProRes 4444 keeps the alpha lossless).
+  //    VFR sources are normalized to CFR first — remove-background trusts
+  //    timestamps and emits a desynced frame count on VFR input (the ghost
+  //    double-subject bug: the pasted matte runs at the wrong speed).
+  let matteSrc = src;
+  if (isVfr(src)) {
+    const cfr = path.join(project, "_src_cfr.mp4");
+    if (!fs.existsSync(cfr)) {
+      console.log(
+        `[matte] VFR source detected (nominal != actual fps) → normalizing to ${fps}fps CFR for matting`,
+      );
+      cp.execFileSync(
+        "ffmpeg",
+        [
+          "-y",
+          "-i",
+          src,
+          "-fps_mode",
+          "cfr",
+          "-r",
+          String(fps),
+          "-c:v",
+          "libx264",
+          "-crf",
+          "16",
+          "-preset",
+          "fast",
+          "-an",
+          cfr,
+        ],
+        { stdio: "ignore" },
+      );
+    }
+    matteSrc = cfr;
+  }
   const mov = path.join(project, "_matte_tmp.mov");
   const t0 = Date.now();
   const cached = fs.existsSync(
@@ -154,9 +210,9 @@ async function main() {
     ),
   );
   console.log(
-    `[matte] hyperframes remove-background (u2net_human_seg${cached ? "" : "; first run downloads ~168 MB"})…`,
+    `[matte] hyperframes remove-background (u2net_human_seg${cached ? "" : "; first run downloads ~168 MB"})… model load takes ~1-2 min with no output — not hung`,
   );
-  const r = cp.spawnSync("node", [hfCli(), "remove-background", src, "-o", mov], {
+  const r = cp.spawnSync("node", [hfCli(), "remove-background", matteSrc, "-o", mov], {
     stdio: ["ignore", "pipe", "pipe"],
     encoding: "utf8",
   });
@@ -175,9 +231,36 @@ async function main() {
   );
   fs.rmSync(mov, { force: true });
 
-  // 3) count parity with frames_bg (fractional-rate sources can land ±1 frame:
-  //    pad by duplicating the last matte frame; never let bg outrun fg)
+  // 3) count parity with frames_bg. Composite overlays fg by INDEX at matte.fps,
+  //    so any fg/bg count mismatch is a time desync (subject ghosting). Handle
+  //    BOTH directions: pad when short, linearly remap when long — and shout
+  //    when the mismatch is big enough to mean broken timestamps upstream.
   let got = countPngs(framesFg);
+  const tol = Math.max(2, Math.round(want * 0.01));
+  if (Math.abs(got - want) > tol) {
+    console.error(
+      `[matte] WARN frame-count desync: fg=${got} vs bg=${want} (tolerance ${tol}). ` +
+        `Reconciling by remap — if the source is VFR this run predates the CFR fix; ` +
+        `delete frames_fg/ frames_bg/ matte.fps and re-run matte.cjs.`,
+    );
+  }
+  if (got > want && want > 0) {
+    // keep want frames sampled evenly across got (re-times fg onto the bg timeline)
+    const keep = [];
+    for (let j = 1; j <= want; j++)
+      keep.push(Math.min(got, Math.max(1, Math.round((j - 0.5) * (got / want)))));
+    const tmp = path.join(project, "_fg_remap");
+    fs.mkdirSync(tmp, { recursive: true });
+    keep.forEach((srcIdx, k) => {
+      fs.copyFileSync(
+        path.join(framesFg, `f_${String(srcIdx).padStart(4, "0")}.png`),
+        path.join(tmp, `f_${String(k + 1).padStart(4, "0")}.png`),
+      );
+    });
+    fs.rmSync(framesFg, { recursive: true, force: true });
+    fs.renameSync(tmp, framesFg);
+    got = countPngs(framesFg);
+  }
   while (got < want && got > 0) {
     fs.copyFileSync(
       path.join(framesFg, `f_${String(got).padStart(4, "0")}.png`),
@@ -186,7 +269,7 @@ async function main() {
     got++;
   }
   console.log(
-    `[matte] done in ${((Date.now() - t0) / 1000).toFixed(1)}s → ${got} frames @ ${fps}fps (bg=${want})`,
+    `[matte] done in ${((Date.now() - t0) / 1000).toFixed(1)}s → fg=${got} bg=${want} @ ${fps}fps${got === want ? " (parity ok)" : ""}`,
   );
 }
 

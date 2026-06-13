@@ -31,7 +31,10 @@
  *         { "words": ["judge","us","by","the"],  "css": "font-size: calc(0.062*var(--h)); font-weight:700;" },
  *         { "words": ["actions"],                "hero": true,
  *           "text": "ACTIONS", "css": "font-size: calc(0.24*var(--h)); font-weight:900; text-transform:uppercase;" },
- *         { "words": ["that","we","take."],      "css": "font-size: calc(0.05*var(--h));" }
+ *         { "words": ["that","we","take."],      "css": "font-size: calc(0.05*var(--h));" },
+ *         // per-line escape hatch: "layer":"fg" lifts a line ABOVE the subject matte
+ *         // (use when the occlusion gate reports a context line eaten by the subject)
+ *         { "words": ["over","the","subject"],     "layer": "fg" }
  *       ] },
  *     { "plane": "narr", "lines": [ ... next thought ... ] }
  *   ],
@@ -49,6 +52,15 @@ const norm = (s) =>
     .toLowerCase()
     .replace(/[^a-z0-9']/g, "");
 const LOOKAHEAD = 40;
+
+// Authored css WITHOUT a font-size renders at browser-default ~16px (an
+// invisible ribbon) and every gate still passes — observed in the cold-start
+// E2E. Guarantee the default is present whenever the author omitted it.
+function ensureFontSize(css, defaultDecl) {
+  if (!css) return defaultDecl;
+  return /font-size\s*:/.test(css) ? css : defaultDecl + " " + css;
+}
+
 function die(m) {
   console.error(`[make-cinematic] ${m}`);
   process.exit(1);
@@ -607,7 +619,7 @@ function main() {
               const ta = pc.match(/text-align\s*:\s*(left|right|center)/);
               return ta ? `text-align:${ta[1]}; ` : "";
             })()) +
-        (l.ln.css || "font-size: calc(0.05 * var(--h)); font-weight: 600;") +
+        ensureFontSize(l.ln.css, "font-size: calc(0.05 * var(--h)); font-weight: 600;") +
         (l.lockupPos ? lockupComp : planeComp[l.plane] || ""),
       words: l.ln._w.map((w, wi2) => ({
         // minor/column heroes honor the display-form override too (single-word lines)
@@ -632,7 +644,10 @@ function main() {
       out: +bw[bi].out.toFixed(3),
       css:
         `position:absolute;left:0;right:0;top:${hRef.slotPx || 0}px; text-align:center; ` +
-        (ln.css || "font-size: calc(0.24 * var(--h)); font-weight: 900; white-space: nowrap;"), // case/tracking come from the DNA's hero treatment
+        ensureFontSize(
+          ln.css,
+          "font-size: calc(0.24 * var(--h)); font-weight: 900; white-space: nowrap;",
+        ), // case/tracking come from the DNA's hero treatment
       words: ln._w.map((w, i) => ({
         text: i === 0 && ln.text ? ln.text : w.text,
         start: w.start,

@@ -70,6 +70,8 @@ Routing procedure (replaces any mode decision):
 - **Scene constraints veto last**: luma > 180 kills cream/screen column looks
   (→ `ink` or a rail/panel surface); dusk/dark unlocks `neon`/`neonsign`.
 - **Unsure** → `anchor` (the conservative default: words read, scene safe, zero spectacle).
+  EXCEPTION: if the ask literally says "嵌进场景 / embed into the scene / 电影感", that signal
+  OUTRANKS the conservative default — go column-flow (pick by register + luma), not a rail.
 
 Adjacencies worth knowing (these pairs are why the old mode question was hard —
 recommend by the difference, don't agonize over category): `loud` vs `ordnance`

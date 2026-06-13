@@ -157,8 +157,10 @@ function fitHeroPx(text, basePx, emPerChar, maxFrac) {
   let px = basePx;
   const maxW = W * (maxFrac || 0.92);
   if (est(px) > maxW) px = Math.floor(maxW / (text.length * emPerChar));
-  // short words: allow growth toward the poster fill, capped
-  else if (est(px) < W * 0.55)
+  // short words: allow growth toward the poster fill, capped — except in the
+  // calm register, where the DNA base size IS the ceiling (quiet briefs got a
+  // 188px hero from this growth in the cold-start E2E)
+  else if (est(px) < W * 0.55 && dna.register !== "calm")
     px = Math.min(Math.floor(maxW / (text.length * emPerChar)), Math.round(basePx * 1.25));
   return Math.max(64, px);
 }
@@ -234,16 +236,23 @@ function findPhrase(phrase) {
   throw new Error(`[make-theme] hero phrase "${phrase}" not found in transcript`);
 }
 const heroInline = !!dna.hero.inline;
-const hero = theme.hero ? findPhrase(theme.hero.match) : null;
-if (!hero) throw new Error("[make-theme] theme.json requires hero:{match}");
-const heroText = (theme.hero.text || theme.hero.match).toUpperCase();
+// theme.hero is OPTIONAL: a heroless theme runs pure-body (the right authoring
+// for quiet briefs — "安静/每个词都要读到" wants no setpiece at all).
+const HEROLESS = !theme.hero;
+if (HEROLESS) theme.hero = {};
+const hero = theme.hero.match ? findPhrase(theme.hero.match) : null;
+if (!hero && !HEROLESS)
+  throw new Error(
+    "[make-theme] theme.json requires hero:{match} (omit hero entirely for a quiet pure-body run)",
+  );
+const heroText = (theme.hero.text || theme.hero.match || "").toUpperCase();
 const heroDisplay = theme.hero.text || theme.hero.match; // case preserved for drawon/assembly
 
 // mark hero transcript words as consumed when the setpiece is EMBED (not inline):
 // the rail/panel/poem must NOT contain them (rail↔climax hand-off), except panel
 // with redact linkage (panel shows them redacted — author includes them).
 const redactLinkage = (dna.linkages || []).includes("redact-until-hero");
-if (!heroInline && !redactLinkage) {
+if (!heroInline && !HEROLESS && !redactLinkage) {
   for (let k = 0; k < hero.len; k++) tWords[hero.idx + k].used = true;
 }
 
@@ -258,7 +267,8 @@ const LINES = (theme.lines || []).map((arr, li) => {
       end: tw.end,
       minor: minors.has(norm(a)),
       isHero:
-        norm(a) === norm(theme.hero.match.split(/\s+/)[0]) &&
+        !!hero &&
+        norm(a) === norm((theme.hero.match || "").split(/\s+/)[0]) &&
         tw.start >= hero.start - 0.01 &&
         tw.start <= hero.end + 0.01,
     };
@@ -279,14 +289,18 @@ LINES.forEach((L, i) => {
 });
 const LASTWORD = LINES[LINES.length - 1].words[LINES[LINES.length - 1].words.length - 1];
 
-// hero window: onset → end of clip or next sentence boundary
-const heroIn = hero.start;
-const heroOut = Math.min(DUR - 0.06, theme.hero.out ?? DUR - 0.1);
+// hero window: onset → bounded hold (maxHold; 0 = to clip end — neonsign's
+// lit-sign design). Unbounded default holds turned short clips into wallpaper.
+const heroIn = hero ? hero.start : -999;
+const MAXHOLD = dna.hero.maxHold ?? 3.2;
+const heroOut = hero
+  ? Math.min(DUR - 0.06, theme.hero.out ?? (MAXHOLD > 0 ? heroIn + MAXHOLD : DUR - 0.1))
+  : -999;
 
 // ---------- hero geometry: scene-aware position + width-fit size (computed ONCE,
 // shared by the setpiece and the front fx so flash/rings/sparks stay centered) ----
 const HG = { x: dna.hero.x ?? W / 2, y: dna.hero.y ?? H * 0.37, fontPx: dna.hero.fontPx || 178 };
-if (!heroInline) {
+if (!heroInline && !HEROLESS) {
   if (dna.hero.setpiece === "detonation") {
     HG.fontPx = fitHeroPx(heroText, dna.hero.fontPx || 178, 0.56, 0.92);
     Object.assign(HG, sceneHeroXY("detonation", HG.fontPx));
@@ -554,7 +568,13 @@ function fontCssFor(pageParts) {
   const out = [];
   for (const fam of fams) {
     if (!pageParts.includes(fam)) continue;
-    const hits = FONT_FACES.filter((b) => b.includes(`font-family: '${fam}'`));
+    // quote-agnostic: fonts.css has shipped with both 'single' and "double"
+    // quoted family names (formatters flip them); a literal match silently
+    // skipped EVERY embed and warned on bundled fonts.
+    const famRe = new RegExp(
+      `font-family\\s*:\\s*['"]` + fam.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + `['"]`,
+    );
+    const hits = FONT_FACES.filter((b) => famRe.test(b));
     if (!hits.length)
       console.error(
         `[make-theme] WARN font "${fam}" not in bundled fonts.css -> renderer fallback risk`,
@@ -8666,7 +8686,7 @@ if (!PARADIGMS[dna.body.paradigm])
 const body = PARADIGMS[dna.body.paradigm]();
 
 let setp = { css: "", html: "", js: "" };
-if (!heroInline) {
+if (!heroInline && !HEROLESS) {
   if (!SETPIECES[dna.hero.setpiece])
     throw new Error("[make-theme] unknown setpiece: " + dna.hero.setpiece);
   setp = SETPIECES[dna.hero.setpiece]();
@@ -8713,7 +8733,7 @@ if (!bodyInBg || fx.html || fx.js || setp.fgHtml) {
 }
 
 // _postfx.sh: plate reaction after the matte composite (subject+text move as one)
-const P = dna.plate || {};
+const P = HEROLESS ? { grain: (dna.plate || {}).grain || 5 } : dna.plate || {};
 // punchOffset: themes whose impact is NOT the hero onset (e.g. flapboard's
 // lock-complete clack) shift the plate punch anchor; default keeps onset+2f
 const anchorT = (heroIn + (P.punchOffset ?? 0.045)).toFixed(3);
@@ -8757,5 +8777,5 @@ console.log(
   `[make-theme] ${dna.name}: index.html${!bodyInBg || fx.html ? " + rail.html" : ""} + _postfx.sh`,
 );
 console.log(
-  `[make-theme]   body=${dna.body.paradigm}(${dna.body.layer}) hero=${heroInline ? "inline:" + dna.hero.setpiece : dna.hero.setpiece} @${heroIn.toFixed(2)}s lines=${LINES.length} dur=${DUR}s`,
+  `[make-theme]   body=${dna.body.paradigm}(${dna.body.layer}) hero=${HEROLESS ? "none (pure body)" : heroInline ? "inline:" + dna.hero.setpiece : dna.hero.setpiece + " @" + heroIn.toFixed(2) + "s"} lines=${LINES.length} dur=${DUR}s`,
 );

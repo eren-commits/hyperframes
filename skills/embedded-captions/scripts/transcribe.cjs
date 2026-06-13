@@ -118,12 +118,32 @@ function main() {
   const language = process.argv[4] || process.env.WHISPER_LANG || "";
   const out = path.join(project, "transcript.json");
 
-  // already in our schema? skip.
+  // already in our schema? skip — but validate the SHAPE, not just the keys:
+  // `hyperframes init` drops a whisper.cpp segment/token-format transcript.json
+  // (offsets-in-ms, nested tokens) that can carry a `words` key yet poison the
+  // compilers. Only a word-level {text,start,end} array counts as normalized.
   try {
     const d = JSON.parse(fs.readFileSync(out, "utf8"));
-    if (d && d.words && d.language_code) {
+    const wordShaped =
+      d &&
+      Array.isArray(d.words) &&
+      d.words.length > 0 &&
+      d.words.every(
+        (w) =>
+          w &&
+          typeof (w.text ?? w.word) === "string" &&
+          Number.isFinite(w.start) &&
+          Number.isFinite(w.end) &&
+          w.end < 36000, // ms-offset formats blow past any sane seconds value
+      );
+    if (wordShaped && d.language_code) {
       console.log("[transcribe] already normalized, skipping");
       return;
+    }
+    if (d && !wordShaped) {
+      console.log(
+        "[transcribe] existing transcript.json is NOT word-level (init stub / segment format) — regenerating",
+      );
     }
   } catch {}
 

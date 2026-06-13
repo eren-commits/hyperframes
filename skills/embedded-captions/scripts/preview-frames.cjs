@@ -75,17 +75,21 @@ async function shotAt(browser, file, W, H, t) {
   const page = await browser.newPage();
   try {
     await page.setViewport({ width: W, height: H, deviceScaleFactor: 1 });
-    if (gsapSource) {
-      await page.evaluateOnNewDocument(gsapSource);
-      await page.setRequestInterception(true);
-      page.on("request", (req) => {
-        const u = req.url();
-        if (req.resourceType() === "script" && /gsap/i.test(u) && /^https?:/i.test(u)) req.abort();
-        else if (req.resourceType() === "media")
-          req.abort(); // a-roll pixels come from frames_bg
-        else req.continue();
-      });
-    }
+    // Serve the page's own CDN <script src=gsap> request from the local bundle
+    // (offline-safe) instead of injecting gsap at document-start: a document-start
+    // evaluation runs while document.head is still null, and gsap's init then
+    // throws "appendChild of null" — which killed previews for theme projects.
+    await page.setRequestInterception(true);
+    page.on("request", (req) => {
+      const u = req.url();
+      if (req.resourceType() === "script" && /gsap/i.test(u) && /^https?:/i.test(u)) {
+        if (gsapSource)
+          req.respond({ status: 200, contentType: "application/javascript", body: gsapSource });
+        else req.continue(); // no local bundle — let the CDN load (online machines)
+      } else if (req.resourceType() === "media")
+        req.abort(); // a-roll pixels come from frames_bg
+      else req.continue();
+    });
     await page.goto(`file://${file}`, { waitUntil: "load", timeout: 15000 });
     const t0 = Date.now();
     let tlReady = false;
