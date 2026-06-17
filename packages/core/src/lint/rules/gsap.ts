@@ -11,13 +11,13 @@ interface LintParsedGsap {
   timelineVar: string;
 }
 
-// The recast-based GSAP parser lives behind the Node-only
-// `@hyperframes/core/gsap-parser` subpath. The linter runs server-side only
-// (CLI + studio-api `/lint` route), so loading it via dynamic import keeps
-// recast out of any browser/SSR-traced static graph.
+// Use the acorn read parser: it resolves computed timelines (helpers, bounded
+// loops) so lint findings like overlapping_gsap_tweens reflect true positions
+// instead of all-collapsed-at-0. It's also browser-safe, so this keeps recast
+// out of the lint graph entirely. Dynamic import preserves the lazy load.
 async function loadParseGsapScript(): Promise<(script: string) => LintParsedGsap> {
-  const mod = await import("../../parsers/gsapParser.js");
-  return mod.parseGsapScript as unknown as (script: string) => LintParsedGsap;
+  const mod = await import("../../parsers/gsapParserAcorn.js");
+  return mod.parseGsapScriptAcorn as unknown as (script: string) => LintParsedGsap;
 }
 import type { LintContext } from "../context";
 import type { HyperframeLintFinding, LintRule } from "../types";
@@ -25,6 +25,7 @@ import type { OpenTag } from "../utils";
 import {
   readAttr,
   truncateSnippet,
+  stripJsComments,
   WINDOW_TIMELINE_ASSIGN_PATTERN,
   TIMELINE_REGISTRY_ASSIGN_PATTERN,
 } from "../utils";
@@ -51,71 +52,6 @@ type CompositionRange = {
 const SCENE_BOUNDARY_EPSILON_SECONDS = 0.05;
 
 // ── GSAP parsing utilities ─────────────────────────────────────────────────
-
-// fallow-ignore-next-line complexity
-function stripJsComments(source: string): string {
-  let out = "";
-  let i = 0;
-  let quote: "'" | '"' | "`" | null = null;
-  let escaped = false;
-
-  while (i < source.length) {
-    const ch = source[i] ?? "";
-    const next = source[i + 1] ?? "";
-
-    if (quote) {
-      out += ch;
-      if (escaped) {
-        escaped = false;
-      } else if (ch === "\\") {
-        escaped = true;
-      } else if (ch === quote) {
-        quote = null;
-      }
-      i += 1;
-      continue;
-    }
-
-    if (ch === "'" || ch === '"' || ch === "`") {
-      quote = ch;
-      out += ch;
-      i += 1;
-      continue;
-    }
-
-    if (ch === "/" && next === "/") {
-      out += "  ";
-      i += 2;
-      while (i < source.length && source[i] !== "\n" && source[i] !== "\r") {
-        out += " ";
-        i += 1;
-      }
-      continue;
-    }
-
-    if (ch === "/" && next === "*") {
-      out += "  ";
-      i += 2;
-      while (i < source.length) {
-        const blockCh = source[i] ?? "";
-        const blockNext = source[i + 1] ?? "";
-        if (blockCh === "*" && blockNext === "/") {
-          out += "  ";
-          i += 2;
-          break;
-        }
-        out += blockCh === "\n" || blockCh === "\r" ? blockCh : " ";
-        i += 1;
-      }
-      continue;
-    }
-
-    out += ch;
-    i += 1;
-  }
-
-  return out;
-}
 
 function countClassUsage(tags: OpenTag[]): Map<string, number> {
   const counts = new Map<string, number>();
@@ -163,10 +99,16 @@ function synthesizeWindowRaw(
   return `${timelineVar}.${anim.method}("${anim.targetSelector}", { ${entries.join(", ")} }, ${pos})`;
 }
 
-// Build lint windows straight from the parser's structured animations. The
-// parser already resolves variable targets (`tl.to(kicker, …)`) to selectors
-// and excludes non-DOM object-target anchors (`tl.to({ _: 0 }, …)`), so there's
-// no fragile positional pairing between a regex walk and the parsed list.
+const gsapWindowsCache = new Map<string, GsapWindow[]>();
+
+async function cachedExtractGsapWindows(scriptContent: string): Promise<GsapWindow[]> {
+  const cached = gsapWindowsCache.get(scriptContent);
+  if (cached) return cached;
+  const windows = await extractGsapWindows(scriptContent);
+  gsapWindowsCache.set(scriptContent, windows);
+  return windows;
+}
+
 // fallow-ignore-next-line complexity
 async function extractGsapWindows(script: string): Promise<GsapWindow[]> {
   if (!/gsap\.timeline/.test(script)) return [];
@@ -414,7 +356,7 @@ export const gsapRules: LintRule<LintContext>[] = [
 
     for (const script of scripts) {
       const localTimelineCompId = readRegisteredTimelineCompositionId(script.content);
-      const gsapWindows = await extractGsapWindows(script.content);
+      const gsapWindows = await cachedExtractGsapWindows(script.content);
       const clipStartBoundaries =
         clipStartBoundariesByComposition.get(localTimelineCompId || rootCompositionId || "") ?? [];
 
@@ -460,7 +402,7 @@ export const gsapRules: LintRule<LintContext>[] = [
 
           findings.push({
             code: "gsap_exit_missing_hard_kill",
-            severity: "warning",
+            severity: "error",
             message:
               `GSAP exit on "${win.targetSelector}" ends at the ${boundary.toFixed(2)}s clip start boundary ` +
               "without a matching tl.set hard kill. Non-linear seeking can land after the fade and leave stale visibility state.",
@@ -503,7 +445,7 @@ export const gsapRules: LintRule<LintContext>[] = [
         if (className && (classUsage.get(className) || 0) < 2) continue;
         findings.push({
           code: "unscoped_gsap_selector",
-          severity: "warning",
+          severity: "error",
           message: `Timeline "${localTimelineCompId}" uses unscoped selector "${win.targetSelector}" that will target elements in ALL compositions when bundled, causing data loss (opacity, transforms, etc.).`,
           selector: win.targetSelector,
           fixHint: `Scope the selector: \`[data-composition-id="${localTimelineCompId}"] ${win.targetSelector}\` or use a unique id.`,
@@ -562,13 +504,15 @@ export const gsapRules: LintRule<LintContext>[] = [
 
     for (const script of scripts) {
       if (!/gsap\.timeline/.test(script.content)) continue;
-      const windows = await extractGsapWindows(script.content);
+      const windows = await cachedExtractGsapWindows(script.content);
 
       type Conflict = { cssTransform: string; props: Set<string>; raw: string };
       const conflicts = new Map<string, Conflict>();
 
       for (const win of windows) {
-        if (win.method === "fromTo") continue;
+        // from() and fromTo() both supply explicit start values so GSAP owns
+        // the full transform from t=0, making the CSS conflict moot
+        if (win.method === "fromTo" || win.method === "from") continue;
         const sel = win.targetSelector;
         const cssKey = sel.startsWith("#") || sel.startsWith(".") ? sel : `#${sel}`;
         const translateProps = win.properties.filter((p) =>
@@ -600,7 +544,7 @@ export const gsapRules: LintRule<LintContext>[] = [
             `the full transform state. tl.fromTo is exempt from this rule.`;
         findings.push({
           code: "gsap_css_transform_conflict",
-          severity: "warning",
+          severity: "error",
           message:
             `"${sel}" has CSS \`transform: ${cssTransform}\` and a GSAP tween animates ` +
             `${propList}. GSAP will overwrite the full CSS transform, discarding any ` +
@@ -769,7 +713,7 @@ export const gsapRules: LintRule<LintContext>[] = [
     if (sceneElements.length < 2) return findings;
 
     for (const script of scripts) {
-      const content = script.content;
+      const content = stripJsComments(script.content);
       // For each scene, check if there's a visibility:hidden set after exit tweens
       for (const tag of sceneElements) {
         const id = readAttr(tag.raw, "id") || "";
@@ -784,7 +728,7 @@ export const gsapRules: LintRule<LintContext>[] = [
         if (!hasKill) {
           findings.push({
             code: "scene_layer_missing_visibility_kill",
-            severity: "warning",
+            severity: "error",
             elementId: id,
             message:
               `Scene layer "#${id}" exits via opacity tween but has no visibility: hidden hard kill. ` +
@@ -810,7 +754,7 @@ export const gsapRules: LintRule<LintContext>[] = [
       if (hasRegistration || canInheritFromHost) continue;
       findings.push({
         code: "gsap_timeline_not_registered",
-        severity: "warning",
+        severity: "error",
         message:
           "GSAP timeline is created but never registered in window.__timelines. " +
           "The runtime discovers timelines from this registry — without registration, " +
@@ -853,11 +797,13 @@ export const gsapRules: LintRule<LintContext>[] = [
 
     for (const script of scripts) {
       if (!/gsap\.timeline/.test(script.content)) continue;
-      const windows = await extractGsapWindows(script.content);
+      const windows = await cachedExtractGsapWindows(script.content);
 
       for (const win of windows) {
         if (win.method !== "from") continue;
         if (!win.properties.includes("opacity")) continue;
+        // Only a noop when the tween animates FROM 0 (same as the CSS value)
+        if (win.propertyValues["opacity"] !== 0) continue;
         const sel = win.targetSelector;
         const cssKey = sel.startsWith("#") || sel.startsWith(".") ? sel : `#${sel}`;
         if (!cssOpacityZeroSelectors.has(cssKey)) continue;

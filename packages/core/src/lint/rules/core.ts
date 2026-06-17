@@ -3,6 +3,7 @@ import postcss from "postcss";
 import {
   readAttr,
   truncateSnippet,
+  stripJsComments,
   extractCompositionIdsFromCss,
   extractTimelineRegistryKeys,
   getInlineScriptSyntaxError,
@@ -84,7 +85,11 @@ export const coreRules: Array<(ctx: LintContext) => HyperframeLintFinding[]> = [
   },
 
   // missing_timeline_registry + timeline_registry_missing_init
-  ({ source }) => {
+  ({ source, rawSource, options }) => {
+    // Sub-compositions inherit window.__timelines from the host composition
+    if (options.isSubComposition || rawSource.trimStart().toLowerCase().startsWith("<template")) {
+      return [];
+    }
     const findings: HyperframeLintFinding[] = [];
     if (
       !TIMELINE_REGISTRY_INIT_PATTERN.test(source) &&
@@ -307,8 +312,7 @@ export const coreRules: Array<(ctx: LintContext) => HyperframeLintFinding[]> = [
     ];
 
     for (const script of scripts) {
-      // Strip comments to avoid false positives
-      const stripped = script.content.replace(/\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
+      const stripped = stripJsComments(script.content);
       for (const { pattern, label, hint } of patterns) {
         if (pattern.test(stripped)) {
           findings.push({
@@ -325,6 +329,7 @@ export const coreRules: Array<(ctx: LintContext) => HyperframeLintFinding[]> = [
   },
 
   // pointer_events_none
+  // fallow-ignore-next-line complexity
   ({ tags, styles }) => {
     const findings: HyperframeLintFinding[] = [];
     const reported = new Set<string>();

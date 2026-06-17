@@ -1,10 +1,7 @@
 import { formatTime } from "../lib/time";
+import { roundToCenti } from "../../utils/rounding";
 
-const TIME_PRECISION = 100;
-
-function roundToCentiseconds(value: number): number {
-  return Math.round(value * TIME_PRECISION) / TIME_PRECISION;
-}
+const roundToCentiseconds = roundToCenti;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
@@ -112,6 +109,34 @@ export function resolveTimelineMove(
     start: clamp(roundToCentiseconds(input.start + deltaTime), 0, Math.max(0, input.maxStart)),
     track: nextTrack,
   };
+}
+
+/**
+ * Snap a keyframe's clip-relative percentage to the nearest beat within ~8px,
+ * mapping through composition time (pct → time → nearest beat → pct). Returns
+ * the percentage unchanged when no beat is in range, so dragging stays free
+ * between beats.
+ */
+export function snapKeyframePctToBeat(
+  el: { start: number; duration: number },
+  pct: number,
+  beatTimes: number[] | undefined,
+  pixelsPerSecond: number,
+): number {
+  if (!beatTimes || beatTimes.length === 0 || el.duration <= 0) return pct;
+  const t = el.start + (pct / 100) * el.duration;
+  const snapSecs = 8 / Math.max(pixelsPerSecond, 1);
+  let best = t;
+  let bestDist = snapSecs;
+  for (const bt of beatTimes) {
+    const d = Math.abs(bt - t);
+    if (d < bestDist) {
+      bestDist = d;
+      best = bt;
+    }
+  }
+  if (best === t) return pct;
+  return Math.max(0, Math.min(100, ((best - el.start) / el.duration) * 100));
 }
 
 export function resolveTimelineResize(

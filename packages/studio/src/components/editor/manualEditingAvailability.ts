@@ -64,6 +64,12 @@ export const STUDIO_GSAP_PANEL_ENABLED = resolveStudioBooleanEnvFlag(
   true,
 );
 
+export const STUDIO_COLOR_GRADING_ENABLED = resolveStudioBooleanEnvFlag(
+  env,
+  ["VITE_STUDIO_ENABLE_COLOR_GRADING", "VITE_STUDIO_COLOR_GRADING_ENABLED"],
+  false,
+);
+
 export const STUDIO_KEYFRAMES_ENABLED = resolveStudioBooleanEnvFlag(
   env,
   ["VITE_STUDIO_ENABLE_KEYFRAMES", "VITE_STUDIO_KEYFRAMES_ENABLED"],
@@ -73,7 +79,7 @@ export const STUDIO_KEYFRAMES_ENABLED = resolveStudioBooleanEnvFlag(
 export const STUDIO_RAZOR_TOOL_ENABLED = resolveStudioBooleanEnvFlag(
   env,
   ["VITE_STUDIO_ENABLE_RAZOR_TOOL", "VITE_STUDIO_RAZOR_TOOL_ENABLED"],
-  false,
+  true,
 );
 
 // When disabled (the default), drag/resize/rotate commits always take the CSS
@@ -87,5 +93,16 @@ export const STUDIO_GSAP_DRAG_INTERCEPT_ENABLED = resolveStudioBooleanEnvFlag(
 );
 
 export const STUDIO_PREVIEW_SELECTION_ENABLED = STUDIO_INSPECTOR_PANELS_ENABLED;
+
+// Stage 7 Step 3b: shadow dispatch parity mode — dispatches ops to the SDK
+// session alongside the server patch path and logs mismatches via telemetry.
+// Default on: server stays authoritative (no user-visible change), so we want
+// the sdk_shadow_dispatch parity signal from all traffic. Disable via
+// VITE_STUDIO_SDK_SHADOW_ENABLED=false.
+export const STUDIO_SDK_SHADOW_ENABLED = resolveStudioBooleanEnvFlag(
+  env,
+  ["VITE_STUDIO_SDK_SHADOW_ENABLED"],
+  true,
+);
 
 export const STUDIO_MANUAL_EDITING_DISABLED_TITLE = "Manual editing is temporarily disabled";

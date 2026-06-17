@@ -176,9 +176,7 @@ export function useDomSelection({
       if (nextSelection) {
         if (options?.revealPanel !== false) {
           setRightCollapsed(false);
-          if (rightPanelTab !== "layers") {
-            setRightPanelTab("design");
-          }
+          setRightPanelTab("design");
         }
         const nextSelectedTimelineId = findMatchingTimelineElementId(
           nextSelection,
@@ -190,13 +188,7 @@ export function useDomSelection({
 
       setSelectedTimelineElementId(null);
     },
-    [
-      setSelectedTimelineElementId,
-      timelineElements,
-      setRightCollapsed,
-      setRightPanelTab,
-      rightPanelTab,
-    ],
+    [setSelectedTimelineElementId, timelineElements, setRightCollapsed, setRightPanelTab],
   );
 
   const clearDomSelection = useCallback(() => {
@@ -389,46 +381,29 @@ export function useDomSelection({
 
   // ── Effects ──
 
-  // Clear hover on caption mode change
-  // eslint-disable-next-line no-restricted-syntax
-  useEffect(() => {
-    if (captionEditMode) updateDomEditHoverSelection(null);
-  }, [captionEditMode, updateDomEditHoverSelection]);
-
-  // Clear hover on composition/project/preview change
+  // Clear hover unconditionally on composition/project/preview change
   // eslint-disable-next-line no-restricted-syntax
   useEffect(() => {
     updateDomEditHoverSelection(null);
   }, [activeCompPath, projectId, previewIframe, refreshKey, updateDomEditHoverSelection]);
 
-  // Clear hover when matching selection
+  // Clear hover conditionally (caption mode, matches selection, disconnected element)
   // eslint-disable-next-line no-restricted-syntax
   useEffect(() => {
     if (!domEditHoverSelection) return;
-    const hoverMatchesSelection = domEditSelectionsTargetSame(
-      domEditHoverSelection,
-      domEditSelection,
-    );
-    const hoverMatchesGroup = domEditSelectionInGroup(
-      domEditGroupSelections,
-      domEditHoverSelection,
-    );
-    if (!hoverMatchesSelection && !hoverMatchesGroup) return;
-    updateDomEditHoverSelection(null);
+    const shouldClear =
+      captionEditMode ||
+      domEditSelectionsTargetSame(domEditHoverSelection, domEditSelection) ||
+      domEditSelectionInGroup(domEditGroupSelections, domEditHoverSelection) ||
+      !domEditHoverSelection.element.isConnected;
+    if (shouldClear) updateDomEditHoverSelection(null);
   }, [
-    domEditGroupSelections,
+    captionEditMode,
     domEditHoverSelection,
     domEditSelection,
+    domEditGroupSelections,
     updateDomEditHoverSelection,
   ]);
-
-  // Clear hover when element disconnected
-  // eslint-disable-next-line no-restricted-syntax
-  useEffect(() => {
-    if (!domEditHoverSelection) return;
-    if (domEditHoverSelection.element.isConnected) return;
-    updateDomEditHoverSelection(null);
-  }, [domEditHoverSelection, updateDomEditHoverSelection]);
 
   // Clear selection on caption mode change
   // eslint-disable-next-line no-restricted-syntax

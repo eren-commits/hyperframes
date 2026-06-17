@@ -154,7 +154,7 @@ This is where the storyboard becomes runnable HTML. Each composition is a self-c
 
 For multi-beat videos, spawn a focused sub-agent per beat. Each one gets fresh context, the storyboard section for its beat, the asset paths it needs, and the relevant technique references. That produces noticeably better output than building every beat in one long-running context.
 
-After each composition is built, run a self-review for layout, asset placement, and animation quality. The [`/hyperframes`](/guides/prompting) skill encodes the composition rules: required `class="clip"` attributes, GSAP timeline registration, `data-*` attribute semantics, and adapter registries.
+After each composition is built, run a self-review for layout, asset placement, and animation quality. The [`/hyperframes-core`](/guides/prompting) skill encodes the composition rules — required `class="clip"` attributes, `data-*` attribute semantics — and [`/hyperframes-animation`](/guides/prompting) covers GSAP timeline registration and adapter registries.
 
 **Gate:** Every composition is self-reviewed. No overlapping elements, no misplaced assets, no static images sitting unanimated.
 
@@ -197,7 +197,7 @@ Each artifact is a checkpoint, so you can stop, hand off to a human reviewer, or
 
 The pipeline is the recommended structure for:
 
-- Capturing a website with the [/website-to-hyperframes](/guides/prompting) skill, which follows it end-to-end.
+- Capturing a website with the [/website-to-video](/guides/website-to-video) skill, which follows it end-to-end.
 - Shipping a product launch. Most of the [HeyGen launch videos](/launch-videos) use this artifact layout.
 - Any narrative video with three or more beats, where a storyboard pays for itself.
 - Learning Hyperframes, because the artifacts leave every creative decision inspectable on disk.

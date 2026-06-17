@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node
 import path, { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
+  closeFileServerSafely,
   createFileServer,
   HF_BRIDGE_SCRIPT,
   HF_EARLY_STUB,
@@ -10,6 +11,78 @@ import {
   isPathInside,
   VIRTUAL_TIME_SHIM,
 } from "./fileServer.js";
+
+function captureLogger() {
+  const warnings: { message: string; meta?: Record<string, unknown> }[] = [];
+  return {
+    warnings,
+    log: {
+      error() {},
+      warn(message: string, meta?: Record<string, unknown>) {
+        warnings.push({ message, meta });
+      },
+      info() {},
+      debug() {},
+    },
+  };
+}
+
+describe("closeFileServerSafely", () => {
+  it("swallows and logs a throwing close instead of propagating", () => {
+    const { log, warnings } = captureLogger();
+    const fileServer = {
+      close: () => {
+        // http.Server.close() throws ERR_SERVER_NOT_RUNNING on a second close.
+        throw new Error("Server is not running.");
+      },
+    };
+    expect(() => closeFileServerSafely(fileServer, "plan", log)).not.toThrow();
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0].message).toContain("[plan]");
+    expect(warnings[0].meta?.error).toBe("Server is not running.");
+  });
+
+  it("closes once and stays quiet on the happy path", () => {
+    const { log, warnings } = captureLogger();
+    let closed = 0;
+    closeFileServerSafely({ close: () => closed++ }, "renderChunk", log);
+    expect(closed).toBe(1);
+    expect(warnings).toHaveLength(0);
+  });
+});
+
+async function withFileServer(
+  projectDir: string,
+  run: (server: Awaited<ReturnType<typeof createFileServer>>) => Promise<void>,
+): Promise<void> {
+  const server = await createFileServer({
+    projectDir,
+    preHeadScripts: [],
+    headScripts: [],
+    bodyScripts: [],
+  });
+  try {
+    await run(server);
+  } finally {
+    server.close();
+  }
+}
+
+function writeEmptyIndex(projectDir: string): void {
+  writeFileSync(join(projectDir, "index.html"), "<!doctype html><html></html>");
+}
+
+async function expectTextResponse(
+  url: string,
+  options: { contentType?: string; bodyIncludes: string },
+): Promise<void> {
+  const response = await fetch(url);
+  expect(response.status).toBe(200);
+  if (options.contentType) {
+    expect(response.headers.get("content-type")).toContain(options.contentType);
+  }
+  expect(await response.text()).toContain(options.bodyIncludes);
+}
 
 describe("injectScriptsIntoHtml", () => {
   it("injects the virtual time shim into head content before authored scripts", () => {
@@ -162,29 +235,19 @@ describe("createFileServer", () => {
     try {
       mkdirSync(projectDir, { recursive: true });
       mkdirSync(sharedDir, { recursive: true });
-      writeFileSync(join(projectDir, "index.html"), "<!doctype html><html></html>");
+      writeEmptyIndex(projectDir);
       writeFileSync(
         join(sharedDir, "brand.css"),
         ".aisplus-glass { backdrop-filter: blur(28px); }",
       );
       symlinkSync("../shared", join(projectDir, "shared"));
 
-      const server = await createFileServer({
-        projectDir,
-        preHeadScripts: [],
-        headScripts: [],
-        bodyScripts: [],
+      await withFileServer(projectDir, async (server) => {
+        await expectTextResponse(`${server.url}/shared/brand.css`, {
+          contentType: "text/css",
+          bodyIncludes: ".aisplus-glass",
+        });
       });
-
-      try {
-        const response = await fetch(`${server.url}/shared/brand.css`);
-
-        expect(response.status).toBe(200);
-        expect(response.headers.get("content-type")).toContain("text/css");
-        expect(await response.text()).toContain(".aisplus-glass");
-      } finally {
-        server.close();
-      }
     } finally {
       rmSync(workspaceDir, { recursive: true, force: true });
     }
@@ -196,23 +259,14 @@ describe("createFileServer", () => {
     try {
       const subDir = join(projectDir, "video#1");
       mkdirSync(subDir, { recursive: true });
-      writeFileSync(join(projectDir, "index.html"), "<!doctype html><html></html>");
+      writeEmptyIndex(projectDir);
       writeFileSync(join(subDir, "frame.jpg"), "fake-jpg");
 
-      const server = await createFileServer({
-        projectDir,
-        preHeadScripts: [],
-        headScripts: [],
-        bodyScripts: [],
+      await withFileServer(projectDir, async (server) => {
+        await expectTextResponse(`${server.url}/video%231/frame.jpg`, {
+          bodyIncludes: "fake-jpg",
+        });
       });
-
-      try {
-        const res = await fetch(`${server.url}/video%231/frame.jpg`);
-        expect(res.status).toBe(200);
-        expect(await res.text()).toBe("fake-jpg");
-      } finally {
-        server.close();
-      }
     } finally {
       rmSync(projectDir, { recursive: true, force: true });
     }

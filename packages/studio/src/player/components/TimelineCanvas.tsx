@@ -1,7 +1,9 @@
 import { memo, type ReactNode } from "react";
+import { BeatStrip, BeatBackgroundLines } from "./BeatStrip";
 import { TimelineClip } from "./TimelineClip";
 import { TimelineClipDiamonds } from "./TimelineClipDiamonds";
 import { TimelineRuler } from "./TimelineRuler";
+import type { MusicBeatAnalysis } from "@hyperframes/core/beats";
 import { PlayheadIndicator } from "./PlayheadIndicator";
 import {
   getTimelineEditCapabilities,
@@ -19,6 +21,8 @@ import type { DraggedClipState, ResizingClipState, BlockedClipState } from "./us
 import type { TrackVisualStyle } from "./timelineIcons";
 import { STUDIO_KEYFRAMES_ENABLED } from "../../components/editor/manualEditingAvailability";
 import { SPLIT_BOUNDARY_EPSILON_S } from "../../utils/timelineElementSplit";
+import { useTimelineEditContext } from "../../contexts/TimelineEditContext";
+import { isMusicTrack } from "../../utils/timelineInspector";
 
 function ClipLabel({ element, color }: { element: TimelineElement; color: string }) {
   const lint = usePlayerStore((s) => s.lintFindingsByElement.get(element.key ?? element.id));
@@ -66,8 +70,6 @@ interface TimelineCanvasProps {
   ) => ReactNode;
   renderClipOverlay?: (element: TimelineElement) => ReactNode;
   playheadRef: React.RefObject<HTMLDivElement | null>;
-  onResizeElement?: unknown;
-  onMoveElement?: unknown;
   onDrillDown?: (element: TimelineElement) => void;
   onSelectElement?: (element: TimelineElement | null) => void;
   setHoveredClip: (key: string | null) => void;
@@ -90,11 +92,13 @@ interface TimelineCanvasProps {
   onClickKeyframe?: (element: TimelineElement, percentage: number) => void;
   onShiftClickKeyframe?: (elementId: string, percentage: number) => void;
   onDragKeyframe?: (element: TimelineElement, oldPct: number, newPct: number) => void;
+  /** Snap a keyframe's clip-relative % to the nearest beat (returns unchanged when none in range). */
+  onSnapKeyframePct?: (element: TimelineElement, pct: number) => number;
+  /** Select the element when a keyframe drag starts (loads its GSAP session). */
+  onPickKeyframeElement?: (element: TimelineElement) => void;
   onContextMenuKeyframe?: (e: React.MouseEvent, elementId: string, percentage: number) => void;
   onContextMenuClip?: (e: React.MouseEvent, element: TimelineElement) => void;
-  onToggleKeyframeAtPlayhead?: (element: TimelineElement) => void;
-  onRazorSplit?: (element: TimelineElement, splitTime: number) => void;
-  onRazorSplitAll?: (splitTime: number) => void;
+  beatAnalysis?: MusicBeatAnalysis | null;
 }
 
 export const TimelineCanvas = memo(function TimelineCanvas({
@@ -122,8 +126,6 @@ export const TimelineCanvas = memo(function TimelineCanvas({
   renderClipContent,
   renderClipOverlay,
   playheadRef,
-  onResizeElement,
-  onMoveElement,
   onDrillDown,
   onSelectElement,
   setHoveredClip,
@@ -142,12 +144,15 @@ export const TimelineCanvas = memo(function TimelineCanvas({
   onClickKeyframe,
   onShiftClickKeyframe,
   onDragKeyframe,
+  onSnapKeyframePct,
+  onPickKeyframeElement,
   onContextMenuKeyframe,
   onContextMenuClip,
-  onToggleKeyframeAtPlayhead: _onToggleKeyframeAtPlayhead,
-  onRazorSplit,
-  onRazorSplitAll,
+  beatAnalysis,
 }: TimelineCanvasProps) {
+  const { onResizeElement, onMoveElement, onRazorSplit, onRazorSplitAll } =
+    useTimelineEditContext();
+  const beatDragging = usePlayerStore((s) => s.beatDragging);
   const draggedElement = draggedClip?.element ?? null;
   const activeDraggedElement =
     draggedClip?.started === true && draggedElement
@@ -204,6 +209,7 @@ export const TimelineCanvas = memo(function TimelineCanvas({
         shiftHeld={shiftHeld}
         rangeSelection={rangeSelection}
         theme={theme}
+        beatAnalysis={beatAnalysis}
       />
 
       {displayTrackOrder.map((trackNum) => {
@@ -211,6 +217,14 @@ export const TimelineCanvas = memo(function TimelineCanvas({
         const ts = trackStyles.get(trackNum) ?? getTrackStyle("");
         const isPendingTrack =
           draggedClip?.started === true && !trackOrder.includes(trackNum) && els.length === 0;
+        // The beat-dot strip occupies the top of this track's lane (active track,
+        // or the music track when nothing is selected). When shown, keyframe
+        // diamonds shrink + drop to the bottom half so they don't collide with it.
+        const beatStripOnTrack =
+          (beatAnalysis?.beatTimes?.length ?? 0) >= 2 &&
+          (selectedElementId
+            ? els.some((e) => (e.key ?? e.id) === selectedElementId)
+            : els.some(isMusicTrack));
         return (
           <div
             key={trackNum}
@@ -244,6 +258,23 @@ export const TimelineCanvas = memo(function TimelineCanvas({
               </div>
             </div>
             <div style={{ width: trackContentWidth }} className="relative">
+              {/* Faint beat lines in every track's background (behind the clips);
+                  the active move-snap target is highlighted. */}
+              <BeatBackgroundLines
+                beatTimes={beatAnalysis?.beatTimes}
+                beatStrengths={beatAnalysis?.beatStrengths}
+                pps={pps}
+                highlightTime={draggedClip?.started ? draggedClip.snapBeatTime : null}
+              />
+              {/* Beat dots on the active track (the one holding the selection),
+                  falling back to the music track when nothing is selected. */}
+              {beatStripOnTrack && (
+                <BeatStrip
+                  beatTimes={beatAnalysis?.beatTimes}
+                  beatStrengths={beatAnalysis?.beatStrengths}
+                  pps={pps}
+                />
+              )}
               {isPendingTrack && (
                 <div
                   className="absolute inset-0 flex items-center"
@@ -358,6 +389,7 @@ export const TimelineCanvas = memo(function TimelineCanvas({
                         pointerOffsetY: e.clientY - rect.top,
                         previewStart: el.start,
                         previewTrack: el.track,
+                        snapBeatTime: null,
                         started: false,
                       });
                       syncClipDragAutoScroll(e.clientX, e.clientY);
@@ -402,6 +434,7 @@ export const TimelineCanvas = memo(function TimelineCanvas({
                         keyframesData={keyframeCache.get(elementKey)!}
                         clipWidthPx={Math.max(previewElement.duration * pps, 4)}
                         clipHeightPx={TRACK_H - 2 * CLIP_Y}
+                        beatsActive={beatStripOnTrack}
                         accentColor={clipStyle.accent}
                         isSelected={isSelected}
                         currentPercentage={
@@ -416,6 +449,8 @@ export const TimelineCanvas = memo(function TimelineCanvas({
                         onDragKeyframe={(oldPct, newPct) =>
                           onDragKeyframe?.(previewElement, oldPct, newPct)
                         }
+                        snapPct={(pct) => onSnapKeyframePct?.(previewElement, pct) ?? pct}
+                        onPickForDrag={() => onPickKeyframeElement?.(previewElement)}
                         onContextMenuKeyframe={onContextMenuKeyframe}
                       />
                     )}
@@ -479,11 +514,16 @@ export const TimelineCanvas = memo(function TimelineCanvas({
         />
       )}
 
-      {/* Playhead */}
+      {/* Playhead — hidden while dragging a beat so its guideline doesn't
+          track the scrub and clutter the beat being moved. */}
       <div
         ref={playheadRef}
         className="absolute top-0 bottom-0 pointer-events-none"
-        style={{ left: `${GUTTER}px`, zIndex: 100 }}
+        style={{
+          left: `${GUTTER}px`,
+          zIndex: 100,
+          display: beatDragging ? "none" : undefined,
+        }}
       >
         <PlayheadIndicator />
       </div>

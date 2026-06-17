@@ -20,37 +20,20 @@ import {
 } from "./gsapDragCommit";
 import { resolveTweenStart, resolveTweenDuration } from "../utils/globalTimeCompiler";
 import type { GsapDragCommitCallbacks } from "./gsapDragCommit";
+import { getIframeGsap, queryIframeElement, selectorFromSelection } from "./gsapShared";
+import { roundTo3 } from "../utils/rounding";
 
 // ── Runtime reads ──────────────────────────────────────────────────────────
-
-interface IframeGsap {
-  getProperty: (el: Element, prop: string) => number;
-}
 
 // fallow-ignore-next-line complexity
 function readGsapPositionFromIframe(
   iframe: HTMLIFrameElement | null,
   elementSelector: string,
 ): { x: number; y: number } | null {
-  if (!iframe?.contentWindow) return null;
+  const gsap = getIframeGsap(iframe);
+  if (!gsap) return null;
 
-  let gsap: IframeGsap | undefined;
-  try {
-    gsap = (iframe.contentWindow as unknown as { gsap?: IframeGsap }).gsap;
-  } catch {
-    return null;
-  }
-  if (!gsap?.getProperty) return null;
-
-  let doc: Document | null = null;
-  try {
-    doc = iframe.contentDocument;
-  } catch {
-    return null;
-  }
-  if (!doc) return null;
-
-  const element = doc.querySelector(elementSelector);
+  const element = queryIframeElement(iframe, elementSelector);
   if (!element) return null;
 
   const x = Number(gsap.getProperty(element, "x")) || 0;
@@ -90,7 +73,11 @@ function findGsapPositionAnimation(
       else if (a.targetSelector.includes(",")) score -= 5;
       const pos = a.resolvedStart ?? (typeof a.position === "number" ? a.position : 0);
       const dur = a.duration ?? 0;
-      if (currentTime >= pos - 0.05 && currentTime <= pos + dur + 0.05) score += 4;
+      if (currentTime >= pos - 0.05 && currentTime <= pos + dur + 0.05) score += 50;
+      else
+        score -= Math.round(
+          Math.min(Math.abs(currentTime - pos), Math.abs(currentTime - pos - dur)) * 5,
+        );
       return { anim: a, score };
     });
   scored.sort((a, b) => b.score - a.score);
@@ -99,13 +86,35 @@ function findGsapPositionAnimation(
 
 // ── Selector resolution ────────────────────────────────────────────────────
 
-function selectorForSelection(selection: DomEditSelection): string | null {
-  if (selection.id) return `#${selection.id}`;
-  if (selection.selector) return selection.selector;
-  return null;
-}
-
 // ── Property-group tween resolution ───────────────────────────────────────
+
+/**
+ * From a set of candidate tweens, pick the one whose time range is closest to
+ * the current playhead. A tween that *contains* the playhead wins outright;
+ * otherwise the nearest endpoint wins. This ensures a drag at t=6s edits (or
+ * extends) the 4s tween, not the 1.5s one. Tie-break: most keyframes (so a
+ * gesture-recorded tween beats a stub when both are equidistant).
+ */
+function pickClosestToPlayhead(anims: GsapAnimation[]): GsapAnimation | null {
+  if (anims.length <= 1) return anims[0] ?? null;
+  const ct = usePlayerStore.getState().currentTime;
+  return anims.reduce((best, a) => {
+    const s = resolveTweenStart(a) ?? 0;
+    const e = s + resolveTweenDuration(a);
+    const dist = ct >= s && ct <= e ? 0 : Math.min(Math.abs(ct - s), Math.abs(ct - e));
+    const bestS = resolveTweenStart(best) ?? 0;
+    const bestE = bestS + resolveTweenDuration(best);
+    const bestDist =
+      ct >= bestS && ct <= bestE ? 0 : Math.min(Math.abs(ct - bestS), Math.abs(ct - bestE));
+    if (dist < bestDist) return a;
+    if (
+      dist === bestDist &&
+      (a.keyframes?.keyframes.length ?? 0) > (best.keyframes?.keyframes.length ?? 0)
+    )
+      return a;
+    return best;
+  });
+}
 
 /**
  * Find the tween for a given property group, splitting a legacy mixed tween
@@ -124,15 +133,10 @@ async function resolveGroupTween(
   commitMutation: GsapDragCommitCallbacks["commitMutation"],
   fetchFallbackAnimations?: () => Promise<GsapAnimation[]>,
 ): Promise<{ anim: GsapAnimation; animations: GsapAnimation[] } | null> {
-  // 1. Already-split group tween — prefer the one with the most keyframes
-  // to avoid targeting a stub when a gesture-recorded tween also exists.
+  // 1. Already-split group tween — pick the one closest to the current
+  // playhead so a drag at t=6s edits the tween at 4s, not the one at 1.5s.
   const groupAnims = animations.filter((a) => a.propertyGroup === group);
-  const groupAnim =
-    groupAnims.length > 1
-      ? groupAnims.sort(
-          (a, b) => (b.keyframes?.keyframes.length ?? 0) - (a.keyframes?.keyframes.length ?? 0),
-        )[0]
-      : (groupAnims[0] ?? null);
+  const groupAnim = pickClosestToPlayhead(groupAnims);
   if (groupAnim) return { anim: groupAnim, animations };
 
   // 2. Legacy mixed tween — split it, then re-fetch
@@ -193,10 +197,20 @@ export async function tryGsapDragIntercept(
   commitMutation: GsapDragCommitCallbacks["commitMutation"],
   fetchFallbackAnimations?: () => Promise<GsapAnimation[]>,
 ): Promise<boolean> {
-  const selector = selectorForSelection(selection);
-  if (!selector) return false;
+  const selector = selectorFromSelection(selection);
+  console.log(
+    "[drag:4] tryGsapDragIntercept",
+    JSON.stringify({
+      sel: selection.id,
+      selector,
+      animCount: animations.length,
+      groups: animations.map((a) => a.propertyGroup).filter(Boolean),
+    }),
+  );
+  if (!selector) {
+    return false;
+  }
 
-  // Resolve the position-group tween, splitting legacy mixed tweens if needed.
   const resolved = await resolveGroupTween(
     "position",
     animations,
@@ -204,26 +218,40 @@ export async function tryGsapDragIntercept(
     commitMutation,
     fetchFallbackAnimations,
   );
+  console.log(
+    "[drag:4] resolveGroupTween('position') →",
+    resolved
+      ? JSON.stringify({ id: resolved.anim.id, group: resolved.anim.propertyGroup })
+      : "null",
+  );
 
-  // Fallback: use the legacy scoring heuristic for compositions that don't
-  // have group-tagged tweens at all (e.g. hand-written scripts).
   let posAnim = resolved?.anim ?? null;
   if (!posAnim) {
     posAnim = findGsapPositionAnimation(animations, selector);
     if (!posAnim && fetchFallbackAnimations) {
       const fresh = await fetchFallbackAnimations();
       posAnim = findGsapPositionAnimation(fresh, selector);
+      console.log(
+        "[drag:4] findGsapPositionAnimation (fetched) →",
+        posAnim ? posAnim.id : "null",
+        "freshCount:",
+        fresh.length,
+      );
     }
   }
-  if (!posAnim) return false;
-
-  // Keyframe writes at 0%/100% when outside the tween range. Acceptable
-  // trade-off — CSS path must NEVER touch GSAP-targeted elements because
-  // changing the CSS offset corrupts all existing keyframes (baked mismatch).
+  if (!posAnim) {
+    return false;
+  }
 
   const gsapPos = readGsapPositionFromIframe(iframe, selector);
-  if (!gsapPos) return false;
+  if (!gsapPos) {
+    return false;
+  }
 
+  console.log(
+    "[drag:4] committing GSAP position drag",
+    JSON.stringify({ posAnimId: posAnim.id, gsapPos }),
+  );
   await commitGsapPositionFromDrag(selection, posAnim, offset, gsapPos, iframe, selector, {
     commitMutation,
     fetchAnimations: fetchFallbackAnimations,
@@ -284,15 +312,15 @@ export async function tryGsapResizeIntercept(
     const elDuration = Number.parseFloat(selection.dataAttributes?.duration ?? "5") || 5;
     const ct = usePlayerStore.getState().currentTime;
     const pct = elDuration > 0 ? Math.round(((ct - elStart) / elDuration) * 1000) / 10 : 0;
-    const sel = selectorForSelection(selection);
+    const sel = selectorFromSelection(selection);
     if (!sel) return false;
     await commitMutation(
       selection,
       {
         type: "add-with-keyframes",
         targetSelector: sel,
-        position: Math.round(elStart * 1000) / 1000,
-        duration: Math.round(elDuration * 1000) / 1000,
+        position: roundTo3(elStart),
+        duration: roundTo3(elDuration),
         keyframes: [
           {
             percentage: Math.max(0, Math.min(100, pct)),
@@ -310,7 +338,7 @@ export async function tryGsapResizeIntercept(
   if (activeKeyframePct != null) setActiveKeyframePct(null);
   const coalesceKey = `gsap:resize:${anim.id}`;
 
-  const selector = selectorForSelection(selection);
+  const selector = selectorFromSelection(selection);
   const runtimeProps = selector ? readAllAnimatedProperties(iframe, selector, anim) : {};
 
   let resizeProps: Record<string, number>;
@@ -320,7 +348,7 @@ export async function tryGsapResizeIntercept(
     // saved by the draft system before it ran.
     const origW = Number.parseFloat(el?.getAttribute("data-hf-studio-original-width") ?? "");
     const cssW = Number.isFinite(origW) && origW > 0 ? origW : 200;
-    const newScale = Math.round((size.width / cssW) * 1000) / 1000;
+    const newScale = roundTo3(size.width / cssW);
     resizeProps = { scale: newScale };
   } else {
     resizeProps = {
@@ -395,8 +423,8 @@ export async function tryGsapResizeIntercept(
         type: "replace-with-keyframes",
         animationId: anim.id,
         targetSelector: anim.targetSelector,
-        position: Math.round(newStart * 1000) / 1000,
-        duration: Math.round(newDuration * 1000) / 1000,
+        position: roundTo3(newStart),
+        duration: roundTo3(newDuration),
         keyframes: remapped,
       },
       { label: `Resize (extended to ${ct.toFixed(2)}s)`, softReload: true, coalesceKey },
@@ -455,25 +483,14 @@ export async function tryGsapRotationIntercept(
   }
   if (!anim) return false;
 
-  const selector = selectorForSelection(selection);
+  const selector = selectorFromSelection(selection);
   if (!selector) return false;
 
   let gsapRotation = 0;
-  if (iframe?.contentWindow) {
-    try {
-      const gsap = (
-        iframe.contentWindow as unknown as {
-          gsap?: { getProperty: (el: Element, prop: string) => number };
-        }
-      ).gsap;
-      const doc = iframe.contentDocument;
-      const el = doc?.querySelector(selector);
-      if (gsap?.getProperty && el) {
-        gsapRotation = Number(gsap.getProperty(el, "rotation")) || 0;
-      }
-    } catch {
-      /* cross-origin guard */
-    }
+  const gsap = getIframeGsap(iframe);
+  const rotEl = gsap ? queryIframeElement(iframe, selector) : null;
+  if (gsap && rotEl) {
+    gsapRotation = Number(gsap.getProperty(rotEl, "rotation")) || 0;
   }
 
   const pct = computeCurrentPercentage(selection, anim);

@@ -1,4 +1,4 @@
-import { CompositionProbe, type ProbeResult } from "./composition-probe.js";
+import { CompositionProbe, type ProbeResult, readPositiveDimension } from "./composition-probe.js";
 import { isControlsClick, setupControls, setupPoster } from "./controls-setup.js";
 import { adoptShadowStyles, createCompositionIframe, scaleIframeToFit } from "./iframe-dom.js";
 import { DirectTimelineClock } from "./direct-timeline-clock.js";
@@ -27,6 +27,22 @@ import { type DirectTimelineAdapter } from "./timeline-adapters.js";
 // production browsers.
 const MIN_PLAYBACK_RATE = 0.1;
 const MAX_PLAYBACK_RATE = 5;
+
+export type ColorGradingTarget =
+  | string
+  | {
+      id?: string | null;
+      hfId?: string | null;
+      selector?: string | null;
+      selectorIndex?: number | null;
+    };
+
+export type ColorGradingCompareState = {
+  enabled: boolean;
+  position?: number;
+  softness?: number;
+  lineWidth?: number;
+};
 
 function clampPlaybackRate(rate: number): number {
   if (!Number.isFinite(rate) || rate <= 0) return 1;
@@ -179,12 +195,16 @@ class HyperframesPlayer extends HTMLElement {
         if (val !== null) this.iframe.srcdoc = prepareSrcdocForElement(this, val);
         else this.iframe.removeAttribute("srcdoc");
         break;
+      // Reject NaN/zero/negative dimensions the same way the composition
+      // probe does (a typo like width="abc" or width="0" would otherwise
+      // reach scaleIframeToFit as scale(NaN) or a division by zero and
+      // blank the player); fall back to the defaults instead.
       case "width":
-        this._compositionWidth = parseInt(val || "1920", 10);
+        this._compositionWidth = readPositiveDimension(val) ?? 1920;
         this._rescale();
         break;
       case "height":
-        this._compositionHeight = parseInt(val || "1080", 10);
+        this._compositionHeight = readPositiveDimension(val) ?? 1080;
         this._rescale();
         break;
       case "controls":
@@ -301,6 +321,25 @@ class HyperframesPlayer extends HTMLElement {
     this._paused = true;
     this.controlsApi?.updatePlaying(false);
     this.controlsApi?.updateTime(this._currentTime, this._duration);
+  }
+
+  setColorGrading(target: ColorGradingTarget, grading: unknown) {
+    this._sendControl("set-color-grading", { target, grading });
+  }
+
+  clearColorGrading(target: ColorGradingTarget) {
+    this._sendControl("set-color-grading", { target, grading: null });
+  }
+
+  setColorGradingCompare(target: ColorGradingTarget, compare: ColorGradingCompareState) {
+    this._sendControl("set-color-grading-compare", { target, compare });
+  }
+
+  clearColorGradingCompare(target: ColorGradingTarget) {
+    this._sendControl("set-color-grading-compare", {
+      target,
+      compare: { enabled: false },
+    });
   }
 
   get currentTime() {

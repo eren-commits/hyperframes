@@ -93,13 +93,21 @@ The prompt determines the format. Include a duration and creative direction:
 
 ## Enriching Captures with Gemini Vision
 
-By default, captures describe assets using DOM context — alt text, nearby headings, CSS classes. Add a [Gemini API key](https://aistudio.google.com/apikey) for richer AI-powered descriptions using vision.
+By default, captures describe assets using DOM context — alt text, nearby headings, CSS classes. Add a vision API key for richer AI-powered descriptions.
 
-Create a `.env` file in your project root:
+Create a `.env` file in your project root with **either** a [Gemini API key](https://aistudio.google.com/apikey):
 
 ```bash
 echo "GEMINI_API_KEY=your-key-here" > .env
 ```
+
+…**or**, if you don't have Google access, an [OpenRouter key](https://openrouter.ai/keys) — a single API that fronts many vision models:
+
+```bash
+echo "OPENROUTER_API_KEY=your-key-here" > .env
+```
+
+OpenRouter is used when its key is present (it takes priority if both are set). The default model is `google/gemini-3.1-flash-lite`; override it with `HYPERFRAMES_OPENROUTER_MODEL` (any vision-capable OpenRouter model), just as `HYPERFRAMES_GEMINI_MODEL` overrides the Gemini default.
 
 <Tabs>
   <Tab title="Without Gemini">
@@ -133,7 +141,7 @@ npx hyperframes capture https://stripe.com
 ```
 
 ```
-◇  Captured Stripe | Financial Infrastructure → captures/stripe-com
+◇  Captured Stripe | Financial Infrastructure → capture
 
   Screenshots: 12
   Assets: 45
@@ -143,7 +151,7 @@ npx hyperframes capture https://stripe.com
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `-o, --output` | `captures/<hostname>` | Output directory |
+| `-o, --output` | `./capture` | Output directory (auto-suffixes to `./capture-2/`, `./capture-3/`, … if `./capture/` is taken) |
 | `--timeout` | `120000` | Page load timeout in ms |
 | `--skip-assets` | `false` | Skip downloading images and fonts |
 | `--max-screenshots` | `24` | Maximum screenshot count |
@@ -200,7 +208,7 @@ See the [pipeline guide](/guides/pipeline#iterating) for more re-entry patterns.
     Sites using frameworks like Framer lazy-load images via IntersectionObserver. The capture scrolls through the page to trigger loading, but very long pages may miss images near the bottom. Adding a Gemini key improves descriptions of captured assets, but doesn't increase the count.
   </Accordion>
   <Accordion title="Colors look wrong">
-    The capture uses pixel sampling combined with DOM computed styles. Dark sites should show dark colors in the palette. Check the scroll screenshots in `captures/<name>/screenshots/` to see what the capture actually saw.
+    The capture uses pixel sampling combined with DOM computed styles. Dark sites should show dark colors in the palette. Check the scroll screenshots in `<output>/screenshots/` (default `./capture/screenshots/`) to see what the capture actually saw.
   </Accordion>
   <Accordion title="Agent doesn't find the skill">
     Verify skills are installed:
@@ -209,7 +217,7 @@ See the [pipeline guide](/guides/pipeline#iterating) for more re-entry patterns.
     npx skills add heygen-com/hyperframes
     ```
 
-    Lead your prompt with _"Use the /website-to-hyperframes skill"_ for the most reliable results. Agents also discover it automatically when they see a URL and a video request.
+    Lead your prompt with _"Use the /website-to-video skill"_ for the most reliable results. Agents also discover it automatically when they see a URL and a video request.
   </Accordion>
 </AccordionGroup>
 

@@ -16,6 +16,7 @@ import { join, extname, resolve, sep } from "node:path";
 import { injectScriptsAtHeadStart, injectScriptsIntoHtml } from "@hyperframes/core/compiler";
 import { getVerifiedHyperframeRuntimeSource } from "./hyperframeRuntimeLoader.js";
 import { getHfEarlyStub } from "../generated/hf-early-stub-inline.js";
+import { defaultLogger, type ProducerLogger } from "../logger.js";
 
 export { injectScriptsAtHeadStart };
 
@@ -76,6 +77,7 @@ const MIME_TYPES: Record<string, string> = {
   ".css": "text/css; charset=utf-8",
   ".js": "application/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
+  ".cube": "text/plain; charset=utf-8",
   ".png": "image/png",
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
@@ -558,6 +560,30 @@ export interface FileServerHandle {
   addPreHeadScript: (script: string) => void;
 }
 
+/**
+ * Close a file server handle, swallowing and logging any error.
+ *
+ * `FileServerHandle.close` tears down the underlying http.Server, whose
+ * `close()` throws `ERR_SERVER_NOT_RUNNING` if the server is already torn down
+ * (for example a cancellation path that closed it once already). An unguarded
+ * throw inside a cleanup or `finally` block would mask the original render or
+ * plan result, so cleanup callers must go through this instead of calling
+ * `close()` directly.
+ */
+export function closeFileServerSafely(
+  fileServer: Pick<FileServerHandle, "close">,
+  label: string,
+  log: ProducerLogger = defaultLogger,
+): void {
+  try {
+    fileServer.close();
+  } catch (err) {
+    log.warn(`[${label}] file server close failed`, {
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+}
+
 export function createFileServer(options: FileServerOptions): Promise<FileServerHandle> {
   const { projectDir, compiledDir, port = 0, stripEmbeddedRuntime = true } = options;
 
@@ -658,7 +684,12 @@ export function createFileServer(options: FileServerOptions): Promise<FileServer
     // @hono/node-server serve() returns the http.Server directly.
     // Register the connection tracker before the listen callback fires
     // to avoid missing early connections.
-    const server = serve({ fetch: app.fetch, port }, (info) => {
+    // Bind loopback only (SECURITY F-001, matching the studio/preview servers
+    // in cli/server/portUtils.ts): this is an internal capture transport for
+    // the co-located headless Chrome (the URL above is already localhost), so
+    // it must not listen on 0.0.0.0 where an IDE's port auto-forward surfaces
+    // it as a transient, breakage-prone "preview".
+    const server = serve({ fetch: app.fetch, port, hostname: "127.0.0.1" }, (info) => {
       resolve({
         url: `http://localhost:${info.port}`,
         port: info.port,

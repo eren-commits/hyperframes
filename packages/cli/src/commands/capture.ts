@@ -3,9 +3,17 @@ import { resolve } from "node:path";
 import type { Example } from "./_examples.js";
 
 export const examples: Example[] = [
-  ["Capture a website", "hyperframes capture https://stripe.com"],
-  ["Capture to a specific directory", "hyperframes capture https://linear.app -o linear-video"],
+  ["Capture a website into ./capture/", "hyperframes capture https://stripe.com"],
+  ["Capture to a different directory", "hyperframes capture https://linear.app -o linear-video"],
   ["JSON output for AI agents", "hyperframes capture https://example.com --json"],
+  [
+    "Pull a video from the captured manifest by index",
+    "hyperframes capture --video ./linear-video --index 0",
+  ],
+  [
+    "List videos referenced in the captured manifest",
+    "hyperframes capture --video ./linear-video --list",
+  ],
 ];
 
 export default defineCommand({
@@ -16,12 +24,12 @@ export default defineCommand({
   args: {
     url: {
       type: "positional",
-      description: "Website URL to capture",
-      required: true,
+      description: "Website URL to capture (omit when using --video)",
+      required: false,
     },
     output: {
       type: "string",
-      description: "Output directory name",
+      description: "Output directory name (default: ./capture, then ./capture-2/, ./capture-3/, …)",
       alias: "o",
     },
     "skip-assets": {
@@ -42,11 +50,46 @@ export default defineCommand({
       description: "Output JSON (for AI agents / programmatic use)",
       default: false,
     },
+    video: {
+      type: "string",
+      description:
+        "Switch to video-download mode: path to a captured project directory whose video-manifest.json should be read. Pair with --index, --video-url, or --list.",
+    },
+    index: {
+      type: "string",
+      description: "(--video mode) Manifest entry index to download (0-based)",
+    },
+    "video-url": {
+      type: "string",
+      description: "(--video mode) Exact video URL to download (must match a manifest entry)",
+    },
+    list: {
+      type: "boolean",
+      description: "(--video mode) List manifest entries and exit",
+      default: false,
+    },
   },
+  // fallow-ignore-next-line complexity
   async run({ args }) {
-    const url = args.url as string;
+    if (args.video) {
+      const { runVideoMode } = await import("./capture/video.js");
+      await runVideoMode({
+        project: args.video as string,
+        index: (args.index as string | undefined) ?? null,
+        url: (args["video-url"] as string | undefined) ?? null,
+        list: args.list as boolean,
+      });
+      return;
+    }
 
-    // Validate URL
+    const url = args.url as string | undefined;
+    if (!url) {
+      console.error(
+        "Missing URL. Pass a website URL, or use --video <project> for video download.",
+      );
+      process.exit(1);
+    }
+
     try {
       new URL(url);
     } catch {
@@ -54,13 +97,25 @@ export default defineCommand({
       process.exit(1);
     }
 
-    // Determine output directory — default to captures/<hostname> to keep repo root clean
-    let outputName = args.output as string | undefined;
-    if (!outputName) {
-      const hostname = new URL(url).hostname.replace(/^www\./, "");
-      outputName = `captures/${hostname.replace(/\./g, "-")}`;
+    const isDefaultOutput = !args.output;
+    let outputName = (args.output as string | undefined) ?? "capture";
+    let outputDir = resolve(outputName);
+
+    if (isDefaultOutput) {
+      const { existsSync } = await import("node:fs");
+      // Auto-suffix when ./capture/ is taken: capture-2, capture-3, … so re-runs
+      // never silently merge into a previous capture's artifacts.
+      let n = 2;
+      while (existsSync(outputDir) && n < 100) {
+        outputName = `capture-${n}`;
+        outputDir = resolve(outputName);
+        n++;
+      }
+      if (existsSync(outputDir)) {
+        console.error(`./capture-{2..99} are all taken. Pass -o <name> to pick a directory.`);
+        process.exit(1);
+      }
     }
-    const outputDir = resolve(outputName);
 
     const isJson = args.json as boolean;
 
@@ -68,6 +123,9 @@ export default defineCommand({
       const { c } = await import("../ui/colors.js");
       console.log();
       console.log(c.dim("◆") + "  Capturing " + c.bold(url));
+      if (isDefaultOutput && outputName !== "capture") {
+        console.log(`  ${c.dim(`(./capture/ exists; writing to ./${outputName}/)`)}`);
+      }
       console.log();
     }
 

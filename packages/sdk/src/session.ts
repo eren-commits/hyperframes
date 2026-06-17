@@ -9,6 +9,7 @@
  */
 
 import type {
+  CanResult,
   Composition,
   EditOp,
   ElementSnapshot,
@@ -27,7 +28,7 @@ import { buildRoots, flatElements } from "./document.js";
 import type { PersistAdapter, PreviewAdapter } from "./adapters/types.js";
 import { parseMutable } from "./engine/model.js";
 import type { ParsedDocument } from "./engine/model.js";
-import { applyOp, validateOp } from "./engine/mutate.js";
+import { applyOp, validateOp, type MutationResult } from "./engine/mutate.js";
 import { serializeDocument } from "./engine/serialize.js";
 import { applyPatchesToDocument, applyOverrideSet } from "./engine/apply-patches.js";
 import { buildPatchEvent, pathToKey } from "./engine/patches.js";
@@ -38,6 +39,8 @@ import type { PersistQueueModule } from "./persist-queue.js";
 
 export interface OpenCompositionOptions {
   persist?: PersistAdapter;
+  /** Adapter path the persist queue writes to. Default: "composition.html". Immutable for the session lifetime. */
+  persistPath?: string;
   preview?: PreviewAdapter;
   /** T3 embedded mode: override-set applied on top of the base template. */
   overrides?: OverrideSet;
@@ -129,10 +132,8 @@ class CompositionImpl implements Composition {
   }
 
   addGsapTween(target: HfId, tween: GsapTweenSpec): string {
-    // Phase 3b: AST splice. For now, mint id and pass through.
-    const tweenId = `tw-${crypto.randomUUID().slice(0, 8)}`;
-    this.dispatch({ type: "addGsapTween", target, id: tweenId, tween });
-    return tweenId;
+    const result = this._dispatch({ type: "addGsapTween", target, tween }, ORIGIN_LOCAL);
+    return result.meta?.animationId ?? "";
   }
 
   setGsapTween(animationId: string, properties: Partial<GsapTweenSpec>): void {
@@ -151,6 +152,14 @@ class CompositionImpl implements Composition {
     this.historyModule?.redo();
   }
 
+  canUndo(): boolean {
+    return this.historyModule?.canUndo() ?? false;
+  }
+
+  canRedo(): boolean {
+    return this.historyModule?.canRedo() ?? false;
+  }
+
   // ── Query API (F1) ───────────────────────────────────────────────────────────
 
   getElements(): ElementSnapshot[] {
@@ -160,7 +169,14 @@ class CompositionImpl implements Composition {
   }
 
   getElement(id: HfId): ElementSnapshot | null {
-    return this.getElements().find((el) => el.id === id) ?? null;
+    // Accept both bare ids (top-level) and scoped ids (sub-composition elements).
+    // Match by scopedId first (canonical); bare-id fallback keeps top-level compat
+    // for callers that don't yet use scoped ids.
+    return (
+      this.getElements().find((el) => el.scopedId === id) ??
+      this.getElements().find((el) => el.id === id && el.scopedId === el.id) ??
+      null
+    );
   }
 
   find(query: FindQuery): string[] {
@@ -172,9 +188,10 @@ class CompositionImpl implements Composition {
           if (query.text && !el.text?.includes(query.text)) return false;
           if (query.name && el.attributes["data-name"] !== query.name) return false;
           if (query.track !== undefined && el.trackIndex !== query.track) return false;
+          if (query.composition && !el.scopedId.startsWith(`${query.composition}/`)) return false;
           return true;
         })
-        .map((el) => el.id)
+        .map((el) => el.scopedId)
     );
   }
 
@@ -209,6 +226,17 @@ class CompositionImpl implements Composition {
     return [...this.currentSelection];
   }
 
+  setSelection(ids: string[]): void {
+    const deduped = Array.from(new Set(ids));
+    if (
+      deduped.length === this.currentSelection.length &&
+      deduped.every((id, i) => id === this.currentSelection[i])
+    ) {
+      return;
+    }
+    this.updateSelection(deduped);
+  }
+
   private updateSelection(ids: readonly string[]): void {
     this.currentSelection = [...ids];
     for (const handler of this.selectionHandlers) {
@@ -219,14 +247,13 @@ class CompositionImpl implements Composition {
   // ── Dispatch / batch ─────────────────────────────────────────────────────────
 
   // fallow-ignore-next-line complexity
-  dispatch(op: EditOp, opts?: { origin?: unknown }): void {
-    const origin = opts?.origin ?? ORIGIN_LOCAL;
-    const { forward, inverse } = applyOp(this.parsed, op);
+  private _dispatch(op: EditOp, origin: unknown): MutationResult {
+    const result = applyOp(this.parsed, op);
+    const { forward, inverse } = result;
 
     if (forward.length === 0 && inverse.length === 0) {
-      // No-op (e.g. Phase 3b op with no implementation yet): still fire change
       if (this.batchDepth === 0) this.changeHandlers.forEach((h) => h());
-      return;
+      return result;
     }
 
     this.elementsCache = null;
@@ -240,6 +267,25 @@ class CompositionImpl implements Composition {
       }
     }
 
+    // Purge orphan property keys for removed elements so the override-set stays
+    // compact and a future T3 session doesn't replay stale properties onto a
+    // non-existent element. Override-set keys use decoded scoped ids ("hf-host/hf-leaf")
+    // while path segments use RFC 6902 encoding ("hf-host~1hf-leaf") — decode before compare.
+    for (const p of forward) {
+      const elemMatch = /^\/elements\/([^/]+)$/.exec(p.path);
+      if (p.op === "remove" && elemMatch) {
+        // Decode RFC 6902 escaping: ~1 → /, ~0 → ~
+        const id = elemMatch[1]!.replace(/~1/g, "/").replace(/~0/g, "~");
+        for (const key of Object.keys(this.overrides)) {
+          // Purge property sub-keys (e.g. "hf-x.style.color") but preserve
+          // the removal marker itself (key === id, set to null in the loop above).
+          if (key.startsWith(`${id}.`) || key.startsWith(`${id}/`)) {
+            delete this.overrides[key];
+          }
+        }
+      }
+    }
+
     if (this.batchDepth > 0) {
       this.batchForward.push(...forward);
       this.batchInverse.push(...inverse);
@@ -249,6 +295,12 @@ class CompositionImpl implements Composition {
       this.patchHandlers.forEach((h) => h(event));
       this.changeHandlers.forEach((h) => h());
     }
+
+    return result;
+  }
+
+  dispatch(op: EditOp, opts?: { origin?: unknown }): void {
+    this._dispatch(op, opts?.origin ?? ORIGIN_LOCAL);
   }
 
   /**
@@ -318,7 +370,7 @@ class CompositionImpl implements Composition {
     this.batchOverridesSnapshot = {};
   }
 
-  can(op: EditOp): boolean {
+  can(op: EditOp): CanResult {
     return validateOp(this.parsed, op);
   }
 
@@ -452,6 +504,7 @@ export async function openComposition(
 
     if (opts?.persist) {
       const pq = createPersistQueue(session, opts.persist, {
+        path: opts.persistPath,
         onError: (e) => session._fireError(e),
       });
       session.attachPersistQueue(pq);

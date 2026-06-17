@@ -24,11 +24,14 @@ import {
   type UnsafeMutationValue,
 } from "../helpers/finiteMutation.js";
 import type { GsapAnimation } from "../../parsers/gsapSerialize.js";
+import { parseGsapScriptAcorn } from "../../parsers/gsapParserAcorn.js";
+import { unrollComputedTimeline } from "../../parsers/gsapUnroll.js";
 import {
   removeElementFromHtml,
   patchElementInHtml,
   probeElementInSource,
   splitElementInHtml,
+  isHTMLElement,
   type PatchOperation,
 } from "../helpers/sourceMutation.js";
 import { parseHTML } from "linkedom";
@@ -265,7 +268,8 @@ function stripStudioEditsFromTarget(document: Document, selector: string): numbe
   try {
     for (const el of document.querySelectorAll(selector)) {
       if (!el.getAttribute("data-hf-studio-path-offset")) continue;
-      const htmlEl = el as unknown as HTMLElement;
+      if (!isHTMLElement(el)) continue;
+      const htmlEl = el;
       const originalTranslate = el.getAttribute("data-hf-studio-original-inline-translate");
       htmlEl.style.removeProperty("--hf-studio-offset-x");
       htmlEl.style.removeProperty("--hf-studio-offset-y");
@@ -285,40 +289,42 @@ function stripStudioEditsFromTarget(document: Document, selector: string): numbe
   return stripped;
 }
 
+function lastKeyframeOpacity(kfs: GsapAnimation["keyframes"]): number | string | undefined {
+  if (!kfs) return undefined;
+  for (let i = kfs.keyframes.length - 1; i >= 0; i--) {
+    if ("opacity" in kfs.keyframes[i]!.properties) return kfs.keyframes[i]!.properties.opacity;
+  }
+  return undefined;
+}
+
+function resolveFinalOpacity(anim: GsapAnimation): number | null {
+  if (anim.method === "from") return null;
+  const raw = anim.keyframes ? lastKeyframeOpacity(anim.keyframes) : anim.properties.opacity;
+  if (raw == null) return null;
+  if (typeof raw === "string" && /^[+\-*]=/.test(raw)) return null;
+  const num = Number(raw);
+  return Number.isFinite(num) && num !== 0 ? num : null;
+}
+
 function bakeVisibilityOnDelete(document: Document, anim: GsapAnimation): void {
-  let finalOpacity: number | string | undefined;
-  if (anim.method === "from") {
-    return;
-  }
-  if (anim.keyframes) {
-    const kfs = anim.keyframes.keyframes;
-    for (let i = kfs.length - 1; i >= 0; i--) {
-      if ("opacity" in kfs[i]!.properties) {
-        finalOpacity = kfs[i]!.properties.opacity;
-        break;
-      }
-    }
-  } else if ("opacity" in anim.properties) {
-    finalOpacity = anim.properties.opacity;
-  }
-  if (finalOpacity == null) {
-    return;
-  }
-  if (typeof finalOpacity === "string" && /^[+\-*]=/.test(finalOpacity)) {
-    return;
-  }
-  const numOpacity = Number(finalOpacity);
-  if (!Number.isFinite(numOpacity) || numOpacity === 0) return;
+  const opacity = resolveFinalOpacity(anim);
+  if (opacity === null) return;
   try {
     for (const el of document.querySelectorAll(anim.targetSelector)) {
-      (el as unknown as HTMLElement).style.setProperty("opacity", String(numOpacity));
+      if (isHTMLElement(el)) el.style.setProperty("opacity", String(opacity));
     }
   } catch {
     // Invalid selector — skip silently.
   }
 }
 
-/** Lazy-load gsapParser to avoid pulling recast into every file-route import. */
+/**
+ * Lazy-load gsapParser for write ops (recast-backed) that are not yet ported to
+ * the acorn writer. The read path (`parseGsapScript`) has been replaced by the
+ * browser-safe `parseGsapScriptAcorn` — this loader is only needed for the write
+ * ops that remain: convertToKeyframesInScript, removeAllKeyframesFromScript,
+ * materializeKeyframesInScript, unrollDynamicAnimations, setArcPathInScript, etc.
+ */
 async function loadGsapParser() {
   return import("../../parsers/gsapParser.js");
 }
@@ -468,6 +474,24 @@ type GsapMutationRequest =
   | {
       type: "delete-all-for-selector";
       targetSelector: string;
+    }
+  | {
+      // Rewrite all top-level helper/loop constructs into literal tweens so
+      // computed keyframes become directly editable (visual no-op).
+      type: "unroll-timeline";
+    }
+  | {
+      type: "shift-positions";
+      targetSelector: string;
+      delta: number;
+    }
+  | {
+      type: "scale-positions";
+      targetSelector: string;
+      oldStart: number;
+      oldDuration: number;
+      newStart: number;
+      newDuration: number;
     };
 
 // ── GSAP mutation executor ──────────────────────────────────────────────────
@@ -481,7 +505,6 @@ async function executeGsapMutation(
 ): Promise<GsapMutationResult | Response> {
   const parser = await loadGsapParser();
   const {
-    parseGsapScript,
     updateAnimationInScript,
     addAnimationToScript,
     removeAnimationFromScript,
@@ -504,7 +527,7 @@ async function executeGsapMutation(
     scriptText: string,
     animationId: string,
   ): { anim: GsapAnimation } | { err: Response } {
-    const parsed = parseGsapScript(scriptText);
+    const parsed = parseGsapScriptAcorn(scriptText);
     const anim = parsed.animations.find((a) => a.id === animationId);
     if (!anim) return { err: respond({ error: "animation not found" }, 404) };
     return { anim };
@@ -522,18 +545,22 @@ async function executeGsapMutation(
   }
 
   switch (body.type) {
-    case "update-property": {
+    case "update-property":
+    case "add-property": {
       const r = requireAnimation(block.scriptText, body.animationId);
       if ("err" in r) return r.err;
+      const val = body.type === "update-property" ? body.value : body.defaultValue;
       return updateAnimationInScript(block.scriptText, body.animationId, {
-        properties: { ...r.anim.properties, [body.property]: body.value },
+        properties: { ...r.anim.properties, [body.property]: val },
       });
     }
-    case "update-from-property": {
+    case "update-from-property":
+    case "add-from-property": {
       const r = requireFromToAnimation(block.scriptText, body.animationId);
       if ("err" in r) return r.err;
+      const val = body.type === "update-from-property" ? body.value : body.defaultValue;
       return updateAnimationInScript(block.scriptText, body.animationId, {
-        fromProperties: { ...(r.anim.fromProperties ?? {}), [body.property]: body.value },
+        fromProperties: { ...(r.anim.fromProperties ?? {}), [body.property]: val },
       });
     }
     case "update-meta": {
@@ -563,7 +590,7 @@ async function executeGsapMutation(
       return removeAnimationFromScript(block.scriptText, body.animationId);
     }
     case "delete-all-for-selector": {
-      const parsed = parseGsapScript(block.scriptText);
+      const parsed = parseGsapScriptAcorn(block.scriptText);
       const matching = parsed.animations.filter((a) => a.targetSelector === body.targetSelector);
       if (matching.length === 0) return block.scriptText;
       stripStudioEditsFromTarget(block.document, body.targetSelector);
@@ -572,20 +599,6 @@ async function executeGsapMutation(
         script = removeAnimationFromScript(script, anim.id);
       }
       return script;
-    }
-    case "add-property": {
-      const r = requireAnimation(block.scriptText, body.animationId);
-      if ("err" in r) return r.err;
-      return updateAnimationInScript(block.scriptText, body.animationId, {
-        properties: { ...r.anim.properties, [body.property]: body.defaultValue },
-      });
-    }
-    case "add-from-property": {
-      const r = requireFromToAnimation(block.scriptText, body.animationId);
-      if ("err" in r) return r.err;
-      return updateAnimationInScript(block.scriptText, body.animationId, {
-        fromProperties: { ...(r.anim.fromProperties ?? {}), [body.property]: body.defaultValue },
-      });
     }
     case "remove-property": {
       const r = requireAnimation(block.scriptText, body.animationId);
@@ -727,6 +740,38 @@ async function executeGsapMutation(
       const result = splitIntoPropertyGroups(block.scriptText, body.animationId);
       return result.script;
     }
+    case "unroll-timeline": {
+      return unrollComputedTimeline(block.scriptText);
+    }
+    case "shift-positions": {
+      const { targetSelector, delta } = body;
+      if (!targetSelector || !Number.isFinite(delta) || delta === 0) return block.scriptText;
+      const { shiftPositionsInScript } = parser;
+      return shiftPositionsInScript(block.scriptText, targetSelector, delta);
+    }
+    case "scale-positions": {
+      const { targetSelector, oldStart, oldDuration, newStart, newDuration } = body;
+      if (
+        !targetSelector ||
+        !Number.isFinite(oldStart) ||
+        !Number.isFinite(oldDuration) ||
+        !Number.isFinite(newStart) ||
+        !Number.isFinite(newDuration) ||
+        oldDuration <= 0 ||
+        newDuration <= 0
+      )
+        return block.scriptText;
+      if (oldStart === newStart && oldDuration === newDuration) return block.scriptText;
+      const { scalePositionsInScript } = parser;
+      return scalePositionsInScript(
+        block.scriptText,
+        targetSelector,
+        oldStart,
+        oldDuration,
+        newStart,
+        newDuration,
+      );
+    }
     default:
       return respond({ error: `unknown mutation type: ${(body as { type: string }).type}` }, 400);
   }
@@ -790,8 +835,9 @@ async function processUploadedFiles(
       const ext = dotIdx > 0 ? name.slice(dotIdx) : "";
       const base = dotIdx > 0 ? name.slice(0, dotIdx) : name;
       let n = 2;
-      while (n < 10000 && existsSync(resolve(targetDir, `${base} (${n})${ext}`))) n++;
-      if (n >= 10000) {
+      const MAX_COPY_INDEX = 10000;
+      while (n < MAX_COPY_INDEX && existsSync(resolve(targetDir, `${base} (${n})${ext}`))) n++;
+      if (n >= MAX_COPY_INDEX) {
         skipped.push(name);
         continue;
       }
@@ -1131,8 +1177,7 @@ export function registerFileRoutes(api: Hono, adapter: StudioApiAdapter): void {
       });
     }
 
-    const { parseGsapScript } = await loadGsapParser();
-    const parsed = parseGsapScript(block.scriptText);
+    const parsed = parseGsapScriptAcorn(block.scriptText);
     return c.json(parsed);
   });
 
@@ -1197,8 +1242,7 @@ export function registerFileRoutes(api: Hono, adapter: StudioApiAdapter): void {
       writeFileSync(res.absPath, newHtml, "utf-8");
     }
 
-    const { parseGsapScript } = await loadGsapParser();
-    const freshParsed = parseGsapScript(newScript);
+    const freshParsed = parseGsapScriptAcorn(newScript);
     const responsePayload: Record<string, unknown> = {
       ok: true,
       changed,

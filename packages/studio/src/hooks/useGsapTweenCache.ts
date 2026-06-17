@@ -3,6 +3,11 @@ import type { GsapAnimation, GsapKeyframesData, ParsedGsap } from "@hyperframes/
 import type { GsapPercentageKeyframe } from "@hyperframes/core/gsap-parser";
 import { usePlayerStore } from "../player/store/playerStore";
 import { readRuntimeKeyframes, scanAllRuntimeKeyframes } from "./gsapRuntimeBridge";
+import {
+  clearKeyframeCacheForElement,
+  clearKeyframeCacheForFile,
+} from "./gsapKeyframeCacheHelpers";
+import { PROPERTY_DEFAULTS, toAbsoluteTime } from "./gsapShared";
 
 function deduplicateKeyframes(keyframes: GsapPercentageKeyframe[]): GsapPercentageKeyframe[] {
   const byPct = new Map<number, GsapPercentageKeyframe>();
@@ -17,16 +22,6 @@ function deduplicateKeyframes(keyframes: GsapPercentageKeyframe[]): GsapPercenta
   }
   return Array.from(byPct.values()).sort((a, b) => a.percentage - b.percentage);
 }
-
-const PROPERTY_DEFAULTS: Record<string, number> = {
-  opacity: 1,
-  x: 0,
-  y: 0,
-  scale: 1,
-  scaleX: 1,
-  scaleY: 1,
-  rotation: 0,
-};
 
 function synthesizeFlatTweenKeyframes(anim: GsapAnimation): GsapKeyframesData | null {
   if (anim.method === "set") {
@@ -133,11 +128,17 @@ export function useGsapAnimationsForElement(
   const [multipleTimelines, setMultipleTimelines] = useState(false);
   const [unsupportedTimelinePattern, setUnsupportedTimelinePattern] = useState(false);
   const lastFetchKeyRef = useRef("");
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const fetchKey = `${projectId}:${sourceFile}:${version}`;
     if (fetchKey === lastFetchKeyRef.current) return;
     lastFetchKeyRef.current = fetchKey;
+
+    if (retryTimerRef.current) {
+      clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
 
     if (!projectId) {
       setAllAnimations([]);
@@ -158,26 +159,30 @@ export function useGsapAnimationsForElement(
       setAllAnimations(parsed.animations);
       setMultipleTimelines(parsed.multipleTimelines === true);
       setUnsupportedTimelinePattern(parsed.unsupportedTimelinePattern === true);
+
+      // Retry once if initial fetch returned 0 animations — handles
+      // cold-load race where the sourceFile isn't resolved yet.
+      if (parsed.animations.length === 0 && target) {
+        retryTimerRef.current = setTimeout(() => {
+          if (cancelled) return;
+          fetchParsedAnimations(projectId, sourceFile).then((retryParsed) => {
+            if (cancelled) return;
+            if (retryParsed && retryParsed.animations.length > 0) {
+              setAllAnimations(retryParsed.animations);
+            }
+          });
+        }, 800);
+      }
     });
 
     return () => {
       cancelled = true;
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
     };
-  }, [projectId, sourceFile, version]);
-
-  // Retry fetch if we have a target but no animations — handles cold-load race
-  // where the initial fetch runs before the drilled-down sourceFile is resolved
-  useEffect(() => {
-    if (!projectId || !target || allAnimations.length > 0) return;
-    const timer = setTimeout(() => {
-      fetchParsedAnimations(projectId, sourceFile).then((parsed) => {
-        if (parsed && parsed.animations.length > 0) {
-          setAllAnimations(parsed.animations);
-        }
-      });
-    }, 800);
-    return () => clearTimeout(timer);
-  }, [projectId, sourceFile, target, allAnimations.length]);
+  }, [projectId, sourceFile, version, target]);
 
   const targetId = target?.id ?? null;
   const targetSelector = target?.selector ?? null;
@@ -206,6 +211,7 @@ export function useGsapAnimationsForElement(
             keyframes: runtime.keyframes,
             ...(runtime.easeEach ? { easeEach: runtime.easeEach } : {}),
           },
+          ...(runtime.arcPath ? { arcPath: runtime.arcPath } : {}),
         };
       });
     }
@@ -238,6 +244,7 @@ export function useGsapAnimationsForElement(
                     keyframes: runtimeEntry.keyframes,
                     ...(runtimeEntry.easeEach ? { easeEach: runtimeEntry.easeEach } : {}),
                   },
+                  ...(runtimeEntry.arcPath ? { arcPath: runtimeEntry.arcPath } : {}),
                 },
               ];
             }
@@ -281,10 +288,12 @@ export function useGsapAnimationsForElement(
         anim.resolvedStart ?? (typeof anim.position === "number" ? anim.position : 0);
       const tweenDur = anim.duration ?? elDuration;
       for (const k of kf.keyframes) {
-        const absTime = tweenPos + (k.percentage / 100) * tweenDur;
+        const absTime = toAbsoluteTime(tweenPos, tweenDur, k.percentage);
+        // 0.001% precision (was 0.1%) so a beat-snapped keyframe centers exactly
+        // on the beat dot, which is rendered at the true beat time.
         const clipPct =
           elDuration > 0
-            ? Math.round(((absTime - elStart) / elDuration) * 1000) / 10
+            ? Math.round(((absTime - elStart) / elDuration) * 100000) / 1000
             : k.percentage;
         allKeyframes.push({
           ...k,
@@ -298,10 +307,7 @@ export function useGsapAnimationsForElement(
       if (kf.easeEach) easeEach = kf.easeEach;
     }
     if (allKeyframes.length === 0) {
-      const { keyframeCache, setKeyframeCache } = usePlayerStore.getState();
-      if (keyframeCache.has(`${sourceFile}#${elementId}`)) {
-        setKeyframeCache(`${sourceFile}#${elementId}`, undefined);
-      }
+      clearKeyframeCacheForElement(sourceFile, elementId);
       return;
     }
     const dedupedKeyframes = deduplicateKeyframes(allKeyframes);
@@ -354,22 +360,30 @@ export function usePopulateKeyframeCacheForFile(
 
     const sf = sourceFile;
     fetchParsedAnimations(projectId, sf).then((parsed) => {
-      if (!parsed) return;
-      const { setKeyframeCache, keyframeCache } = usePlayerStore.getState();
-      const sfPrefix = `${sf}#`;
-      const fallbackPrefix = "index.html#";
-      for (const key of keyframeCache.keys()) {
-        if (key.startsWith(sfPrefix) || (sf !== "index.html" && key.startsWith(fallbackPrefix))) {
-          setKeyframeCache(key, undefined);
-        }
+      if (!parsed) {
+        return;
       }
+      const { setKeyframeCache } = usePlayerStore.getState();
+      clearKeyframeCacheForFile(sf);
       const { elements } = usePlayerStore.getState();
+      console.log(
+        "[kf:static] elements in store:",
+        elements
+          .map((e) => e.domId)
+          .filter(Boolean)
+          .join(", "),
+      );
       const mergedByElement = new Map<string, GsapKeyframesData>();
       for (const anim of parsed.animations) {
         const id = extractIdFromSelector(anim.targetSelector);
         if (!id) continue;
+        if (anim.hasUnresolvedKeyframes) {
+          continue;
+        }
         const kfData = anim.keyframes ?? synthesizeFlatTweenKeyframes(anim);
-        if (!kfData) continue;
+        if (!kfData) {
+          continue;
+        }
         const tweenPos =
           anim.resolvedStart ?? (typeof anim.position === "number" ? anim.position : 0);
         const tweenDur = anim.duration ?? 1;
@@ -379,10 +393,13 @@ export function usePopulateKeyframeCacheForFile(
         const elStart = timelineEl?.start ?? 0;
         const elDuration = timelineEl?.duration ?? 1;
         const clipKeyframes = kfData.keyframes.map((kf) => {
-          const absTime = tweenPos + (kf.percentage / 100) * tweenDur;
+          const absTime = toAbsoluteTime(tweenPos, tweenDur, kf.percentage);
+          // 0.001% precision (matching useGsapAnimationsForElement above) so a
+          // beat-snapped keyframe centers exactly on the beat dot and the two
+          // caches agree on a keyframe's percentage.
           const clipPct =
             elDuration > 0
-              ? Math.round(((absTime - elStart) / elDuration) * 1000) / 10
+              ? Math.round(((absTime - elStart) / elDuration) * 100000) / 1000
               : kf.percentage;
           return {
             ...kf,
@@ -398,6 +415,12 @@ export function usePopulateKeyframeCacheForFile(
           mergedByElement.set(id, { ...kfData, keyframes: clipKeyframes });
         }
       }
+      console.log(
+        "[kf:static] merged elements:",
+        [...mergedByElement.keys()].join(", "),
+        "kf counts:",
+        [...mergedByElement.entries()].map(([k, v]) => `${k}:${v.keyframes.length}`).join(", "),
+      );
       for (const [id, kfData] of mergedByElement) {
         setKeyframeCache(`${sf}#${id}`, kfData);
         setKeyframeCache(id, kfData);
@@ -424,14 +447,37 @@ export function usePopulateKeyframeCacheForFile(
       const iframe =
         iframeRef?.current ?? document.querySelector<HTMLIFrameElement>("iframe[src*='/preview/']");
       if (!iframe) return false;
-      const scanned = scanAllRuntimeKeyframes(iframe);
+      // Clip dims per element so the scan converts tween-relative keyframes to
+      // clip-relative (matching the static path) instead of timeline-relative.
+      const clipById = new Map<string, { start: number; duration: number }>();
+      for (const el of usePlayerStore.getState().elements) {
+        if (el.domId) clipById.set(el.domId, { start: el.start, duration: el.duration });
+      }
+      const scanned = scanAllRuntimeKeyframes(iframe, clipById);
+      console.log(
+        "[kf:runtime] scanned",
+        scanned.size,
+        "elements:",
+        [...scanned.keys()].join(", "),
+      );
       if (scanned.size === 0) return false;
       const { setKeyframeCache, keyframeCache } = usePlayerStore.getState();
       for (const [id, data] of scanned) {
         const cacheKey = `${sf}#${id}`;
         const fallbackKey = `index.html#${id}`;
-        if (keyframeCache.has(cacheKey) || keyframeCache.has(fallbackKey) || keyframeCache.has(id))
+        const alreadyCached =
+          keyframeCache.has(cacheKey) || keyframeCache.has(fallbackKey) || keyframeCache.has(id);
+        if (alreadyCached) {
           continue;
+        }
+        console.log(
+          "[kf:runtime] adding runtime entry:",
+          id,
+          "kfs:",
+          data.keyframes.length,
+          "arc:",
+          !!data.arcPath,
+        );
         const entry = {
           format: "percentage" as const,
           keyframes: data.keyframes,

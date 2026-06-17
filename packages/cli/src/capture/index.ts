@@ -41,6 +41,7 @@ import type { CaptureOptions, CaptureResult } from "./types.js";
 
 export type { CaptureOptions, CaptureResult } from "./types.js";
 
+// fallow-ignore-next-line complexity
 export async function captureWebsite(
   opts: CaptureOptions,
   onProgress?: (stage: string, detail?: string) => void,
@@ -141,9 +142,18 @@ export async function captureWebsite(
 
     // Intercept network responses to detect Lottie JSON files
     const discoveredLotties: DiscoveredLottie[] = [];
+    // Layer 1 (passive video discovery): every direct-video URL the page fetches
+    // over the whole session (load / scroll / carousel rotation), independent of
+    // whether a <video> for it exists at snapshot time. captureVideoManifest
+    // downloads these (guarded) and merges them into the manifest.
+    const discoveredVideoUrls = new Set<string>();
+    // fallow-ignore-next-line complexity
     page1.on("response", async (response) => {
       try {
         const responseUrl = response.url();
+        if (/\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(responseUrl)) {
+          discoveredVideoUrls.add(responseUrl);
+        }
         const contentType = response.headers()["content-type"] || "";
         const isJsonUrl = responseUrl.endsWith(".json");
         const isLottieUrl = responseUrl.endsWith(".lottie");
@@ -390,6 +400,7 @@ export async function captureWebsite(
     // Remove Next.js bootstrap scripts individually (match each script tag separately)
     extracted.bodyHtml = extracted.bodyHtml.replace(
       /<script\b[^>]*>([\s\S]*?)<\/script>/gi,
+      // fallow-ignore-next-line complexity
       (match: string, content: string) => {
         // Only remove if this specific script contains Next.js bootstrap code
         if (
@@ -423,7 +434,10 @@ export async function captureWebsite(
     // Generate video manifest — screenshot each <video> element + extract surrounding context
     // so Claude Code can SEE what each video shows and WHERE it was used on the page.
     try {
-      await captureVideoManifest(page1, outputDir, progress);
+      await captureVideoManifest(page1, outputDir, progress, {
+        networkVideoUrls: discoveredVideoUrls, // Layer 1 (live Set, read after sampling)
+        sampleMs: 12000, // Layer 2: poll DOM ≤12s so auto-rotating carousels reveal each slide
+      });
     } catch {
       /* non-blocking — video manifest is best-effort */
     }
@@ -506,6 +520,49 @@ export async function captureWebsite(
       assets = await downloadAssets(tokens, outputDir, catalogedAssets, faviconLinks);
     }
 
+    // Join in-section media URLs → downloaded local paths, then re-write
+    // tokens.json. Downstream page recreation MUST reference local files:
+    // remote URLs fail at render time (hotlink/CORS 403, no egress in
+    // Docker/Lambda, frame-timing blanks for not-yet-loaded images).
+    if (assets.length && Array.isArray(tokens.sections)) {
+      const base = (u: string): string => u.split(/[#?]/)[0] ?? u;
+      const localByUrl = new Map<string, string>();
+      for (const a of assets) {
+        if (!a.url || !a.localPath) continue;
+        localByUrl.set(a.url, a.localPath);
+        localByUrl.set(base(a.url), a.localPath);
+      }
+      for (const sec of tokens.sections) {
+        const local: string[] = [];
+        for (const u of sec.assetUrls || []) {
+          const hit = localByUrl.get(u) || localByUrl.get(base(u));
+          if (hit && !local.includes(hit)) local.push(hit);
+        }
+        if (local.length) sec.assets = local;
+      }
+      const tokensForDisk2 = {
+        ...tokens,
+        svgs: tokens.svgs.map(({ outerHTML: _, ...rest }) => rest),
+      };
+      writeFileSync(
+        join(outputDir, "extracted", "tokens.json"),
+        JSON.stringify(tokensForDisk2, null, 2),
+        "utf-8",
+      );
+    }
+
+    // Persist a self-contained page recreation (extracted/page.html) as the
+    // high-fidelity structural reference for the page-card rebuild. NOT a
+    // composition — kept under extracted/ so the producer (which discovers
+    // compositions by index.html) never picks it up. Images are already inlined
+    // as data URLs by extractHtml, so it renders standalone.
+    try {
+      const pageHtml = `<!doctype html>\n<html ${extracted.htmlAttrs || ""}>\n<head>\n${extracted.headHtml}\n</head>\n<body>\n${extracted.bodyHtml}\n</body>\n</html>\n`;
+      writeFileSync(join(outputDir, "extracted", "page.html"), pageHtml, "utf-8");
+    } catch (err) {
+      warnings.push(`page.html write failed: ${err}`);
+    }
+
     // Save visible text content for AI agent to use
     if (visibleTextContent) {
       writeFileSync(join(outputDir, "extracted", "visible-text.txt"), visibleTextContent, "utf-8");
@@ -522,14 +579,19 @@ export async function captureWebsite(
       const lines = generateAssetDescriptions(outputDir, tokens, catalogedAssets, geminiCaptions);
 
       if (lines.length > 0) {
+        const hasGeminiKey = !!(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY);
+        const header = hasGeminiKey
+          ? "# Asset Descriptions\n\nOne line per file. Read this instead of opening every image individually.\n\nTo find a specific brand or icon, **grep this file for the brand name in the description text** (e.g. `grep -i 'autodesk' asset-descriptions.md`). The Gemini Vision captions identify what's actually in each file — that's the agent's selector.\n\nThe `logo-<hash>.svg` filename prefix is a cheap structural hint (DOM said this SVG was inside a `<header>`, home-link `<a>`, or had an aria-label matching the page brand). It is NOT a content claim — many `logo-*` files are nav icons or decorative shapes. Trust the captions, not the filename prefix.\n\n"
+          : "# Asset Descriptions\n\n⚠️  GEMINI_API_KEY not set — descriptions below are catalog-derived (alt text, headings, section context, filename) instead of Vision-generated. To get richer Vision descriptions on the next capture, set GEMINI_API_KEY (or GOOGLE_API_KEY) and re-run.\n\nThe `logo-<hash>.svg` filename prefix is a structural hint (DOM said this SVG was inside a `<header>`, home-link `<a>`, or had an aria-label matching the page brand). To pick the actual brand logo without Vision, open the `logo-*` candidates in a previewer or rasterize them with `sharp` before referencing — composing a fake logo ships off-brand in the final video.\n\n";
         writeFileSync(
           join(outputDir, "extracted", "asset-descriptions.md"),
-          "# Asset Descriptions\n\nOne line per file. Read this instead of opening every image individually.\n\n" +
-            lines.map((l) => "- " + l).join("\n") +
-            "\n",
+          header + lines.map((l) => "- " + l).join("\n") + "\n",
           "utf-8",
         );
-        progress("design", `${lines.length} asset descriptions written`);
+        progress(
+          "design",
+          `${lines.length} asset descriptions written${hasGeminiKey ? "" : " (no Gemini key — catalog-fallback mode)"}`,
+        );
       }
     } catch {
       /* non-critical */

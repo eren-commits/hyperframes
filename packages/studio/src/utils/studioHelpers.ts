@@ -1,6 +1,7 @@
-import type { TimelineElement } from "../player";
+import type { TimelineElement } from "../player/store/playerStore";
 import type { DomEditSelection } from "../components/editor/domEditing";
 import type { TimelineAssetKind } from "./timelineAssetDrop";
+import { roundToCenti } from "./rounding";
 
 export interface EditingFile {
   path: string;
@@ -13,6 +14,12 @@ export interface AppToast {
 }
 
 export type RightPanelTab = "layers" | "design" | "renders" | "block-params";
+export type RightInspectorPane = "layers" | "design";
+
+export interface RightInspectorPanes {
+  layers: boolean;
+  design: boolean;
+}
 
 export interface AgentModalAnchorPoint {
   x: number;
@@ -115,38 +122,64 @@ export function getHistoryShortcutLabel(action: "undo" | "redo"): string {
   return action === "undo" ? `${modifier}+Z` : `${modifier}+Shift+Z`;
 }
 
+type ElementMatchSelection = Pick<
+  DomEditSelection,
+  "id" | "selector" | "selectorIndex" | "sourceFile" | "compositionSrc" | "isCompositionHost"
+>;
+
+function matchesByDomId(
+  selection: ElementMatchSelection,
+  element: TimelineElement,
+  selectionSourceFile: string,
+): boolean {
+  if (!selection.id) return false;
+  return (
+    element.domId === selection.id && (element.sourceFile || "index.html") === selectionSourceFile
+  );
+}
+
+function matchesByCompositionHost(
+  selection: ElementMatchSelection,
+  element: TimelineElement,
+): boolean {
+  if (!selection.isCompositionHost || !selection.compositionSrc) return false;
+  return element.compositionSrc === selection.compositionSrc;
+}
+
+function matchesBySelector(selection: ElementMatchSelection, element: TimelineElement): boolean {
+  if (!selection.selector) return false;
+  return (
+    element.selector === selection.selector &&
+    (element.selectorIndex ?? 0) === (selection.selectorIndex ?? 0) &&
+    (element.sourceFile ?? "index.html") === selection.sourceFile
+  );
+}
+
+function elementMatchesSelection(
+  selection: ElementMatchSelection,
+  element: TimelineElement,
+  selectionSourceFile: string,
+): boolean {
+  return (
+    matchesByDomId(selection, element, selectionSourceFile) ||
+    matchesByCompositionHost(selection, element) ||
+    matchesBySelector(selection, element)
+  );
+}
+
 export function findMatchingTimelineElementId(
-  selection: Pick<
-    DomEditSelection,
-    "id" | "selector" | "selectorIndex" | "sourceFile" | "compositionSrc" | "isCompositionHost"
-  >,
+  selection: ElementMatchSelection,
   elements: TimelineElement[],
 ): string | null {
   const selectionSourceFile = selection.sourceFile || "index.html";
-  for (const element of elements) {
-    const elementSourceFile = element.sourceFile || "index.html";
-    if (
-      selection.id &&
-      element.domId === selection.id &&
-      elementSourceFile === selectionSourceFile
-    ) {
-      return element.key ?? element.id;
-    }
-    if (
-      selection.isCompositionHost &&
-      selection.compositionSrc &&
-      element.compositionSrc === selection.compositionSrc
-    ) {
-      return element.key ?? element.id;
-    }
-    if (
-      selection.selector &&
-      element.selector === selection.selector &&
-      (element.selectorIndex ?? 0) === (selection.selectorIndex ?? 0) &&
-      (element.sourceFile ?? "index.html") === selection.sourceFile
-    ) {
-      return element.key ?? element.id;
-    }
+  const match = elements.find((el) => elementMatchesSelection(selection, el, selectionSourceFile));
+  if (match) return match.key ?? match.id;
+
+  // Child inside a sub-composition: return a qualified ID so the expansion
+  // hook can resolve the child via clipParentMap even though no timeline
+  // element exists for it yet (the expansion creates it on the fly).
+  if (selection.id && selectionSourceFile !== "index.html") {
+    return `${selectionSourceFile}#${selection.id}`;
   }
 
   return null;
@@ -170,6 +203,8 @@ export function clampNumber(value: number, min: number, max: number): number {
   if (max < min) return min;
   return Math.min(Math.max(value, min), max);
 }
+
+export { COMPOSITION_ROOT_OPEN_TAG_RE } from "./compositionPatterns";
 
 export function collectHtmlIds(source: string): string[] {
   return Array.from(source.matchAll(/\bid="([^"]+)"/g), (match) => match[1] ?? "");
@@ -205,7 +240,7 @@ export async function resolveDroppedAssetDuration(
         const raw = Number(media.duration);
         finalize(
           Number.isFinite(raw) && raw > 0
-            ? Math.round(raw * 100) / 100
+            ? roundToCenti(raw)
             : DEFAULT_TIMELINE_ASSET_DURATION[kind],
         );
       },

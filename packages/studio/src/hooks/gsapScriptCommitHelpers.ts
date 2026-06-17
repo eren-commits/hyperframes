@@ -1,17 +1,7 @@
 import { findUnsafeDomPatchValues } from "@hyperframes/core/studio-api/finite-mutation";
 import type { DomEditSelection } from "../components/editor/domEditingTypes";
 
-export const PROPERTY_DEFAULTS: Record<string, number> = {
-  opacity: 1,
-  x: 0,
-  y: 0,
-  scale: 1,
-  scaleX: 1,
-  scaleY: 1,
-  rotation: 0,
-  width: 100,
-  height: 100,
-};
+export { PROPERTY_DEFAULTS } from "./gsapShared";
 
 export function ensureElementAddressable(selection: DomEditSelection): {
   selector: string;
@@ -47,6 +37,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
+export function formatFieldsSuffix(rawFields: unknown): string {
+  const fields = Array.isArray(rawFields)
+    ? rawFields.filter((f): f is string => typeof f === "string")
+    : [];
+  return fields.length > 0 ? ` (${fields.join(", ")})` : "";
+}
+
 export async function readJsonResponseBody(res: Response): Promise<unknown> {
   const contentType = res.headers.get("content-type") ?? "";
   if (!contentType.includes("application/json")) {
@@ -65,14 +62,10 @@ function formatGsapMutationHttpErrorMessage(statusCode: number, body: unknown): 
 export function formatGsapMutationRejectionToast(error: GsapMutationHttpError): string {
   const body = error.responseBody;
   if (isRecord(body)) {
-    const fields = Array.isArray(body.fields)
-      ? body.fields.filter((field): field is string => typeof field === "string")
-      : [];
-    const suffix = fields.length > 0 ? ` (${fields.join(", ")})` : "";
     return `Couldn't save animation: ${formatGsapMutationHttpErrorMessage(
       error.statusCode,
       body,
-    )}${suffix}`;
+    )}${formatFieldsSuffix(body.fields)}`;
   }
   return `Couldn't save animation: ${error.message}`;
 }

@@ -11,6 +11,42 @@ import type { PropertyGroupName } from "./gsapConstants";
 
 export type GsapMethod = "set" | "to" | "from" | "fromTo";
 
+/** How a tween was constructed in source — drives display classification and editability. */
+export type GsapProvenanceKind = "literal" | "helper" | "loop" | "runtime-dynamic";
+
+/**
+ * Origin of a parsed tween. `literal` tweens map 1:1 to a source call and edit
+ * directly; `helper`/`loop` tweens are expanded from a reused construct (unroll
+ * to edit); `runtime-dynamic` tweens come from live introspection (override to
+ * edit). Absent provenance is treated as `literal`.
+ */
+export interface GsapProvenance {
+  kind: GsapProvenanceKind;
+  /** Helper function name (kind === "helper"). */
+  fn?: string;
+  /** 1-based ordinal of the originating call site / loop construct in source order. */
+  callSite?: number;
+  /** 0-based iteration index (kind === "loop"). */
+  iteration?: number;
+  /** Source offset [start, end] of the originating call/loop, when known. */
+  sourceRange?: [number, number];
+}
+
+/** How a tween's keyframes can be edited, derived from its provenance. */
+export type KeyframeEditability = "direct" | "unroll" | "source";
+
+/**
+ * Map provenance to an editing strategy:
+ * - `direct` — literal tween, maps 1:1 to source; edit in place.
+ * - `unroll` — helper/loop expansion; unroll to literal tweens, then edit.
+ * - `source` — runtime-dynamic value; not statically editable, edit the code.
+ */
+export function editabilityForProvenance(provenance?: GsapProvenance): KeyframeEditability {
+  if (!provenance || provenance.kind === "literal") return "direct";
+  if (provenance.kind === "runtime-dynamic") return "source";
+  return "unroll";
+}
+
 export interface GsapAnimation {
   id: string;
   targetSelector: string;
@@ -37,6 +73,8 @@ export interface GsapAnimation {
   /** Which property group this tween belongs to (position, scale, size, rotation, visual, other).
    *  Undefined for legacy mixed tweens that bundle multiple groups. */
   propertyGroup?: PropertyGroupName;
+  /** How this tween was constructed in source. Absent ⇒ literal. */
+  provenance?: GsapProvenance;
 }
 
 export interface GsapPercentageKeyframe {
@@ -66,6 +104,39 @@ export interface ArcPathConfig {
   segments: ArcPathSegment[];
 }
 
+export interface MotionPathShape {
+  arcPath: ArcPathConfig;
+  waypoints: Array<{ x: number; y: number }>;
+}
+
+/**
+ * Build arcPath segments + waypoints from resolved path coordinates. Shared by
+ * the AST parser (coords from literal nodes) and the runtime scanner (coords
+ * from a live `vars.motionPath`), so both produce identical arc config.
+ */
+export function buildArcPath(
+  coords: Array<{ x: number; y: number }>,
+  curviness: number,
+  autoRotate: boolean | number,
+  isCubic: boolean,
+): MotionPathShape | undefined {
+  if (coords.length < 2) return undefined;
+  const segments: ArcPathSegment[] = [];
+  let waypoints: Array<{ x: number; y: number }>;
+  if (isCubic && coords.length >= 4) {
+    // coords are [anchor, cp1, cp2, anchor, cp1, cp2, anchor, ...].
+    waypoints = [coords[0]!];
+    for (let i = 1; i + 2 < coords.length; i += 3) {
+      waypoints.push(coords[i + 2]!);
+      segments.push({ curviness, cp1: coords[i]!, cp2: coords[i + 1]! });
+    }
+  } else {
+    waypoints = coords;
+    for (let i = 0; i < waypoints.length - 1; i++) segments.push({ curviness });
+  }
+  return { arcPath: { enabled: true, autoRotate, segments }, waypoints };
+}
+
 export interface ParsedGsap {
   animations: GsapAnimation[];
   timelineVar: string;
@@ -91,6 +162,7 @@ export function serializeGsapAnimations(
       b.resolvedStart ?? (typeof b.position === "number" ? b.position : Number.MAX_SAFE_INTEGER);
     return aNum - bNum;
   });
+  // fallow-ignore-next-line complexity
   const lines = sorted.map((anim) => {
     const selector = `"${anim.targetSelector}"`;
     const props: Record<string, number | string> = { ...anim.properties };
@@ -153,7 +225,7 @@ ${lines.join("\n")}${mediaSync}${postamble}
   `;
 }
 
-function serializeValue(value: unknown): string {
+export function serializeValue(value: unknown): string {
   if (typeof value === "string" && value.startsWith("__raw:")) {
     return value.slice(6);
   }
@@ -161,10 +233,13 @@ function serializeValue(value: unknown): string {
   return String(value);
 }
 
+export function safeJsKey(key: string): string {
+  return /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key) ? key : JSON.stringify(key);
+}
+
 function serializeObject(obj: Record<string, number | string>): string {
   const entries = Object.entries(obj).map(([key, value]) => {
-    const safeKey = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key) ? key : JSON.stringify(key);
-    return `${safeKey}: ${serializeValue(value)}`;
+    return `${safeJsKey(key)}: ${serializeValue(value)}`;
   });
   return `{ ${entries.join(", ")} }`;
 }
@@ -172,8 +247,7 @@ function serializeObject(obj: Record<string, number | string>): string {
 function serializeExtras(extras: Record<string, unknown>): string {
   return Object.entries(extras)
     .map(([key, value]) => {
-      const safeKey = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key) ? key : JSON.stringify(key);
-      return `${safeKey}: ${serializeValue(value)}`;
+      return `${safeJsKey(key)}: ${serializeValue(value)}`;
     })
     .join(", ");
 }
@@ -198,7 +272,6 @@ export function getAnimationsForElementId(
 const FORBIDDEN_GSAP_PATTERNS: Array<{ pattern: RegExp; message: string }> = [
   { pattern: /\.call\s*\(/, message: "call() method not allowed" },
   { pattern: /\.add\s*\(/, message: "add() method not allowed" },
-  { pattern: /\.addLabel\s*\(/, message: "addLabel() method not allowed" },
   { pattern: /\.addPause\s*\(/, message: "addPause() method not allowed" },
   { pattern: /gsap\.registerEffect\s*\(/, message: "registerEffect() not allowed" },
   { pattern: /ScrollTrigger/, message: "ScrollTrigger not allowed" },
@@ -245,6 +318,7 @@ export function keyframesToGsapAnimations(
   const baseY = base?.y ?? 0;
   const baseScale = base?.scale ?? 1;
 
+  // fallow-ignore-next-line complexity
   sorted.forEach((kf, i) => {
     const absoluteTime = elementStartTime + kf.time;
     const isFirst = i === 0;
@@ -295,41 +369,47 @@ export function gsapAnimationsToKeyframes(
   const baseTimeEpsilon = 0.001;
   const baseValueEpsilon = 0.00001;
 
-  return animations
-    .filter((a) => validMethods.includes(a.method) && typeof a.position === "number")
-    .map((a) => {
-      const relativeTimeRaw = (a.position as number) - elementStartTime;
-      const time = clampTimeToZero ? Math.max(0, relativeTimeRaw) : relativeTimeRaw;
+  return (
+    animations
+      .filter(
+        (a): a is GsapAnimation & { position: number } =>
+          validMethods.includes(a.method) && typeof a.position === "number",
+      )
+      // fallow-ignore-next-line complexity
+      .map((a) => {
+        const relativeTimeRaw = a.position - elementStartTime;
+        const time = clampTimeToZero ? Math.max(0, relativeTimeRaw) : relativeTimeRaw;
 
-      const properties: Partial<KeyframeProperties> = {};
-      for (const [key, value] of Object.entries(a.properties)) {
-        if (typeof value !== "number") continue;
-        if (key === "x") properties.x = value - baseX;
-        else if (key === "y") properties.y = value - baseY;
-        else if (key === "scale") {
-          properties.scale = baseScale !== 0 ? value / baseScale : value;
-        } else {
-          (properties as Record<string, number>)[key] = value;
+        const properties: Partial<KeyframeProperties> = {};
+        for (const [key, value] of Object.entries(a.properties)) {
+          if (typeof value !== "number") continue;
+          if (key === "x") properties.x = value - baseX;
+          else if (key === "y") properties.y = value - baseY;
+          else if (key === "scale") {
+            properties.scale = baseScale !== 0 ? value / baseScale : value;
+          } else {
+            (properties as Record<string, number>)[key] = value;
+          }
         }
-      }
 
-      if (
-        skipBaseSet &&
-        a.method === "set" &&
-        time < baseTimeEpsilon &&
-        Object.values(properties).every(
-          (v) => typeof v === "number" && Math.abs(v) < baseValueEpsilon,
-        )
-      ) {
-        return null;
-      }
+        if (
+          skipBaseSet &&
+          a.method === "set" &&
+          time < baseTimeEpsilon &&
+          Object.values(properties).every(
+            (v) => typeof v === "number" && Math.abs(v) < baseValueEpsilon,
+          )
+        ) {
+          return null;
+        }
 
-      return {
-        id: a.id.replace(/^.*-kf-/, ""),
-        time,
-        properties: properties as KeyframeProperties,
-        ease: a.ease,
-      };
-    })
-    .filter((kf): kf is NonNullable<typeof kf> => kf !== null) as Keyframe[];
+        return {
+          id: a.id.replace(/^.*-kf-/, ""),
+          time,
+          properties: properties as KeyframeProperties,
+          ease: a.ease,
+        };
+      })
+      .filter((kf): kf is NonNullable<typeof kf> => kf !== null)
+  );
 }

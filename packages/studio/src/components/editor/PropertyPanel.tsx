@@ -1,6 +1,6 @@
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { Eye, Layers, Move, X } from "../../icons/SystemIcons";
-import { useStudioContext } from "../../contexts/StudioContext";
+import { useStudioShellContext } from "../../contexts/StudioContext";
 import { readStudioBoxSize, readStudioPathOffset, readStudioRotation } from "./manualEdits";
 import {
   EMPTY_STYLES,
@@ -11,13 +11,22 @@ import {
   readGsapBorderRadiusForPanel,
 } from "./propertyPanelHelpers";
 import { MetricField, Section } from "./propertyPanelPrimitives";
+import { createTransformCommitHandlers } from "./propertyPanelTransformCommit";
 import { classifyPropertyGroup } from "@hyperframes/core/gsap-parser";
 import { isMediaElement, MediaSection } from "./propertyPanelMediaSection";
+import {
+  ColorGradingSection,
+  isColorGradingCapableElement,
+} from "./propertyPanelColorGradingSection";
 import { TextSection, StyleSections } from "./propertyPanelSections";
 import { GsapAnimationSection } from "./GsapAnimationSection";
 import { PropertyPanel3dTransform } from "./propertyPanel3dTransform";
 import { KeyframeNavigation } from "./KeyframeNavigation";
-import { STUDIO_GSAP_PANEL_ENABLED, STUDIO_KEYFRAMES_ENABLED } from "./manualEditingAvailability";
+import {
+  STUDIO_COLOR_GRADING_ENABLED,
+  STUDIO_GSAP_PANEL_ENABLED,
+  STUDIO_KEYFRAMES_ENABLED,
+} from "./manualEditingAvailability";
 import { usePlayerStore, liveTime } from "../../player";
 import { TimingSection } from "./propertyPanelTimingSection";
 import { type PropertyPanelProps } from "./propertyPanelHelpers";
@@ -46,6 +55,7 @@ export const PropertyPanel = memo(function PropertyPanel({
   onClearSelection,
   onSetStyle,
   onSetAttribute,
+  onSetAttributeLive,
   onSetHtmlAttribute,
   onSetManualOffset,
   onSetManualSize,
@@ -73,6 +83,7 @@ export const PropertyPanel = memo(function PropertyPanel({
   onAddGsapAnimation,
   onSetArcPath,
   onUpdateArcSegment,
+  onUnroll,
   onAddKeyframe,
   onRemoveKeyframe,
   onConvertToKeyframes,
@@ -83,7 +94,7 @@ export const PropertyPanel = memo(function PropertyPanel({
   onToggleRecording,
 }: PropertyPanelProps) {
   const styles = element?.computedStyles ?? EMPTY_STYLES;
-  const { showToast } = useStudioContext();
+  const { showToast } = useStudioShellContext();
   const [clipboardCopied, setClipboardCopied] = useState(false);
   const clipboardTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const storeTime = usePlayerStore((s) => s.currentTime);
@@ -109,6 +120,29 @@ export const PropertyPanel = memo(function PropertyPanel({
   const currentTime = isPlaying ? liveTimeRef.current : storeTime;
   const cacheElementKey = element?.id ?? element?.selector ?? "";
   const cacheEntry = usePlayerStore((s) => s.keyframeCache.get(cacheElementKey));
+
+  const iframeRef = previewIframeRef ?? { current: null };
+  const gsapAnimIdForMemo = element
+    ? (gsapAnimations?.find((a: { keyframes?: unknown }) => a.keyframes)?.id ??
+      gsapAnimations?.[0]?.id ??
+      null)
+    : null;
+  const gsapRuntimeValues = useMemo(
+    () =>
+      element
+        ? readGsapRuntimeValuesForPanel(gsapAnimIdForMemo, gsapAnimations, element, iframeRef)
+        : null,
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- iframeRef is stable; currentTime drives re-reads during playback
+    [gsapAnimIdForMemo, gsapAnimations, element, currentTime],
+  );
+  const gsapBorderRadius = useMemo(
+    () =>
+      element
+        ? readGsapBorderRadiusForPanel(gsapRuntimeValues, gsapAnimations, element, iframeRef)
+        : null,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [gsapRuntimeValues, gsapAnimations, element, currentTime],
+  );
 
   if (!element) {
     return (
@@ -158,66 +192,7 @@ export const PropertyPanel = memo(function PropertyPanel({
       ? manualSize.height
       : (parsePxMetricValue(styles.height ?? "") ?? element.boundingBox.height);
 
-  const commitManualOffset = (axis: "x" | "y", nextValue: string) => {
-    const parsed = parsePxMetricValue(nextValue);
-    if (parsed == null) return;
-    if (onCommitAnimatedProperty && hasGsapAnimation) {
-      void onCommitAnimatedProperty(element, axis, parsed);
-      return;
-    }
-    if (gsapKeyframes && gsapAnimId && onAddKeyframe) {
-      const pct = Math.max(0, Math.min(100, Math.round(currentPct * 10) / 10));
-      onAddKeyframe(gsapAnimId, pct, axis, parsed);
-      return;
-    }
-    if (hasGsapAnimation) {
-      showToast?.("Cannot edit position — animation callbacks not available");
-      return;
-    }
-    const current = readStudioPathOffset(element.element);
-    void Promise.resolve(
-      onSetManualOffset(element, {
-        x: axis === "x" ? parsed : current.x,
-        y: axis === "y" ? parsed : current.y,
-      }),
-    ).catch(() => undefined);
-  };
-
-  // fallow-ignore-next-line complexity
-  const commitManualSize = (axis: "width" | "height", nextValue: string) => {
-    const parsed = parsePxMetricValue(nextValue);
-    if (parsed == null || parsed <= 0) return;
-    if (onCommitAnimatedProperty && hasGsapAnimation) {
-      void onCommitAnimatedProperty(element, axis, parsed);
-      return;
-    }
-    if (hasGsapAnimation) {
-      showToast?.("Cannot edit size — animation callbacks not available");
-      return;
-    }
-    const current = readStudioBoxSize(element.element);
-    const width =
-      current.width > 0
-        ? current.width
-        : (parsePxMetricValue(styles.width ?? "") ?? element.boundingBox.width);
-    const height =
-      current.height > 0
-        ? current.height
-        : (parsePxMetricValue(styles.height ?? "") ?? element.boundingBox.height);
-    void Promise.resolve(
-      onSetManualSize(element, {
-        width: axis === "width" ? parsed : width,
-        height: axis === "height" ? parsed : height,
-      }),
-    ).catch(() => undefined);
-  };
-
   const manualRotation = readStudioRotation(element.element);
-  const commitManualRotation = (nextValue: string) => {
-    const parsed = Number.parseFloat(nextValue);
-    if (!Number.isFinite(parsed)) return;
-    void Promise.resolve(onSetManualRotation(element, { angle: parsed })).catch(() => undefined);
-  };
 
   const elStart = Number.parseFloat(element?.dataAttributes?.start ?? "0") || 0;
   const elDuration = Number.parseFloat(element?.dataAttributes?.duration ?? "1") || 0;
@@ -227,6 +202,21 @@ export const PropertyPanel = memo(function PropertyPanel({
   const gsapKeyframes = gsapKfAnim?.keyframes?.keyframes ?? null;
   const gsapAnimId = gsapKfAnim?.id ?? gsapAnimations?.[0]?.id ?? null;
   const hasGsapAnimation = !!(gsapAnimId || gsapAnimations.length > 0);
+  const { commitManualOffset, commitManualSize, commitManualRotation } =
+    createTransformCommitHandlers({
+      element,
+      styles,
+      hasGsapAnimation,
+      gsapAnimId,
+      gsapKeyframes,
+      currentPct,
+      onCommitAnimatedProperty,
+      onAddKeyframe,
+      onSetManualOffset,
+      onSetManualSize,
+      onSetManualRotation,
+      showToast,
+    });
   const navKeyframes = cacheEntry?.keyframes ?? gsapKeyframes;
   const seekFromKfPct = (pct: number) => onSeekToTime?.(elStart + (pct / 100) * elDuration);
 
@@ -236,21 +226,6 @@ export const PropertyPanel = memo(function PropertyPanel({
     if (groupAnim) return groupAnim.id;
     return gsapAnimId ?? "";
   };
-
-  // Read ALL GSAP-interpolated values at the current seek time.
-  const gsapRuntimeValues = readGsapRuntimeValuesForPanel(
-    gsapAnimId,
-    gsapAnimations,
-    element,
-    previewIframeRef ?? { current: null },
-  );
-
-  const gsapBorderRadius = readGsapBorderRadiusForPanel(
-    gsapRuntimeValues,
-    gsapAnimations,
-    element,
-    previewIframeRef ?? { current: null },
-  );
 
   const displayX = gsapRuntimeValues?.x ?? manualOffset.x;
   const displayY = gsapRuntimeValues?.y ?? manualOffset.y;
@@ -386,6 +361,22 @@ export const PropertyPanel = memo(function PropertyPanel({
             onSetStyle={onSetStyle}
             onSetAttribute={onSetAttribute}
             onSetHtmlAttribute={onSetHtmlAttribute}
+          />
+        )}
+
+        {STUDIO_COLOR_GRADING_ENABLED && isColorGradingCapableElement(element) && (
+          <ColorGradingSection
+            key={[
+              element.id ?? "",
+              element.hfId ?? "",
+              element.selector ?? "",
+              String(element.selectorIndex ?? ""),
+            ].join("|")}
+            element={element}
+            assets={assets}
+            previewIframeRef={previewIframeRef}
+            onImportAssets={onImportAssets}
+            onSetAttributeLive={onSetAttributeLive}
           />
         )}
 
@@ -566,6 +557,7 @@ export const PropertyPanel = memo(function PropertyPanel({
               onAddAnimation={onAddGsapAnimation}
               onSetArcPath={onSetArcPath}
               onUpdateArcSegment={onUpdateArcSegment}
+              onUnroll={onUnroll}
             />
           )}
 

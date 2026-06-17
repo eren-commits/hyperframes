@@ -22,33 +22,23 @@ for (const stream of [process.stdout, process.stderr]) {
 }
 
 // ── Worker entry path bootstrap (must run before any producer/engine load) ──
-// The hf#677 worker_threads pools (`pngDecodeBlitWorkerPool`,
-// `shaderTransitionWorkerPool`) live in the producer package and try to
-// resolve their worker entry by probing for sibling `.js` files next to
+// The shaderTransitionWorkerPool lives in the producer package and resolves
+// its worker entry by probing for a sibling `.js` file next to
 // `import.meta.url`. When this CLI is bundled by tsup, the producer code is
 // inlined into `cli.js`, but `import.meta.url` resolves to the producer's
 // own dist path (NOT cli.js) on some module-graph layouts — so the sibling
-// probe lands in a directory that does not contain the bundled workers.
-// We emit the worker entries next to cli.js (see tsup.config.ts) and tell
-// the pools where to find them via the published env-var overrides. The
-// pools have an explicit `workerEntryPath` factory option as the canonical
-// API, but setting the env vars here covers every call site without having
-// to thread the path through the renderOrchestrator → captureHdrStage →
-// captureHdrHybridLoop chain.
+// probe lands in a directory that does not contain the bundled worker.
+// We emit the worker entry next to cli.js (see tsup.config.ts) and tell
+// the pool where to find it via the published env-var override.
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { existsSync } from "node:fs";
 
-// fallow-ignore-next-line complexity
 (() => {
   const here = dirname(fileURLToPath(import.meta.url));
   const shader = join(here, "shaderTransitionWorker.js");
-  const png = join(here, "pngDecodeBlitWorker.js");
   if (!process.env.HF_SHADER_WORKER_ENTRY && existsSync(shader)) {
     process.env.HF_SHADER_WORKER_ENTRY = shader;
-  }
-  if (!process.env.HF_PNG_DECODE_BLIT_WORKER_ENTRY && existsSync(png)) {
-    process.env.HF_PNG_DECODE_BLIT_WORKER_ENTRY = png;
   }
 })();
 
@@ -111,6 +101,7 @@ try {
 
 import { defineCommand, runMain } from "citty";
 import type { ArgsDef, CommandDef } from "citty";
+import { reportCommandFailure, trackCommandFailures } from "./utils/command-failure-tracking.js";
 
 const isHelp = process.argv.includes("--help") || process.argv.includes("-h");
 
@@ -118,7 +109,7 @@ const isHelp = process.argv.includes("--help") || process.argv.includes("-h");
 // CLI definition — all commands are lazy-loaded via dynamic import()
 // ---------------------------------------------------------------------------
 
-const subCommands = {
+const commandLoaders = {
   init: () => import("./commands/init.js").then((m) => m.default),
   add: () => import("./commands/add.js").then((m) => m.default),
   catalog: () => import("./commands/catalog.js").then((m) => m.default),
@@ -127,6 +118,7 @@ const subCommands = {
   publish: () => import("./commands/publish.js").then((m) => m.default),
   render: () => import("./commands/render.js").then((m) => m.default),
   lint: () => import("./commands/lint.js").then((m) => m.default),
+  beats: () => import("./commands/beats.js").then((m) => m.default),
   inspect: () => import("./commands/inspect.js").then((m) => m.default),
   layout: () => import("./commands/layout.js").then((m) => m.default),
   info: () => import("./commands/info.js").then((m) => m.default),
@@ -151,6 +143,17 @@ const subCommands = {
   auth: () => import("./commands/auth.js").then((m) => m.default),
 };
 
+// Wrap each command's run() so a thrown failure reports its reason to telemetry
+// before citty catches the error and exits 1. The error is re-thrown unchanged,
+// preserving citty's print + exit-1 behavior. Commands that call process.exit()
+// themselves (e.g. `browser path`) bypass this and report inline.
+const subCommands = Object.fromEntries(
+  Object.entries(commandLoaders).map(([name, load]) => [
+    name,
+    trackCommandFailures(load, (err) => reportCommandFailure(command, err)),
+  ]),
+);
+
 const main = defineCommand({
   meta: {
     name: "hyperframes",
@@ -165,7 +168,10 @@ const main = defineCommand({
 // ---------------------------------------------------------------------------
 
 const cliCommandArg = process.argv[2];
-const command = cliCommandArg && cliCommandArg in subCommands ? cliCommandArg : "unknown";
+// Explicit annotation breaks a type cycle: `subCommands` references `command`
+// (in the failure reporter) and `command` references `subCommands` (the `in`
+// check), so its type can't be inferred from its own initializer.
+const command: string = cliCommandArg && cliCommandArg in subCommands ? cliCommandArg : "unknown";
 const hasJsonFlag = process.argv.includes("--json");
 
 // Captured references — populated when the lazy imports resolve.
